@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="p-4 md:p-6">
@@ -84,15 +85,12 @@
         <div class="max-w-4xl w-full mx-auto bg-white p-6 rounded-lg shadow-lg text-gray-800 mt-8">
             <div class="flex justify-between items-center">
                 <h1 class="text-3xl font-bold mb-6 text-center">Task Manager</h1>
-                <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl">&times;</button>
+                <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl" aria-label="Close Task Manager">&times;</button>
             </div>
         <div class="text-center mb-6 space-x-2">
             <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Add New Task
             </button>
-            <a href="calendar.html" id="calendar-btn" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
-                View Calendar
-            </a>
             <button id="advanced-options-btn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
                 Advanced Options
             </button>
@@ -107,12 +105,16 @@
     <!-- Modal for adding and editing tasks -->
     <div id="task-modal" class="modal">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
+            <button class="close-button" aria-label="Close Task Form">&times;</button>
             <h2 id="modal-title" class="text-2xl font-semibold mb-6 text-gray-700">Add New Task</h2>
              <form id="task-form">
                  <input type="hidden" id="task-id">
                  <div class="mb-4"> <label for="task-name" class="form-label">Task Name:</label> <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
-
+                 <div class="mb-4">
+                    <label for="task-icon" class="form-label">Task Icon (Font Awesome Class):</label>
+                    <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="form-hint">Find icons on fontawesome.com. Example: "fa-solid fa-star".</p>
+                 </div>
                  <div class="mb-4">
                      <label class="form-label">Time Input Type:</label>
                      <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
@@ -345,7 +347,7 @@
 
     <div id="advanced-options-modal" class="modal">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
+            <button class="close-button" aria-label="Close Advanced Options">&times;</button>
             <h2 class="text-2xl font-semibold mb-6 text-gray-700">Advanced Options</h2>
             <div id="advanced-options-content" class="space-y-6">
                 <fieldset>
@@ -430,6 +432,44 @@
                     <legend>Notification Management</legend>
                     <div id="notification-manager-content" class="space-y-4">
                         <!-- This content will be rendered by script-part-3.js -->
+                    </div>
+                </fieldset>
+                 <fieldset>
+                    <legend>Planner Integration</legend>
+                    <div>
+                        <label for="planner-default-category" class="form-label">Default Category for Planner Tasks:</label>
+                        <select id="planner-default-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Task Card Display</legend>
+                    <div id="task-card-display-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showDueDate" checked>
+                            <span>Show Due Date</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showRepetition" checked>
+                            <span>Show Repetition</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showDuration" checked>
+                            <span>Show Duration</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showCategory" checked>
+                            <span>Show Category</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showCountdown" checked>
+                            <span>Show Countdown</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="task-display-toggle" name="showProgress" checked>
+                            <span>Show Progress</span>
+                        </label>
                     </div>
                 </fieldset>
             </div>
