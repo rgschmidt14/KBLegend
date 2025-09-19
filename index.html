@@ -3,39 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Task Manager</title>
-    
-    <!-- External Libraries -->
+    <title>Pilot's Mission Planner & Task Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Link to your external stylesheet -->
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Custom styles for the notification toggle switch */
-        input[type="checkbox"].h-6.w-12:checked {
-            background-color: #22c55e; /* green-500 */
-        }
-        input[type="checkbox"].h-6.w-12:checked::before {
-            transform: translateX(1.5rem); /* 24px */
-        }
-        input[type="checkbox"].h-6.w-12::before {
-            content: '';
-            display: block;
-            width: 1.25rem; /* 20px */
-            height: 1.25rem; /* 20px */
-            border-radius: 9999px;
-            background-color: white;
-            transition: transform 0.2s ease-in-out;
-        }
-    </style>
 </head>
-<body class="p-4 md:p-8">
-    <!-- Main container for the application -->
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Task Manager</h1>
+<body class="p-4 md:p-6">
+
+    <!-- Pilot's Mission Planner -->
+    <div id="app" class="max-w-7xl mx-auto">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Pilot's Mission Planner</h1>
+            <p class="text-gray-400 mt-1">Plan your week, track your progress, ace that checkride.</p>
+            <button id="toggleTaskManagerBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-4">Toggle Task Manager</button>
+        </header>
+
+        <div id="mainPlannerSection">
+            <div class="flex justify-between items-center mb-4">
+                <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md text-white transition-colors">&lt; Prev Week</button>
+                <div class="text-center">
+                    <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
+                    <p id="weekDateRange" class="text-sm text-gray-400"></p>
+                </div>
+                <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md text-white transition-colors">Next Week &gt;</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
+                    <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
+                    <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
+                    <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators (KPIs)</h2>
+                    <div id="indicatorList" class="mb-3 space-y-2"></div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="newIndicatorInput" placeholder="New KPI (e.g., Landings)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
+                        <button id="addIndicatorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
+                <div>
+                    <span class="font-semibold mr-4">View:</span>
+                    <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-md transition-colors">Daily</button>
+                    <button data-view="weekly" class="view-btn bg-blue-600 text-white font-semibold py-1 px-3 rounded-md transition-colors">Weekly</button>
+                </div>
+                <button id="startNewWeekBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Advance to Next Week</button>
+            </div>
+
+            <div id="weeklyViewContainer" class="overflow-x-auto bg-gray-900 rounded-b-lg shadow-lg">
+                <div id="plannerContainer" class="planner-grid grid text-sm text-center"></div>
+            </div>
+
+            <div id="dailyViewContainer" class="hidden bg-gray-900 rounded-b-lg shadow-lg p-4 md:p-6"></div>
+        </div>
+
+        <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
+            <div id="progressTrackerContainer" class="space-y-6"></div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-backdrop hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">Advance to Next Week?</h3>
+            <p class="text-gray-300 mb-6">This will archive the current week, make your "Next Week Preview" the new current week, and remove the oldest week's data. This action cannot be undone.</p>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelNewWeek" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Cancel</button>
+                <button id="confirmNewWeek" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Confirm & Advance</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Manager Modal -->
+    <div id="taskManagerModal" class="modal-backdrop hidden">
+        <div class="max-w-4xl w-full mx-auto bg-white p-6 rounded-lg shadow-lg text-gray-800 mt-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold mb-6 text-center">Task Manager</h1>
+                <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl">&times;</button>
+            </div>
         <div class="text-center mb-6 space-x-2">
             <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Add New Task
@@ -51,7 +101,9 @@
         <div id="task-list" class="space-y-2">
             <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
         </div>
+        </div>
     </div>
+
     <!-- Modal for adding and editing tasks -->
     <div id="task-modal" class="modal">
         <div class="modal-content">
@@ -60,7 +112,7 @@
              <form id="task-form">
                  <input type="hidden" id="task-id">
                  <div class="mb-4"> <label for="task-name" class="form-label">Task Name:</label> <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
-                 
+
                  <div class="mb-4">
                      <label class="form-label">Time Input Type:</label>
                      <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
@@ -74,7 +126,7 @@
 
                  <div class="mb-4"> <label class="form-label">Due Date Type:</label> <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"> <option value="absolute">Absolute Date & Time</option> <option value="relative">Relative Time</option> </select> </div>
                  <div id="relative-due-date-group" class="mb-4 hidden"> <label class="form-label">Due In:</label> <div class="flex space-x-2 items-center"> <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Due relative to the time the task is saved.</p> </div>
-                 
+
                  <fieldset>
                     <legend>Repetition</legend>
                      <div class="mb-4">
@@ -284,13 +336,13 @@
                       </div>
                  </fieldset>
                  <div class="flex justify-end space-x-3 mt-8">
-                    <button type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"> Cancel </button> 
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"> Save Task </button> 
+                    <button type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"> Cancel </button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"> Save Task </button>
                 </div>
              </form>
         </div>
     </div>
-    
+
     <div id="advanced-options-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
@@ -386,4 +438,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-

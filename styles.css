@@ -1,124 +1,129 @@
+/* NEW STYLES.CSS */
 /* Main Styles for the Task Manager Application
 Defines the overall look, feel, and responsiveness.
 - Includes styles for the modal, task items, form elements, and buttons.
 */
-body { 
-    font-family: 'Inter', sans-serif; 
-    background-color: #f3f4f6; 
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #111827; /* Dark Gray */
+    color: #F3F4F6; /* Light Gray */
 }
 
-.modal { 
-    display: none; 
-    position: fixed; 
-    z-index: 1000; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    overflow: auto; 
-    background-color: rgba(0,0,0,0.5); 
-    justify-content: center; 
-    align-items: center; 
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); display: flex;
+    align-items: center; justify-content: center; z-index: 50;
 }
 
-.modal-content { 
-    background-color: #fefefe; 
-    margin: auto; 
-    padding: 2rem; 
-    border: 1px solid #888; 
-    width: 90%; 
-    max-width: 550px; 
-    border-radius: 0.5rem; 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-    max-height: 90vh; 
-    overflow-y: auto; 
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
 }
 
-.close-button { 
-    color: #aaa; 
-    float: right; 
-    font-size: 28px; 
-    font-weight: bold; 
-    cursor: pointer; 
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 550px;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
-.close-button:hover, .close-button:focus { 
-    color: black; 
-    text-decoration: none; 
-    cursor: pointer; 
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
-/* MODIFIED: Removed the hardcoded .task-[color] border styles. 
-   This will now be handled dynamically by JavaScript. */
-
-.task-completed { 
-    opacity: 0.6; 
+.close-button:hover, .close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-.task-completed h3 { 
-    text-decoration: line-through; 
+.task-completed {
+    opacity: 0.6;
 }
 
-.task-confirming-delete { 
-    border: 2px dashed #ef4444; 
+.task-completed h3 {
+    text-decoration: line-through;
+}
+
+.task-confirming-delete {
+    border: 2px dashed #ef4444;
 } /* Style for delete confirmation */
 
-@keyframes fadeIn { 
-    from { opacity: 0; } 
-    to { opacity: 1; } 
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.modal.active { 
-    display: flex; 
-    animation: fadeIn 0.3s ease-out; 
+.modal.active {
+    display: flex;
+    animation: fadeIn 0.3s ease-out;
 }
 
-#add-task-btn { 
-    transition: all 0.2s ease-in-out; 
+#add-task-btn {
+    transition: all 0.2s ease-in-out;
 }
 
-#add-task-btn:hover { 
-    transform: translateY(-2px); 
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); 
+#add-task-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.task-item { 
-    transition: border-left-color 0.3s ease, background-color 0.3s ease, opacity 0.2s ease, border 0.2s ease; 
-    padding: 0.5rem; 
+.task-item {
+    transition: border-left-color 0.3s ease, background-color 0.3s ease, opacity 0.2s ease, border 0.2s ease;
+    padding: 0.5rem;
     flex-wrap: wrap;
 }
 
-.task-item:not(.task-completed):not([data-status="blue"]):not([data-confirming="true"]):hover { 
-    filter: brightness(95%); 
+.task-item:not(.task-completed):not([data-status="blue"]):not([data-confirming="true"]):hover {
+    filter: brightness(95%);
 }
 
-.countdown-timer { 
-    font-size: 0.75rem; 
-    font-style: italic; 
-    min-height: 1rem; 
+.countdown-timer {
+    font-size: 0.75rem;
+    font-style: italic;
+    min-height: 1rem;
 }
 
-.duration-input { 
-    width: 6rem; 
+.duration-input {
+    width: 6rem;
 }
 
-.form-label { 
-    @apply block text-sm font-medium text-gray-700 mb-1; 
+.form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
 }
 
-.form-hint { 
-    @apply text-xs text-gray-500 mt-1 italic; 
+.form-hint {
+    @apply text-xs text-gray-500 mt-1 italic;
 }
 
-.progress-display { 
-    font-size: 0.85rem; 
-    font-weight: 500; 
-    display: inline-block; 
-    margin-right: 0.25rem; 
+.progress-display {
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-block;
+    margin-right: 0.25rem;
 }
 
-.control-button { 
-    @apply text-xs font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow; 
+.control-button {
+    @apply text-xs font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow;
 }
 
 .control-button-green { @apply bg-green-500 hover:bg-green-600 text-white focus:ring-green-400; }
@@ -127,69 +132,69 @@ body {
 .control-button-gray { @apply bg-gray-400 hover:bg-gray-500 text-gray-800 focus:ring-gray-300; }
 .control-button-red { @apply bg-red-500 hover:bg-red-600 text-white focus:ring-red-400; }
 
-.edit-progress-button { 
-    @apply text-xs ml-1 underline cursor-pointer; 
+.edit-progress-button {
+    @apply text-xs ml-1 underline cursor-pointer;
 }
 
-.progress-input { 
-    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-16; 
+.progress-input {
+    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-16;
 }
 
-.action-area-text { 
-    @apply text-xs font-semibold mr-2; 
+.action-area-text {
+    @apply text-xs font-semibold mr-2;
     flex-shrink: 1;
 }
 
-.misses-display { 
-    @apply text-xs font-medium; 
+.misses-display {
+    @apply text-xs font-medium;
 }
 
-.weekday-checkbox, .month-checkbox, .occurrence-checkbox, .day-checkbox { 
-    @apply h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-1 peer; 
+.weekday-checkbox, .month-checkbox, .occurrence-checkbox, .day-checkbox {
+    @apply h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-1 peer;
 }
 
-.sub-option-group { 
-    @apply mt-2 pl-4 border-l-2 border-gray-100; 
+.sub-option-group {
+    @apply mt-2 pl-4 border-l-2 border-gray-100;
 }
 
-.grid-cols-checkboxes { 
-    @apply grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-1; 
+.grid-cols-checkboxes {
+    @apply grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-1;
 }
 
-.grid-cols-days { 
-    @apply grid grid-cols-5 sm:grid-cols-7 gap-x-1 gap-y-1; 
+.grid-cols-days {
+    @apply grid grid-cols-5 sm:grid-cols-7 gap-x-1 gap-y-1;
 }
 
-fieldset { 
-    @apply border border-gray-200 p-3 rounded-md mb-4; 
+fieldset {
+    @apply border border-gray-200 p-3 rounded-md mb-4;
 }
 
-legend { 
-    @apply text-sm font-medium text-gray-600 px-1; 
+legend {
+    @apply text-sm font-medium text-gray-600 px-1;
 }
 
-.checkbox-label { 
-    @apply flex items-center text-sm px-2 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150; 
+.checkbox-label {
+    @apply flex items-center text-sm px-2 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150;
 }
 
-.peer:checked + .checkbox-label-text { 
-    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200; 
+.peer:checked + .checkbox-label-text {
+    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200;
 }
 
-.day-checkbox-label { 
-    @apply flex items-center justify-center text-sm px-1 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150 min-w-[30px]; 
+.day-checkbox-label {
+    @apply flex items-center justify-center text-sm px-1 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150 min-w-[30px];
 }
 
-.peer:checked + .day-checkbox-label-text { 
-    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200; 
+.peer:checked + .day-checkbox-label-text {
+    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200;
 }
 
-.miss-input { 
-    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-10 text-center mx-1 bg-transparent; 
+.miss-input {
+    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-10 text-center mx-1 bg-transparent;
 }
 
-.common-buttons-container { 
-    @apply flex space-x-2 mt-2; 
+.common-buttons-container {
+    @apply flex space-x-2 mt-2;
 } /* Container for Edit/Delete */
 
 .task-action-button {
@@ -218,6 +223,62 @@ legend {
     transform: rotate(-90deg);
 }
 
+.planner-grid {
+    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+}
+.table-cell {
+    border: 1px solid #374151; /* Gray-700 */
+    padding: 8px;
+    min-height: 40px;
+}
+.planner-grid > .table-cell[contenteditable="true"] {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+.planner-grid > .table-cell[contenteditable="true"]:focus {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    z-index: 10;
+    position: relative;
+    background-color: #1F2937; /* Gray-800 */
+}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1F2937; }
+::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6B7280; }
 
+.nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.amended-item { font-style: italic; color: #FBBF24; /* Amber-400 */ }
+.amended-asterisk { color: #FBBF24; font-weight: bold; margin-left: 2px; }
 
+.hidden {
+    display: none !important;
+}
 
+.planner-slot {
+    position: relative;
+    min-height: 50px; /* Ensure space for tasks */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
+}
+.planner-task-item {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s;
+    color: white; /* Default text color */
+}
+.planner-task-item:hover {
+    opacity: 0.8;
+}

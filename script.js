@@ -67,7 +67,7 @@ let editingTaskId = null;
 let countdownIntervals = {};
 let mainUpdateInterval = null;
 let taskTimers = {};
-let sortBy = 'status'; 
+let sortBy = 'status';
 let sortDirection = 'asc';
 let categoryFilter = [];
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -473,7 +473,7 @@ function sanitizeAndUpgradeTask(task) {
             upgradedTask[key] = task[key];
         }
     }
-    
+
     upgradedTask.id = task.id;
     if (task.createdAt) {
       upgradedTask.createdAt = task.createdAt;
@@ -534,13 +534,13 @@ function getRandomColor() {
 }
 function getContrastingTextColor(hexcolor) {
     if (!hexcolor) return { color: '#000000', textShadow: 'none' };
-    
+
     const r = parseInt(hexcolor.substr(1, 2), 16);
     const g = parseInt(hexcolor.substr(3, 2), 16);
     const b = parseInt(hexcolor.substr(5, 2), 16);
-    
+
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
+
     let textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
     let textShadow = 'none';
 
@@ -551,7 +551,7 @@ function getContrastingTextColor(hexcolor) {
         let shadowColor = luminance > 0.5 ? `rgba(255, 255, 255, ${opacity * 0.7})` : `rgba(0, 0, 0, ${opacity * 0.7})`;
         textShadow = `0px 0px 1px ${shadowColor}`;
     }
-    
+
     return { color: textColor, textShadow: textShadow };
 }
 function hexToRgb(hex) {
@@ -663,11 +663,11 @@ function hexToHSL(H) {
 function HSLToHex(h, s, l) {
     s /= 100; l /= 100;
     let c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c/2, r = 0, g = 0, b = 0;
-    if (0 <= h && h < 60) { r = c; g = x; b = 0; } 
-    else if (60 <= h && h < 120) { r = x; g = c; b = 0; } 
-    else if (120 <= h && h < 180) { r = 0; g = c; b = x; } 
-    else if (180 <= h && h < 240) { r = 0; g = x; b = c; } 
-    else if (240 <= h && h < 300) { r = x; g = 0; b = c; } 
+    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
     else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
     r = Math.round((r + m) * 255).toString(16);
     g = Math.round((g + m) * 255).toString(16);
@@ -696,7 +696,7 @@ function generateComplementaryPalette(baseColor) {
     const addTaskBtnColor = HSLToHex(baseHSL.h, baseHSL.s, baseHSL.l);
     const calendarBtnColor = HSLToHex((baseHSL.h + 120) % 360, baseHSL.s, baseHSL.l);
     const advancedOptionsBtnColor = HSLToHex((baseHSL.h + 240) % 360, baseHSL.s, baseHSL.l);
-    
+
     // Category colors are more varied, derived from the complementary
     const complementaryHue = (baseHSL.h + 180) % 360;
     const catColor1 = HSLToHex(complementaryHue, baseHSL.s - 10, baseHSL.l + 10);
@@ -715,7 +715,7 @@ function applyTheme() {
         statusColors = gradientPalette;
 
         const complementaryPalette = generateComplementaryPalette(theming.baseColor);
-        
+
         [addTaskBtn, calendarBtn, advancedOptionsBtn].forEach((btn, index) => {
             if (btn) {
                 const bgColor = complementaryPalette[index];
@@ -725,7 +725,7 @@ function applyTheme() {
                 btn.style.textShadow = textStyle.textShadow;
             }
         });
-        
+
     } else {
         // Revert to default colors
         statusColors = { ...defaultStatusColors };
@@ -780,7 +780,7 @@ function renderTasks() {
         return;
     }
     const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
-    
+
     // 1. FIRST: Sort the tasks and create the final sorted array.
     const sortedTasks = filteredTasks.sort((a, b) => {
         const completedA = a.repetitionType === 'none' && a.completed;
@@ -831,7 +831,7 @@ function renderTasks() {
             const group = groupedByDate[groupIndex];
             const header = document.createElement('div');
             header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-            
+
             const percent = groupOrder.length <= 1 ? 0 : (sortDirection === 'asc' ? i / (groupOrder.length - 1) : (groupOrder.length - 1 - i) / (groupOrder.length - 1));
             const bgColor = interpolateFiveColors(percent);
             const textStyle = getContrastingTextColor(bgColor);
@@ -839,7 +839,7 @@ function renderTasks() {
             header.style.backgroundColor = bgColor;
             header.style.color = textStyle.color;
             header.style.textShadow = textStyle.textShadow;
-            
+
             header.innerHTML = `<h4 class="font-bold">${group.name}</h4><span class="transform transition-transform duration-200"> ▼ </span>`;
             header.dataset.group = group.name;
             taskListDiv.appendChild(header);
@@ -864,11 +864,11 @@ function renderTasks() {
                 currentGroup = category ? category.name : 'Uncategorized';
                 groupColor = category ? category.color : '#FFFFFF';
             }
-            
+
             if (currentGroup !== lastGroup) {
                 const header = document.createElement('div');
                 header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-                
+
                 textStyle = getContrastingTextColor(groupColor);
                 header.style.backgroundColor = groupColor;
                 header.style.color = textStyle.color;
@@ -890,7 +890,7 @@ function renderSingleTask(task, options = {}) {
     try {
         const taskElement = document.createElement('div');
         const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-        
+
         taskElement.className = `task-item p-2 rounded-lg shadow flex justify-between items-start`;
         taskElement.dataset.taskId = task.id;
         taskElement.dataset.status = task.status;
@@ -905,7 +905,7 @@ function renderSingleTask(task, options = {}) {
         const textStyle = getContrastingTextColor(statusColor);
         taskElement.style.color = textStyle.color;
         taskElement.style.textShadow = textStyle.textShadow;
-        
+
         if (options.groupName) {
             taskElement.dataset.group = options.groupName;
         }
@@ -916,7 +916,7 @@ function renderSingleTask(task, options = {}) {
         if (task.confirmationState === 'confirming_delete') {
             taskElement.classList.add('task-confirming-delete');
         }
-        
+
         const categoryName = category ? category.name : 'Uncategorized';
         const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? task.dueDate.toLocaleString() : 'No due date';
         const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
@@ -1056,7 +1056,7 @@ function generateActionHtml(task) {
 function generateCommonButtonsHtml(task) {
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-    
+
     if (isCompletedNonRepeating) {
         return `<button data-action="triggerDelete" data-task-id="${task.id}" class="text-red-600 hover:text-red-800 text-xs font-medium p-1 rounded hover:bg-red-100" title="Delete Task">Delete</button>`;
     }
@@ -1151,7 +1151,7 @@ function openModal(taskId = null) {
     try {
         taskForm.reset();
         editingTaskId = taskId;
-        
+
         // Reset all dynamic fields to their default state
         dueDateGroup.classList.remove('hidden');
         startDateGroup.classList.add('hidden');
@@ -1201,7 +1201,7 @@ function openModal(taskId = null) {
                 relativeAmountInput.value = task.relativeAmount || 1;
                 relativeUnitSelect.value = task.relativeUnit || 'days';
             }
-            
+
             taskRepetitionSelect.value = task.repetitionType || 'none';
             repetitionRelativeGroup.classList.toggle('hidden', task.repetitionType !== 'relative');
             repetitionAbsoluteGroup.classList.toggle('hidden', task.repetitionType !== 'absolute');
@@ -1293,7 +1293,7 @@ function renderCategoryManager() {
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between p-2 border-b';
         item.id = `category-item-${cat.id}`;
-        
+
         item.innerHTML = `
             <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
                 <span class="font-medium cursor-pointer">${cat.name}</span>
@@ -1313,7 +1313,7 @@ function renderCategoryManager() {
 }
 function openAdvancedOptionsModal() {
     renderCategoryManager();
-    renderCategoryFilters(); 
+    renderCategoryFilters();
     renderNotificationManager();
     renderThemeControls();
     renderStatusManager();
@@ -1494,7 +1494,7 @@ function handleFormSubmit(event) {
     event.preventDefault();
     try {
         const now = new Date();
-        
+
         const taskData = {
             name: taskNameInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
@@ -1510,7 +1510,7 @@ function handleFormSubmit(event) {
             confirmationState: null,
             overdueStartDate: null,
             pendingCycles: null,
-            categoryId: null 
+            categoryId: null
         };
 
         if (taskData.dueDateType === 'absolute') {
@@ -1553,7 +1553,7 @@ function handleFormSubmit(event) {
                 taskData.repetitionAbsoluteYearlyMode = taskForm.yearlyOption.value;
                 if (taskData.repetitionAbsoluteYearlyMode === 'day_of_week') {
                     taskData.repetitionAbsoluteYearlyNthWeekdayOccurrence = Array.from(yearlyOccurrenceCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                    taskData.repetitionAbsoluteYearlyNthWeekdayDays = Array.from(yearlyWeekdayCheckboxes).filter(cb => cb.checked).map(cb => parseInt(cb.value, 10));
+                    taskData.repetitionAbsoluteNthWeekdayDays = Array.from(yearlyWeekdayCheckboxes).filter(cb => cb.checked).map(cb => parseInt(cb.value, 10));
                 } else {
                     taskData.repetitionAbsoluteYearlyDaysOfMonth = Array.from(yearlyDayCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
                 }
@@ -1619,7 +1619,7 @@ function handleFormSubmit(event) {
             taskData.completed = false;
             taskData.status = 'green';
             const newTask = sanitizeAndUpgradeTask(taskData);
-            const otherTasks = [...tasks]; 
+            const otherTasks = [...tasks];
             newTask.status = calculateStatus(newTask, now.getTime(), otherTasks).name;
             tasks.push(newTask);
         }
@@ -1705,7 +1705,7 @@ function confirmCompletionAction(taskId, confirmed) {
                 task.dueDate = nextDueDate;
                 if (wasOverdue) {
                     task.status = calculateStatus(task, Date.now(), tasks).name;
-                    task.cycleEndDate = null; 
+                    task.cycleEndDate = null;
                 } else {
                     task.status = 'blue';
                     task.cycleEndDate = baseDate;
@@ -1739,7 +1739,7 @@ function confirmCompletionAction(taskId, confirmed) {
     delete task.pendingCycles;
     if (!confirmed && !task.overdueStartDate) delete task.overdueStartDate;
     if (confirmed) delete task.overdueStartDate;
-    
+
     saveData();
     updateAllTaskStatuses(true);
 }
@@ -1848,7 +1848,7 @@ function toggleTimer(taskId) {
         if (task.currentProgress >= targetMs) {
             triggerCompletion(taskId);
         }
-    
+
     } else {
         if (task.currentProgress >= targetMs) {
             triggerCompletion(taskId);
@@ -1856,7 +1856,7 @@ function toggleTimer(taskId) {
         }
         task.isTimerRunning = true;
         task.timerLastStarted = new Date().toISOString();
-        
+
         startTimerInterval(taskId);
 
         const timerButton = document.getElementById(`timer-btn-${taskId}`);
@@ -1914,7 +1914,7 @@ function cancelProgressEdit(taskId) { renderTasks(); }
 function deleteCategory(categoryId) {
     tasks.forEach(task => {
         if (task.categoryId === categoryId) {
-            task.categoryId = null; 
+            task.categoryId = null;
         }
     });
     categories = categories.filter(cat => cat.id !== categoryId);
@@ -1965,7 +1965,7 @@ function saveCategoryEdit(categoryId) {
     if (newName && newName !== '' && !categories.find(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
         const oldId = category.id;
         category.name = newName;
-        category.id = newName; 
+        category.id = newName;
         tasks.forEach(task => {
             if (task.categoryId === oldId) {
                 task.categoryId = category.id;
@@ -2034,14 +2034,14 @@ function confirmRestoreDefaultsAction(confirmed) {
         sortBy = 'status';
         sortDirection = 'asc';
         theming.enabled = false;
-        
+
         saveData();
         sortBySelect.value = sortBy;
         sortDirectionSelect.value = sortDirection;
         applyTheme();
         openAdvancedOptionsModal();
     }
-    
+
     if (container) {
         container.innerHTML = `<button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Restore All Defaults</button>`;
     }
@@ -2158,7 +2158,7 @@ function scheduleNotification(task, futureStatus, triggerTimestamp) {
  */
 function calculateAndScheduleAllNotifications() {
     const now = Date.now();
-    
+
     tasks.forEach(task => {
         // Skip completed, locked, or tasks with pending user actions.
         if (task.completed || task.status === 'blue' || task.confirmationState) return;
@@ -2190,7 +2190,7 @@ function calculateAndScheduleAllNotifications() {
 function startNotificationEngine() {
     console.log("Page hidden. Starting notification engine...");
     // Ensure the engine is clean before starting.
-    stopNotificationEngine(); 
+    stopNotificationEngine();
     calculateAndScheduleAllNotifications();
 }
 
@@ -2269,7 +2269,7 @@ function setupEventListeners() {
     if (taskForm) {
         taskForm.addEventListener('submit', handleFormSubmit);
     }
-    
+
     const closeButton = taskModal.querySelector('.close-button');
     const cancelButton = taskModal.querySelector('button[type="button"]');
     if (closeButton) closeButton.addEventListener('click', closeModal);
@@ -2337,7 +2337,7 @@ function setupEventListeners() {
         if (!target) return;
         const action = target.dataset.action;
         const taskId = target.dataset.taskId;
-        
+
         switch (action) {
             case 'edit': editTask(taskId); break;
             case 'triggerDelete': triggerDelete(taskId); break;
@@ -2377,8 +2377,8 @@ function setupEventListeners() {
                 case 'restoreDefaults': triggerRestoreDefaults(); break;
                 case 'confirmRestoreDefaults': confirmRestoreDefaultsAction(target.dataset.confirmed === 'true'); break;
                 case 'toggleAllNotifications': handleMasterNotificationToggle(event); break;
-                case 'toggleCategoryNotification': 
-                    toggleCategoryNotification(target.dataset.categoryId, event.target.checked); 
+                case 'toggleCategoryNotification':
+                    toggleCategoryNotification(target.dataset.categoryId, event.target.checked);
                     break;
                 case 'toggleTheme':
                     theming.enabled = event.target.checked;
@@ -2402,8 +2402,8 @@ function setupEventListeners() {
                 const category = categories.find(cat => cat.id === categoryId);
                 if (category) {
                     category.color = newColor;
-                    saveData(); 
-                    renderCategoryManager(); 
+                    saveData();
+                    renderCategoryManager();
                     renderTasks();
                 }
             } else if (target.classList.contains('category-filter-checkbox')) {
@@ -2418,7 +2418,7 @@ function setupEventListeners() {
                         .filter(cb => cb.checked)
                         .map(cb => cb.value === 'null' ? null : cb.value);
                 }
-                
+
                 if (categoryFilter.length === 0) {
                     allCheckbox.checked = true;
                 }
@@ -2491,7 +2491,7 @@ function loadData() {
     const storedTheming = localStorage.getItem('theming');
     const storedCalendarSettings = localStorage.getItem('calendarSettings');
     const storedCategoryFilter = localStorage.getItem('categoryFilter');
-    
+
     tasks = [];
     categories = [];
 
@@ -2516,7 +2516,7 @@ function loadData() {
     if (storedSortDirection) sortDirection = storedSortDirection;
     sortBySelect.value = sortBy;
     sortDirectionSelect.value = sortDirection;
-    
+
     if (storedNotifications) {
         try {
             const parsedSettings = JSON.parse(storedNotifications);
@@ -2545,7 +2545,7 @@ function loadData() {
             console.error("Error parsing theming settings:", e);
         }
     }
-    
+
     if (storedCalendarSettings) {
         try {
             const parsedSettings = JSON.parse(storedCalendarSettings);
@@ -2554,7 +2554,7 @@ function loadData() {
             console.error("Error parsing calendar settings:", e);
         }
     }
-    
+
     if (storedCategoryFilter) {
         try {
             categoryFilter = JSON.parse(storedCategoryFilter);
@@ -2584,16 +2584,16 @@ function loadData() {
                 if (isNaN(tempTask.createdAt)) tempTask.createdAt = new Date();
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
-                
+
                 return sanitizeAndUpgradeTask(tempTask);
             });
-            
+
             tasks.forEach(task => {
                 if (task.isTimerRunning && task.timerLastStarted) {
                     const elapsedWhileAway = Date.now() - task.timerLastStarted.getTime();
                     const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
                     task.currentProgress = (task.currentProgress || 0) + elapsedWhileAway;
-                    
+
                     if (task.currentProgress >= targetMs) {
                         task.currentProgress = targetMs;
                         task.isTimerRunning = false;
@@ -2615,90 +2615,12 @@ function loadData() {
             console.error("Error parsing tasks from localStorage:", error);
         }
     }
-    
+
     applyTheme(); // Apply the theme on initial load
     updateAllTaskStatuses(true);
     startMainUpdateLoop();
 }
 
-// function updateAllTaskStatuses(forceRender = false) {
-//     let changed = false;
-//     const nowMs = Date.now();
-//     const currentTasks = [...tasks];
-//     tasks.forEach(task => {
-//         try {
-//             if (task.repetitionType === 'none' && task.completed) return;
-//             const initialConfirmationState = task.confirmationState;
-//             let shouldClearConfirmation = false;
-//             const cycleEndMs = (task.cycleEndDate && !isNaN(task.cycleEndDate)) ? task.cycleEndDate.getTime() : null;
-//             const isCycleEnded = cycleEndMs !== null && cycleEndMs <= nowMs;
-//             if (task.status === 'blue' && isCycleEnded) {
-//                 task.cycleEndDate = null;
-//                 task.status = 'green';
-//                 changed = true;
-//             }
-//             const dueDateMs = task.dueDate ? task.dueDate.getTime() : null;
-//             const isPastDue = dueDateMs !== null && dueDateMs <= nowMs;
-//             if (isPastDue && task.status !== 'blue' && !task.confirmationState) {
-//                 task.confirmationState = 'awaiting_overdue_input';
-//                 task.status = 'red'; // <-- FIX #2: Force status to red during background updates.
-//                 if (!task.overdueStartDate) {
-//                     task.overdueStartDate = task.dueDate.toISOString();
-//                 }
-//                 task.pendingCycles = calculatePendingCycles(task, nowMs);
-//                 changed = true;
-//                 if (task.isTimerRunning) { toggleTimer(task.id); }
-//             } else {
-//                 let newStatusName = task.status;
-//                 if (task.confirmationState !== 'awaiting_overdue_input' && task.confirmationState !== 'confirming_miss' && task.confirmationState !== 'confirming_delete' && task.confirmationState !== 'confirming_complete') {
-//                     const oldStatus = task.status;
-//                     const newStatusResult = calculateStatus(task, nowMs, currentTasks);
-//                     newStatusName = newStatusResult.name;
-//                     if (newStatusName !== oldStatus) {
-//                         if (oldStatus === 'blue' && newStatusName !== 'blue') {
-//                             task.cycleEndDate = null;
-//                         }
-//                         task.status = newStatusName;
-//                         changed = true;
-//                     }
-//                 } else if (task.confirmationState === 'confirming_complete') {
-//                     const statusBeforeConfirm = calculateStatus({...task, confirmationState: null}, nowMs, currentTasks).name;
-//                     if (task.status !== statusBeforeConfirm && statusBeforeConfirm !== 'blue') {
-//                         if (task.overdueStartDate && task.status !== 'red') {
-//                             task.status = 'red';
-//                             changed = true;
-//                         } else if (!task.overdueStartDate && task.status !== statusBeforeConfirm) {
-//                             task.status = statusBeforeConfirm;
-//                             changed = true;
-//                         }
-//                     }
-//                 }
-//                 if (initialConfirmationState && initialConfirmationState !== 'confirming_delete') {
-//                     if (!isPastDue && (initialConfirmationState === 'awaiting_overdue_input' || initialConfirmationState === 'confirming_miss')) {
-//                         shouldClearConfirmation = true;
-//                     }
-//                 }
-//             }
-//             if (shouldClearConfirmation) {
-//                 task.confirmationState = null;
-//                 delete task.overdueStartDate;
-//                 delete task.pendingCycles;
-//                 changed = true;
-//             }
-
-//             if (task.isTimerRunning && !taskTimers[task.id]) {
-//                 startTimerInterval(task.id);
-//             }
-
-//         } catch (e) {
-//             console.error("Error updating status for task:", task?.id, e);
-//         }
-//     });
-//     if (changed || forceRender) {
-//         saveData();
-//         renderTasks();
-//     }
-// }
 function updateAllTaskStatuses(forceRender = false) {
     let changed = false;
     const nowMs = Date.now();
@@ -2733,7 +2655,7 @@ function updateAllTaskStatuses(forceRender = false) {
                 delete task.overdueStartDate;
                 delete task.pendingCycles;
             }
-            
+
             // Step 3: If the status OR the confirmation state changed, flag the UI for a full update.
             // This ensures the color changes without losing the confirmation prompt.
             if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
@@ -2753,27 +2675,470 @@ function updateAllTaskStatuses(forceRender = false) {
         renderTasks();
     }
 }
-// function startMainUpdateLoop() {
-//     if (mainUpdateInterval) clearInterval(mainUpdateInterval);
-//     mainUpdateInterval = setInterval(() => updateAllTaskStatuses(false), STATUS_UPDATE_INTERVAL);
-// }
 function startMainUpdateLoop() {
     if (mainUpdateInterval) clearInterval(mainUpdateInterval);
     // The initial update is handled in loadData(), so the immediate timeout is removed.
     mainUpdateInterval = setInterval(() => updateAllTaskStatuses(false), STATUS_UPDATE_INTERVAL);
 }
+// =================================================================================
+// --- UNIFIED INITIALIZATION ---
+// =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Unified DOMContentLoaded event fired.");
+
+    // --- Initialize Task Manager ---
     try {
-        initializeDOMElements();
-        setupEventListeners();
-        loadData();
+        console.log("Initializing Task Manager...");
+        initializeDOMElements(); // From Task Manager
+        setupEventListeners();   // From Task Manager
+        loadData();              // From Task Manager
+        console.log("Task Manager initialized.");
     } catch (e) {
-        console.error("Error during initialization:", e);
+        console.error("Error during Task Manager initialization:", e);
         const listDiv = document.getElementById('task-list');
-        if(listDiv) listDiv.innerHTML = '<p class="text-red-600 font-bold text-center">Error initializing application. Please check console.</p>';
+        if(listDiv) listDiv.innerHTML = '<p class="text-red-600 font-bold text-center">Error initializing Task Manager. Please check console.</p>';
+    }
+
+    // --- Initialize Pilot Mission Planner ---
+    try {
+        console.log("Initializing Pilot Mission Planner...");
+        initializePlannerState(); // Renamed from initializeOrSyncState
+        setupPlannerEventListeners(); // Renamed from setupEventListeners
+        renderPlanner(); // Initial render for the planner
+        console.log("Pilot Mission Planner initialized.");
+    } catch (e) {
+        console.error("Error during Pilot Mission Planner initialization:", e);
     }
 });
 
 
+// =================================================================================
+// --- PILOT MISSION PLANNER SCRIPT ---
+// =================================================================================
+// Note: This script is now part of the main app, so its DOMContentLoaded is removed.
+// All functions are now globally available to be called from the unified init.
+
+// --- CONFIGURATION ---
+const MAX_WEEKS_STORED = 6;
+    const CURRENT_WEEK_INDEX = 4;
+    const DATA_KEY = 'pilotPlannerDataV8';
+    const VIEW_STATE_KEY = 'pilotPlannerViewStateV8';
+
+    const appState = {
+        weeks: [],
+        indicators: [ { id: 1, name: 'Hours Studied' }, { id: 2, name: 'Maneuvers Practiced' } ],
+        viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
+    };
+
+    // --- DOM Elements ---
+    const app = document.getElementById('app');
+    const weeklyGoalsEl = document.getElementById('weeklyGoals');
+    const indicatorListEl = document.getElementById('indicatorList');
+    const newIndicatorInput = document.getElementById('newIndicatorInput');
+    const addIndicatorBtn = document.getElementById('addIndicatorBtn');
+    const plannerContainer = document.getElementById('plannerContainer');
+    const weeklyViewContainer = document.getElementById('weeklyViewContainer');
+    const dailyViewContainer = document.getElementById('dailyViewContainer');
+    const progressTrackerContainer = document.getElementById('progressTrackerContainer');
+    const viewBtns = document.querySelectorAll('.view-btn');
+    const startNewWeekBtn = document.getElementById('startNewWeekBtn');
+    const confirmModal = document.getElementById('confirmModal');
+    const cancelNewWeekBtn = document.getElementById('cancelNewWeek');
+    const confirmNewWeekBtn = document.getElementById('confirmNewWeek');
+    const prevWeekBtn = document.getElementById('prevWeekBtn');
+    const nextWeekBtn = document.getElementById('nextWeekBtn');
+    const weekStatusEl = document.getElementById('weekStatus');
+    const weekDateRangeEl = document.getElementById('weekDateRange');
+
+    // --- UTILITIES ---
+    const getStartOfWeek = (date = new Date()) => { const d = new Date(date); d.setDate(d.getDate() - d.getDay()); d.setHours(0,0,0,0); return d; };
+    const getISOStringAtMidnight = (date) => { const d = new Date(date); d.setHours(0, 0, 0, 0); return d.toISOString(); };
+    const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+
+    // --- DATA & VIEW STATE MANAGEMENT ---
+    const createNewWeek = (startDate) => ({
+        startDate: getISOStringAtMidnight(startDate),
+        weeklyGoals: 'Set new goals for the week...',
+        schedule: {},
+        kpiData: {},
+        amendedItems: { weeklyGoals: false, schedule: {}, kpi: {} },
+        originalState: null
+    });
+
+    const savePlannerData = () => localStorage.setItem(DATA_KEY, JSON.stringify({ weeks: appState.weeks, indicators: appState.indicators }));
+    const saveViewState = () => localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ viewingIndex: appState.viewingIndex, currentView: appState.currentView, currentDayIndex: appState.currentDayIndex }));
+
+    const loadPlannerData = () => {
+        const savedData = localStorage.getItem(DATA_KEY);
+        if (!savedData) return;
+        try {
+            const parsedData = JSON.parse(savedData);
+            appState.weeks = parsedData.weeks || [];
+            appState.weeks.forEach(week => {
+                if (!week.amendedItems) week.amendedItems = { weeklyGoals: false, schedule: {}, kpi: {} };
+                if (week.originalState === undefined) week.originalState = null;
+            });
+            appState.indicators = parsedData.indicators || appState.indicators;
+        } catch (error) { console.error("Failed to parse saved data:", error); }
+    };
+
+    const loadViewState = () => {
+        const savedState = localStorage.getItem(VIEW_STATE_KEY);
+        if (!savedState) return;
+        try {
+            const parsedState = JSON.parse(savedState);
+            appState.viewingIndex = parsedState.viewingIndex ?? CURRENT_WEEK_INDEX;
+            appState.currentView = parsedState.currentView ?? 'weekly';
+            appState.currentDayIndex = parsedState.currentDayIndex ?? 0;
+        } catch (error) { console.error("Failed to parse view state:", error); }
+    };
+
+    const initializePlannerState = () => {
+        loadPlannerData();
+        const today = new Date();
+        const currentWeekStartDate = getStartOfWeek(today);
+        if (appState.weeks.length === 0) {
+            for (let i = -CURRENT_WEEK_INDEX; i < MAX_WEEKS_STORED - CURRENT_WEEK_INDEX; i++) {
+                const weekStartDate = new Date(currentWeekStartDate);
+                weekStartDate.setDate(weekStartDate.getDate() + (i * 7));
+                appState.weeks.push(createNewWeek(weekStartDate));
+            }
+        } else {
+            const storedCurrentWeekStart = new Date(appState.weeks[CURRENT_WEEK_INDEX].startDate);
+            let weekDiff = Math.round((currentWeekStartDate.getTime() - storedCurrentWeekStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+            if (weekDiff > 0) {
+                for (let i = 0; i < weekDiff; i++) {
+                    const weekToSnapshot = appState.weeks[CURRENT_WEEK_INDEX];
+                    if (!weekToSnapshot.originalState) {
+                        weekToSnapshot.originalState = {
+                            weeklyGoals: weekToSnapshot.weeklyGoals,
+                            schedule: deepClone(weekToSnapshot.schedule),
+                            kpiData: deepClone(weekToSnapshot.kpiData)
+                        };
+                    }
+                    const lastWeek = appState.weeks[appState.weeks.length - 1];
+                    const nextWeekStartDate = new Date(lastWeek.startDate); nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
+                    appState.weeks.push(createNewWeek(nextWeekStartDate)); appState.weeks.shift();
+                }
+            }
+        }
+        while(appState.weeks.length > MAX_WEEKS_STORED) appState.weeks.shift();
+        loadViewState();
+        if(appState.viewingIndex < 0 || appState.viewingIndex >= MAX_WEEKS_STORED) {
+            appState.viewingIndex = CURRENT_WEEK_INDEX;
+        }
+        savePlannerData();
+    };
+
+    // --- RENDERING ---
+    const renderPlanner = () => {
+        if (!appState.weeks[appState.viewingIndex]) return;
+        renderNavigation(); renderGoals(); renderIndicators(); updateViewButtons();
+        if (appState.currentView === 'weekly') {
+            weeklyViewContainer.classList.remove('hidden'); dailyViewContainer.classList.add('hidden'); renderWeeklyView();
+        } else {
+            weeklyViewContainer.classList.add('hidden'); dailyViewContainer.classList.remove('hidden'); renderDailyView();
+        }
+        renderProgressTracker();
+    };
+
+    const isWeekAmended = (week) => week.amendedItems.weeklyGoals || Object.values(week.amendedItems.schedule).some(v => v) || Object.values(week.amendedItems.kpi).some(v => v.goal || v.actual);
+
+    const renderNavigation = () => {
+        const week = appState.weeks[appState.viewingIndex];
+        const startDate = new Date(week.startDate); const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6);
+        let statusText = 'Past Week';
+        if (appState.viewingIndex === CURRENT_WEEK_INDEX) statusText = 'Current Week';
+        else if (appState.viewingIndex > CURRENT_WEEK_INDEX) statusText = 'Next Week (Preview)';
+        else if (isWeekAmended(week)) statusText = 'Past Week <i class="amended-item text-sm">* (Amended)*</i>';
+        weekStatusEl.innerHTML = statusText;
+        weekDateRangeEl.textContent = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+        prevWeekBtn.disabled = appState.viewingIndex === 0;
+        nextWeekBtn.disabled = appState.viewingIndex === appState.weeks.length - 1;
+        startNewWeekBtn.style.display = appState.viewingIndex === CURRENT_WEEK_INDEX ? 'block' : 'none';
+    };
+
+    const renderGoals = () => {
+        const week = appState.weeks[appState.viewingIndex];
+        weeklyGoalsEl.innerHTML = week.weeklyGoals;
+        weeklyGoalsEl.classList.toggle('amended-item', !!week.amendedItems.weeklyGoals);
+    };
+
+    const renderIndicators = () => {
+        indicatorListEl.innerHTML = '';
+        appState.indicators.forEach(ind => {
+            indicatorListEl.insertAdjacentHTML('beforeend', `<div class="flex items-center justify-between bg-gray-900 p-2 rounded-md"><span class="text-gray-300">${ind.name}</span><button data-id="${ind.id}" class="remove-indicator-btn text-red-500 hover:text-red-400 font-bold">&times;</button></div>`);
+        });
+    };
+
+    const renderWeeklyView = () => {
+        const week = appState.weeks[appState.viewingIndex];
+        const weekStartDate = new Date(week.startDate);
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekEndDate.getDate() + 7);
+
+        plannerContainer.innerHTML = ''; // Clear previous content
+
+        // --- Render Header ---
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">Time</div>`);
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(weekStartDate);
+            dayDate.setDate(weekStartDate.getDate() + i);
+            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
+        }
+
+        // --- Render Time Slots ---
+        for (let hour = 6; hour <= 22; hour++) {
+            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800">${hour}:00</div>`);
+            for (let day = 0; day < 7; day++) {
+                const key = `${day}-${hour}`;
+                const isAmended = !!week.amendedItems.schedule[key];
+                const content = week.schedule[key] || '';
+                plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell planner-slot ${isAmended ? 'amended-item' : ''}" data-key="${key}">${content}${isAmended ? '<span class="amended-asterisk">*</span>' : ''}</div>`);
+            }
+        }
+
+        // --- Render Task Manager Tasks onto the Grid ---
+        if (typeof tasks !== 'undefined' && tasks.length > 0) {
+            const tasksInView = tasks.filter(t => {
+                if (!t.dueDate) return false;
+                const dueDate = new Date(t.dueDate);
+                return dueDate >= weekStartDate && dueDate < weekEndDate;
+            });
+
+            tasksInView.forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                const dayOfWeek = dueDate.getDay(); // Sunday = 0, Saturday = 6
+                const hour = dueDate.getHours();
+
+                if (hour >= 6 && hour <= 22) {
+                    const cell = plannerContainer.querySelector(`.planner-slot[data-key="${dayOfWeek}-${hour}"]`);
+                    if (cell) {
+                        const taskElement = document.createElement('div');
+                        taskElement.className = 'planner-task-item';
+                        taskElement.textContent = task.name;
+                        taskElement.style.backgroundColor = statusColors[task.status] || '#888';
+                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+                        taskElement.style.color = textStyle.color;
+                        taskElement.style.textShadow = textStyle.textShadow;
+                        taskElement.dataset.taskId = task.id;
+                        taskElement.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent planner's blur event
+                            openModal(task.id);
+                        });
+                        cell.appendChild(taskElement);
+                    }
+                }
+            });
+        }
+
+        // --- Render KPI Indicators ---
+        appState.indicators.forEach(ind => {
+            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800">${ind.name}</div>`);
+            for (let day = 0; day < 7; day++) {
+                const key = `${day}-${ind.id}`; const data = week.kpiData[key] || { goal: '', actual: '' };
+                const goalAmended = week.amendedItems.kpi[key]?.goal; const actualAmended = week.amendedItems.kpi[key]?.actual;
+                plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell"><div class="flex flex-col sm:flex-row gap-1 justify-center items-center h-full">
+                    <div class="relative w-full sm:w-1/2"><input type="number" min="0" data-key="${key}" data-type="goal" value="${data.goal}" placeholder="G" class="w-full bg-gray-700 text-white text-center rounded border-transparent focus:ring-1 focus:ring-blue-500 p-1">${goalAmended ? '<span class="amended-asterisk absolute -top-1 right-0">*</span>' : ''}</div>
+                    <div class="relative w-full sm:w-1/2"><input type="number" min="0" data-key="${key}" data-type="actual" value="${data.actual}" placeholder="A" class="w-full bg-gray-600 text-white text-center rounded border-transparent focus:ring-1 focus:ring-blue-500 p-1">${actualAmended ? '<span class="amended-asterisk absolute -top-1 right-0">*</span>' : ''}</div>
+                </div></div>`);
+            }
+        });
+    };
 
 
+
+
+    const renderDailyView = () => {
+        const week = appState.weeks[appState.viewingIndex];
+        const weekStartDate = new Date(week.startDate);
+
+        const dayDate = new Date(weekStartDate);
+        dayDate.setDate(weekStartDate.getDate() + appState.currentDayIndex);
+
+        const dayStart = new Date(dayDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+
+        dailyViewContainer.innerHTML = '';
+        dailyViewContainer.insertAdjacentHTML('beforeend', `<div class="flex justify-between items-center mb-6"><button id="prevDayBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md">&lt; Prev</button><h2 class="text-xl md:text-2xl font-bold text-center">${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2><button id="nextDayBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md">Next &gt;</button></div>`);
+
+        let scheduleHTML = `<h3 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Schedule</h3><div class="space-y-2">`;
+        for (let hour = 6; hour <= 22; hour++) {
+            const key = `${appState.currentDayIndex}-${hour}`;
+            const isAmended = !!week.amendedItems.schedule[key];
+            const content = week.schedule[key] || '';
+            scheduleHTML += `<div class="flex items-start gap-3"><span class="font-semibold text-gray-400 w-16 text-right pt-1">${hour}:00</span><div class="flex-1 bg-gray-800 rounded p-2 min-h-[40px] planner-slot ${isAmended ? 'amended-item' : ''}" data-key="${key}">${content}${isAmended ? '<span class="amended-asterisk">*</span>' : ''}</div></div>`;
+        }
+        scheduleHTML += `</div>`;
+
+        let kpiHTML = `<h3 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators</h3><div class="space-y-4">`;
+        appState.indicators.forEach(ind => {
+            const key = `${appState.currentDayIndex}-${ind.id}`; const data = week.kpiData[key] || { goal: '', actual: '' };
+            const goalAmended = week.amendedItems.kpi[key]?.goal; const actualAmended = week.amendedItems.kpi[key]?.actual;
+            kpiHTML += `<div class="bg-gray-800 p-3 rounded"><label class="block font-medium mb-2">${ind.name}</label><div class="flex gap-4">
+                <div class="flex-1"><label class="text-sm text-gray-400">Goal ${goalAmended ? '<span class="amended-item">*</span>' : ''}</label><input type="number" min="0" data-key="${key}" data-type="goal" value="${data.goal}" class="w-full bg-gray-700 text-white text-center rounded border-transparent focus:ring-1 focus:ring-blue-500 p-2 mt-1"></div>
+                <div class="flex-1"><label class="text-sm text-gray-400">Actual ${actualAmended ? '<span class="amended-item">*</span>' : ''}</label><input type="number" min="0" data-key="${key}" data-type="actual" value="${data.actual}" class="w-full bg-gray-600 text-white text-center rounded border-transparent focus:ring-1 focus:ring-blue-500 p-2 mt-1"></div>
+            </div></div>`;
+        });
+        kpiHTML += `</div>`;
+
+        dailyViewContainer.insertAdjacentHTML('beforeend', `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div>${scheduleHTML}</div><div>${kpiHTML}</div></div>`);
+
+        // --- Render Task Manager Tasks onto the Daily View ---
+        if (typeof tasks !== 'undefined' && tasks.length > 0) {
+            const tasksInView = tasks.filter(t => {
+                if (!t.dueDate) return false;
+                const dueDate = new Date(t.dueDate);
+                return dueDate >= dayStart && dueDate < dayEnd;
+            });
+
+            tasksInView.forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                const hour = dueDate.getHours();
+                if (hour >= 6 && hour <= 22) {
+                    const cell = dailyViewContainer.querySelector(`.planner-slot[data-key="${appState.currentDayIndex}-${hour}"]`);
+                    if (cell) {
+                        const taskElement = document.createElement('div');
+                        taskElement.className = 'planner-task-item';
+                        taskElement.textContent = task.name;
+                        taskElement.style.backgroundColor = statusColors[task.status] || '#888';
+                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+                        taskElement.style.color = textStyle.color;
+                        taskElement.style.textShadow = textStyle.textShadow;
+                        taskElement.dataset.taskId = task.id;
+                        taskElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openModal(task.id);
+                        });
+                        cell.appendChild(taskElement);
+                    }
+                }
+            });
+        }
+    };
+
+    // --- FIX: Restored Progress Tracker Rendering ---
+    const renderProgressTracker = () => {
+        progressTrackerContainer.innerHTML = '';
+        const weeksForChart = appState.weeks.slice(0, CURRENT_WEEK_INDEX + 1);
+        appState.indicators.forEach(ind => {
+            const chartDiv = document.createElement('div'); chartDiv.className = 'mb-4';
+            const kpiIsAmendedInHistory = weeksForChart.some(w => Object.keys(w.amendedItems.kpi).some(key => key.endsWith(`-${ind.id}`) && w.amendedItems.kpi[key].actual));
+            chartDiv.innerHTML = `<h3 class="text-md font-semibold text-white mb-3">${ind.name} ${kpiIsAmendedInHistory ? '<span class="amended-item text-sm">*</span>' : ''}</h3>`;
+            const chartContainer = document.createElement('div'); chartContainer.className = 'flex items-end justify-around h-32 bg-gray-900 p-2 rounded-md space-x-2';
+            const weekData = weeksForChart.map(w => calculateKpiTotalForWeek(w, ind.id));
+            const maxVal = Math.max(...weekData, 1);
+            weeksForChart.forEach((week, index) => chartContainer.appendChild(createBar((weekData[index] / maxVal) * 100, weekData[index], new Date(week.startDate), index === CURRENT_WEEK_INDEX)));
+            chartDiv.appendChild(chartContainer); progressTrackerContainer.appendChild(chartDiv);
+        });
+    };
+
+    const createBar = (height, value, date, isCurrent) => {
+        const wrapper = document.createElement('div'); wrapper.className = 'flex-1 flex flex-col items-center text-center w-0';
+        wrapper.innerHTML = `<div class="text-xs font-bold text-gray-300">${value}</div><div class="w-full rounded-t-md transition-all duration-300 ${isCurrent ? 'bg-blue-500' : 'bg-green-600'}" style="height: ${height}%"></div><div class="text-xs text-gray-400 mt-1">${isCurrent ? "Current" : date.toLocaleDateString(undefined, {month:'numeric', day:'numeric'})}</div>`;
+        return wrapper;
+    };
+    const updateViewButtons = () => viewBtns.forEach(btn => { btn.classList.toggle('bg-blue-600', btn.dataset.view === appState.currentView); btn.classList.toggle('bg-gray-700', btn.dataset.view !== appState.currentView); });
+
+    // --- AMENDMENT LOGIC ---
+    const checkAmendment = (week, type, key, subkey, newValue) => {
+        if (appState.viewingIndex >= CURRENT_WEEK_INDEX || !week.originalState) return false;
+        let originalValue;
+        switch(type) {
+            case 'weeklyGoals': originalValue = week.originalState.weeklyGoals; break;
+            case 'schedule': originalValue = week.originalState.schedule[key] || ''; break;
+            case 'kpi': originalValue = week.originalState.kpiData[key]?.[subkey] || 0; break;
+        }
+        const isDifferent = originalValue != newValue; // Use != for type coercion (e.g., "5" vs 5)
+        let changed = false;
+        if (type === 'kpi') {
+            if (!week.amendedItems.kpi[key]) week.amendedItems.kpi[key] = { goal: false, actual: false };
+            if (week.amendedItems.kpi[key][subkey] !== isDifferent) {
+                week.amendedItems.kpi[key][subkey] = isDifferent;
+                changed = true;
+            }
+        } else {
+             if (week.amendedItems[type][key] !== isDifferent) {
+                week.amendedItems[type][key] = isDifferent;
+                changed = true;
+            }
+        }
+        return changed;
+    };
+
+    // --- EVENT HANDLERS ---
+    const setupPlannerEventListeners = () => {
+        prevWeekBtn.addEventListener('click', () => { if (appState.viewingIndex > 0) { appState.viewingIndex--; saveViewState(); renderPlanner(); } });
+        nextWeekBtn.addEventListener('click', () => { if (appState.viewingIndex < appState.weeks.length - 1) { appState.viewingIndex++; saveViewState(); renderPlanner(); } });
+        viewBtns.forEach(btn => btn.addEventListener('click', () => { appState.currentView = btn.dataset.view; saveViewState(); renderPlanner(); }));
+        addIndicatorBtn.addEventListener('click', () => { const name = newIndicatorInput.value.trim(); if (name) { const newId = appState.indicators.length > 0 ? Math.max(...appState.indicators.map(i => i.id)) + 1 : 1; appState.indicators.push({ id: newId, name: name }); newIndicatorInput.value = ''; savePlannerData(); renderPlanner(); }});
+        indicatorListEl.addEventListener('click', e => { if(e.target.matches('.remove-indicator-btn')) { appState.indicators = appState.indicators.filter(i => i.id !== parseInt(e.target.dataset.id)); savePlannerData(); renderPlanner(); } });
+
+        app.addEventListener('blur', e => {
+            if (e.target.matches('[contenteditable][data-key]')) {
+                const week = appState.weeks[appState.viewingIndex]; const key = e.target.dataset.key;
+                const newContent = e.target.innerHTML.replace(/<span.*?<\/span>/g, '').trim();
+                if (checkAmendment(week, 'schedule', key, null, newContent)) renderPlanner();
+                week.schedule[key] = newContent;
+                savePlannerData();
+            }
+        }, true);
+
+        app.addEventListener('input', e => {
+             if (e.target.matches('input[type="number"][data-key]')) {
+                const { key, type } = e.target.dataset; const week = appState.weeks[appState.viewingIndex];
+                if (!week.kpiData[key]) week.kpiData[key] = { goal: 0, actual: 0 };
+                const newValue = parseFloat(e.target.value) || 0;
+                if (checkAmendment(week, 'kpi', key, type, newValue)) renderPlanner();
+                week.kpiData[key][type] = newValue;
+                savePlannerData();
+                renderProgressTracker();
+            }
+        });
+
+        weeklyGoalsEl.addEventListener('blur', () => {
+            const week = appState.weeks[appState.viewingIndex]; const newGoals = weeklyGoalsEl.innerHTML;
+            if (checkAmendment(week, 'weeklyGoals', 'weeklyGoals', null, newGoals)) renderPlanner();
+            week.weeklyGoals = newGoals;
+            savePlannerData();
+        });
+
+        // --- FIX: Daily View day change listener ---
+        dailyViewContainer.addEventListener('click', e => {
+            let dayChanged = false;
+            if (e.target.id === 'prevDayBtn') { appState.currentDayIndex = (appState.currentDayIndex - 1 + 7) % 7; dayChanged = true; }
+            if (e.target.id === 'nextDayBtn') { appState.currentDayIndex = (appState.currentDayIndex + 1) % 7; dayChanged = true; }
+            if(dayChanged) { saveViewState(); renderDailyView(); }
+        });
+
+        startNewWeekBtn.addEventListener('click', () => confirmModal.classList.remove('hidden'));
+        cancelNewWeekBtn.addEventListener('click', () => confirmModal.classList.add('hidden'));
+        confirmNewWeekBtn.addEventListener('click', () => {
+            const weekToSnapshot = appState.weeks[CURRENT_WEEK_INDEX];
+            if (!weekToSnapshot.originalState) {
+                weekToSnapshot.originalState = {
+                    weeklyGoals: weekToSnapshot.weeklyGoals,
+                    schedule: deepClone(weekToSnapshot.schedule),
+                    kpiData: deepClone(weekToSnapshot.kpiData)
+                };
+            }
+            const lastWeek = appState.weeks[appState.weeks.length - 1];
+            const nextWeekStartDate = new Date(lastWeek.startDate); nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
+            appState.weeks.push(createNewWeek(nextWeekStartDate)); appState.weeks.shift();
+            appState.viewingIndex = CURRENT_WEEK_INDEX;
+            savePlannerData();
+            saveViewState();
+            renderPlanner();
+            confirmModal.classList.add('hidden');
+        });
+    };
+
+    const calculateKpiTotalForWeek = (week, indicatorId, type = 'actual') => Object.keys(week.kpiData).filter(key => parseInt(key.split('-')[1]) === indicatorId).reduce((sum, key) => sum + (week.kpiData[key][type] || 0), 0);
+
+    // --- KICKOFF ---
+    initializeOrSyncState();
+    setupPlannerEventListeners();
+    renderPlanner();
+});
