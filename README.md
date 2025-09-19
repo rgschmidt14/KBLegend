@@ -1,71 +1,58 @@
-Modular Task Manager
-Welcome to the Modular Task Manager, a powerful, highly customizable application designed to help you organize your life with intelligent, predictive scheduling. This app goes beyond a simple to-do list by analyzing your schedule to warn you about potential time crunches before they happen.
+# Pilot's Mission Planner & Task Manager
 
-Key Features
-Intelligent Task Status: Tasks automatically change color (from Ready to Start Soon, Do Right Now, and Overdue) based on a predictive algorithm that considers not just the task's due date, but also the estimated duration of all your other high-priority tasks.
+Welcome to the Pilot's Mission Planner & Task Manager, a powerful, highly customizable application designed to help you organize your life with intelligent, predictive scheduling and integrated planning. This app goes beyond a simple to-do list by analyzing your schedule, tracking your goals, and providing a clear visual interface to manage both your daily tasks and long-term missions.
 
-Deep Customization:
+## In-Depth Features
 
-Custom Statuses: Edit the names and colors for each status to match your personal workflow.
+This application is built as a comprehensive tool for managing complex schedules and tracking progress towards specific goals. It combines a sophisticated task manager with a weekly mission planner, providing a single interface for all your planning needs.
 
-Custom Categories: Create an unlimited number of color-coded categories to organize your tasks.
+### The Task Manager
 
-Theming Engine: Choose a base color to generate a dynamic, cohesive theme across the entire application, or stick with the default color scheme.
+The core of the application is a dynamic and intelligent task management system.
 
-Advanced Repetition Engine: Schedule tasks that repeat on complex schedules, such as "the last Friday of every month" or "the 2nd and 4th Tuesday of January, March, and May."
+*   **Intelligent Task Status:** Tasks automatically change color and status (`Ready`, `Start Soon`, `Do Right Now`, `Overdue`) based on a predictive algorithm. This system doesn't just look at the due date; it considers the estimated duration of all your other high-priority tasks to warn you about potential time crunches before they happen.
+*   **Advanced Repetition Engine:** Create tasks that repeat on almost any schedule imaginable.
+    *   **Relative Repetition:** Set tasks to repeat at an interval after their due date (e.g., "every 3 days").
+    *   **Absolute Repetition:** Define complex schedules, such as "the last Friday of every month" or "the 2nd and 4th Tuesday of January, March, and May."
+*   **Flexible Completion Tracking:** Choose how you want to complete a task.
+    *   **Simple:** A standard check-off for simple to-do items.
+    *   **Count-Based:** Track progress towards a numerical goal (e.g., read 50 pages, do 100 push-ups).
+    *   **Time-Based:** Track time spent on a task with a built-in timer (e.g., study for 45 minutes).
+*   **Habit & Failure Tracking:** For repeating tasks, you can set a "max misses" threshold. The task's status will change as you approach this limit, providing a clear visual indicator when a habit is at risk of being broken.
+*   **In-Depth Customization:**
+    *   **Categories:** Create an unlimited number of color-coded categories to organize your tasks.
+    *   **Status Names & Colors:** Edit the names and colors for each status (`Ready`, `Overdue`, etc.) to match your personal workflow.
+    *   **Theming Engine:** Choose a base color to generate a dynamic, cohesive theme across the entire application, or stick with the default color scheme. You can also randomize the theme for a fresh look.
+*   **Notifications:** Receive desktop notifications when a task's status changes, ensuring you never miss an important deadline.
 
-Flexible Completion Tracking: Tasks can be simple check-offs, or they can require tracking progress by a target count (e.g., read 50 pages) or time spent (e.g., practice guitar for 30 minutes).
+### The Pilot's Mission Planner
 
-Failure Tracking: For repeating tasks, set a "max misses" threshold to track habits and get a clear visual indicator when a habit is at risk.
+Integrated directly with the task manager, the mission planner provides a high-level view of your week and long-term progress.
 
-Interactive Calendar View: Visualize your scheduled tasks on a full-screen monthly or weekly calendar.
+*   **Weekly & Daily Views:** Plan your schedule on a traditional weekly grid or zoom in to a detailed daily view.
+*   **Task Integration:** All tasks from the Task Manager with a due date will automatically appear on the planner grids, giving you a visual representation of your scheduled commitments.
+*   **Custom KPIs:** Define and track your own Key Performance Indicators (KPIs). Set daily goals and record your actual performance to see how you're tracking against your objectives.
+*   **5-Week Progress Tracker:** A visual chart tracks your performance on all your KPIs over the last five weeks, allowing you to easily spot trends and measure progress over time.
+*   **Amendment Tracking:** If you edit a past week's schedule, goals, or KPIs, the changes are flagged with an asterisk, ensuring a clear and honest record of your planning and performance.
+*   **Seamless Week Advancement:** At the end of the week, a single click archives the current week, rolls over your plans, and sets up a fresh week for planning.
 
-Project Roadmap & Future Updates
+## Project Roadmap & Future Updates
 This document outlines the planned features and improvements for the Modular Task Manager.
 
-Phase 1: Core Functionality & UX Polish
-Fix Notifications: Investigate and debug the notification engine (script-part-5.js) to ensure users receive timely alerts for task status changes.
+### Phase 1: Core Functionality & UX Polish
+*   **Fix Notifications:** Investigate and debug the notification engine to ensure users receive timely alerts for task status changes.
+*   **Responsive Calendar View:** Refactor the CSS for `calendar.html` to ensure it displays correctly on all screen sizes.
+*   **Customizable Task Cards:** Implement a feature in "Advanced Options" allowing users to toggle the visibility of individual details on the task cards.
+*   **Accessibility (A11y) Audit:** Review the application to ensure it is fully accessible to users with disabilities.
 
-Responsive Calendar View: Refactor the CSS for calendar.html to ensure it displays correctly on all screen sizes. This will likely involve using media queries to adjust cell sizes and enabling vertical scrolling within day/week views to prevent layout breakage.
+### Phase 2: Analytics & Deeper Customization
+*   **Task History & Analytics:** Store and visualize historical data on task completion and misses.
+*   **Data Portability (Import/Export):** Implement features to import and export tasks and categories via JSON files.
+*   **Advanced `calculateStatus` Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
-Customizable Task Cards: Implement a feature in "Advanced Options" allowing users to toggle the visibility of individual details on the task cards (e.g., Due Date, Repetition Info, Misses). This will allow for a cleaner, more minimalist UI for those who prefer it.
-
-Accessibility (A11y) Audit: (My suggestion!) Review the application to ensure it is fully accessible to users with disabilities, including proper keyboard navigation, screen reader support (ARIA labels), and meeting color contrast standards.
-
-Phase 2: Analytics & Deeper Customization
-Task History & Analytics:
-
-Modify the data structure to store a history of the last ~100 completions/misses for each repeating task.
-
-Create a new "Charts" or "Analytics" page.
-
-Use a library like Chart.js or D3.js to visualize data, such as completion vs. miss rates by task or category.
-
-Data Portability (Import/Export):
-
-Bulk Task Import: Implement a feature to import tasks from a user-provided JSON file. This is essential for power-users and for quickly populating the app with complex task lists (e.g., a complete workout routine generated by an AI).
-
-Category Export: Allow users to export all tasks within a specific category to a JSON file. This serves as both a backup and a way to share task lists.
-
-JSON Template: Provide a clear and simple JSON structure template for users. This template will guide them (and any AI they use) to format the data correctly for successful import. Note: This should be implemented after the core data structure is finalized to avoid frequent template updates.
-
-Multiple Categories per Task: As part of this, investigate implementing the ability for a single task to belong to multiple categories.
-
-Advanced calculateStatus Tuning:
-
-Based on beta tester feedback, fine-tune the YELLOW_WINDOW_HOURS constant and other predictive logic.
-
-Consider adding a user setting (e.g., "Warning Sensitivity: Low/Medium/High") that adjusts these time windows.
-
-Explore alternative calculation models (e.g., a "priority score" based on more than just due dates).
-
-Phase 3: Backend & Monetization
-Database Integration: Transition from localStorage to a persistent database like Firebase Firestore. This is crucial to prevent data loss when a user's browser cache is cleared.
-
-User Authentication: Implement a user account system to serve as the foundation for premium features.
-
-Multi-Device Sync: Ensure that a user's tasks, categories, and settings are seamlessly synced across all their devices in real-time.
-
-Collaborative Features: Allow users to share specific categories or tasks with friends, enabling collaborative task management.
-
-Monetization: Introduce a premium tier (e.g., a small one-time fee for an account) to unlock features like multi-device sync and sharing.
+### Phase 3: Backend & Monetization
+*   **Database Integration:** Transition from `localStorage` to a persistent database like Firebase Firestore.
+*   **User Authentication:** Implement user accounts.
+*   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices.
+*   **Collaborative Features:** Allow users to share specific categories or tasks.
+*   **Monetization:** Introduce a premium tier to unlock advanced features.
