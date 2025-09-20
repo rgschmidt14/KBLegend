@@ -13,7 +13,7 @@ let statusColors = { ...defaultStatusColors };
 let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
-let theming = { enabled: false, baseColor: '#3b82f6', mode: 'night' };
+let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto' };
 let appSettings = { title: "Task & Mission Planner" };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let editingTaskId = null;
@@ -737,16 +737,14 @@ function generateComplementaryPalette(baseColor) {
     return [addTaskBtnColor, calendarBtnColor, advancedOptionsBtnColor, catColor1, catColor2, catColor3];
 }
 
-function applyDayNightMode() {
-    document.body.classList.toggle('light-mode', theming.mode === 'day');
-    // We will add more comprehensive style changes in styles.css
-    if (theming.mode === 'day') {
-        document.body.style.backgroundColor = '#F9FAFB'; // Light Gray
-        document.body.style.color = '#111827'; // Dark Gray
-    } else {
-        document.body.style.backgroundColor = '#111827'; // Dark Gray
-        document.body.style.color = '#F3F4F6'; // Light Gray
+function applyThemeMode() {
+    document.body.classList.remove('light-mode', 'auto-theme');
+    if (theming.mode === 'light') {
+        document.body.classList.add('light-mode');
+    } else if (theming.mode === 'auto') {
+        document.body.classList.add('auto-theme');
     }
+    // For 'night' mode, no class is needed as it's the default.
 }
 
 function setAppTitle(newTitle) {
@@ -763,7 +761,7 @@ function setAppTitle(newTitle) {
 }
 
 function applyTheme() {
-    applyDayNightMode(); // Apply day/night mode first
+    applyThemeMode(); // Apply day/night/auto mode first
 
     const addTaskBtn = document.getElementById('add-task-btn');
     const advancedOptionsBtn = document.getElementById('advanced-options-btn');
@@ -1226,6 +1224,18 @@ function startAllCountdownTimers() {
         }
     });
 }
+function activateModal(modalElement) {
+    if (!modalElement) return;
+    modalElement.classList.add('active');
+    document.body.classList.add('modal-open');
+}
+
+function deactivateModal(modalElement) {
+    if (!modalElement) return;
+    modalElement.classList.remove('active');
+    document.body.classList.remove('modal-open');
+}
+
 function openModal(taskId = null, options = {}) {
     try {
         taskForm.reset();
@@ -1341,13 +1351,13 @@ function openModal(taskId = null, options = {}) {
         }
 
         toggleCompletionFields(completionTypeSelect.value);
-        taskModal.classList.add('active');
+        activateModal(taskModal);
     } catch (e) {
         console.error("Error opening modal:", e);
     }
 }
 function closeModal() {
-    taskModal.classList.remove('active');
+    deactivateModal(taskModal);
     editingTaskId = null;
 }
 function toggleCompletionFields(type) {
@@ -1445,7 +1455,7 @@ function openAdvancedOptionsModal() {
     renderPlannerSettings();
     renderTaskDisplaySettings();
     renderAppSettings();
-    advancedOptionsModal.classList.add('active');
+    activateModal(advancedOptionsModal);
 }
 function renderCategoryFilters() {
     if (!categoryFilterList) return;
@@ -1513,7 +1523,7 @@ function renderNotificationManager() {
     container.innerHTML = `
         <div class="flex items-center justify-between">
             <label for="master-notification-toggle" class="form-label mb-0">Enable All Notifications:</label>
-            <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer ${notificationSettings.enabled ? 'bg-green-500' : ''}" ${notificationSettings.enabled ? 'checked' : ''}>
+            <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer ${notificationSettings.enabled ? 'bg-green-500' : ''}" ${notificationSettings.enabled ? 'checked' : ''}>
         </div>
         <div id="notification-details" class="${notificationSettings.enabled ? '' : 'hidden'} space-y-4">
             <div>
@@ -1550,7 +1560,7 @@ function renderNotificationManager() {
             item.className = 'flex items-center justify-between p-2 border rounded-md';
             item.innerHTML = `
                 <span class="font-medium">${cat.name}</span>
-                <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isEnabled ? 'checked' : ''}>
+                <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isEnabled ? 'checked' : ''}>
             `;
             categoryList.appendChild(item);
         });
@@ -1558,15 +1568,22 @@ function renderNotificationManager() {
 }
 
 function renderThemeControls() {
-    const dayNightToggle = document.getElementById('day-night-toggle');
+    const themeModeSelector = document.getElementById('theme-mode-selector');
+    if (themeModeSelector) {
+        themeModeSelector.querySelectorAll('.theme-mode-btn').forEach(btn => {
+            btn.classList.remove('active-theme-btn');
+            if (btn.dataset.mode === theming.mode) {
+                btn.classList.add('active-theme-btn');
+            }
+        });
+    }
+
     const themeToggle = document.getElementById('theme-enabled-toggle');
     const themeControls = document.getElementById('theme-controls');
     const themeColorPicker = document.getElementById('theme-base-color');
 
-    if (dayNightToggle) dayNightToggle.checked = theming.mode === 'night';
     if (themeToggle) themeToggle.checked = theming.enabled;
     if (themeColorPicker) themeColorPicker.value = theming.baseColor;
-
     if (themeControls) themeControls.classList.toggle('hidden', !theming.enabled);
 }
 
@@ -2231,7 +2248,7 @@ function cancelStatusNameEdit(statusKey) {
 function triggerRestoreDefaults() {
     const container = document.getElementById('restore-defaults-container');
     if (container) {
-        container.innerHTML = `<span class="action-area-text">Reset all colors and sorting?</span> <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes</button> <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No</button>`;
+        container.innerHTML = `<span class="action-area-text text-sm">Reset all view settings? This will restore default colors, sorting, and theme settings. Your tasks, categories, and planner entries will not be affected.</span> <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes</button> <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No</button>`;
     }
 }
 
@@ -2486,16 +2503,23 @@ function initializeDOMElements() {
 }
 function setupEventListeners() {
     // Task Manager
+    const taskManagerModal = document.getElementById('taskManagerModal');
     const toggleTaskManagerBtn = document.getElementById('toggleTaskManagerBtn');
     if (toggleTaskManagerBtn) {
         toggleTaskManagerBtn.addEventListener('click', () => {
-            document.getElementById('taskManagerModal').classList.toggle('hidden');
+            const isHidden = taskManagerModal.classList.toggle('hidden');
+            if (isHidden) {
+                document.body.classList.remove('modal-open');
+            } else {
+                document.body.classList.add('modal-open');
+            }
         });
     }
     const closeTaskManagerBtn = document.getElementById('closeTaskManagerBtn');
     if (closeTaskManagerBtn) {
         closeTaskManagerBtn.addEventListener('click', () => {
-            document.getElementById('taskManagerModal').classList.add('hidden');
+            taskManagerModal.classList.add('hidden');
+            document.body.classList.remove('modal-open');
         });
     }
 
@@ -2510,7 +2534,7 @@ function setupEventListeners() {
     const advOptionsCloseButton = advancedOptionsModal.querySelector('.close-button');
     if(advOptionsCloseButton) {
         advOptionsCloseButton.addEventListener('click', () => {
-            advancedOptionsModal.classList.remove('active');
+            deactivateModal(advancedOptionsModal);
         });
     }
     if (taskForm) {
@@ -2562,9 +2586,11 @@ function setupEventListeners() {
         }
     });
     window.addEventListener('mousedown', (event) => {
-        if (event.target === taskModal || event.target === advancedOptionsModal) {
+        if (event.target === taskModal) {
             closeModal();
-            advancedOptionsModal.classList.remove('active');
+        }
+        if (event.target === advancedOptionsModal) {
+            deactivateModal(advancedOptionsModal);
         }
     });
     taskListDiv.addEventListener('click', (event) => {
@@ -2630,11 +2656,6 @@ function setupEventListeners() {
                 case 'toggleCategoryNotification':
                     toggleCategoryNotification(target.dataset.categoryId, event.target.checked);
                     break;
-                case 'toggleDayNight':
-                    theming.mode = event.target.checked ? 'night' : 'day';
-                    applyTheme();
-                    saveData();
-                    break;
                 case 'toggleTheme':
                     theming.enabled = event.target.checked;
                     applyTheme();
@@ -2649,6 +2670,20 @@ function setupEventListeners() {
                     break;
             }
         });
+        const themeModeSelector = document.getElementById('theme-mode-selector');
+        if (themeModeSelector) {
+            themeModeSelector.addEventListener('click', (event) => {
+                const target = event.target.closest('.theme-mode-btn');
+                if (!target) return;
+                const mode = target.dataset.mode;
+                if (mode) {
+                    theming.mode = mode;
+                    applyTheme();
+                    renderThemeControls();
+                    saveData();
+                }
+            });
+        }
         advancedOptionsContent.addEventListener('change', (event) => {
             const target = event.target;
             if (target.id === 'app-title-input') {

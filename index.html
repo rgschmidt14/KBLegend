@@ -385,17 +385,17 @@
                 <fieldset>
                     <legend>Theme Management</legend>
                     <div id="theme-manager-content" class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <label for="day-night-toggle" class="form-label mb-0">Theme:</label>
-                            <div class="flex items-center">
-                                <span class="text-sm mr-2">Day</span>
-                                <input type="checkbox" id="day-night-toggle" data-action="toggleDayNight" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
-                                <span class="text-sm ml-2">Night</span>
+                        <div>
+                            <label class="form-label">Theme:</label>
+                            <div id="theme-mode-selector" class="flex space-x-2 rounded-md bg-gray-200 p-1">
+                                <button data-mode="light" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Day</button>
+                                <button data-mode="night" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Night</button>
+                                <button data-mode="auto" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Auto</button>
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
                             <label for="theme-enabled-toggle" class="form-label mb-0">Enable Gradient Theme:</label>
-                            <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
+                            <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
                         </div>
                         <div id="theme-controls" class="hidden space-y-2">
                             <div class="flex items-center justify-between">

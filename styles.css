@@ -9,6 +9,10 @@ body {
     color: #F3F4F6; /* Light Gray */
 }
 
+body.modal-open {
+    overflow: hidden;
+}
+
 .modal-backdrop {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0, 0, 0, 0.7); display: flex;
@@ -30,10 +34,11 @@ body {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #2d3748; /* Gray 800 */
+    color: #F7FAFC; /* Gray 100 */
     margin: auto;
     padding: 2rem;
-    border: 1px solid #888;
+    border: 1px solid #4A5568; /* Gray 600 */
     width: 90%;
     max-width: 550px;
     border-radius: 0.5rem;
@@ -227,6 +232,32 @@ legend {
     background-color: rgba(0, 0, 0, 0.1); /* Subtle hover for light backgrounds */
 }
 
+/* Toggle Switch Styles */
+.toggle-checkbox {
+    position: relative;
+}
+
+.toggle-checkbox::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 1.25rem; /* h-5 */
+    height: 1.25rem; /* w-5 */
+    background-color: white;
+    border-radius: 9999px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.toggle-checkbox:checked {
+    background-color: #4f46e5; /* indigo-600 */
+}
+
+.toggle-checkbox:checked::before {
+    transform: translateX(1.5rem); /* w-6 */
+}
+
+
 /* NEW: Specificity for high-contrast action buttons on problematic backgrounds */
 .task-item[data-status="red"] .task-action-button,
 .task-item[data-status="black"] .task-action-button {
@@ -321,7 +352,57 @@ legend {
     cursor: pointer;
 }
 
+/* Theme Mode Selector Styles */
+.theme-mode-btn {
+    color: #4A5568; /* Gray-600 */
+    background-color: transparent;
+}
+
+.theme-mode-btn.active-theme-btn {
+    background-color: #FFFFFF;
+    color: #1A202C; /* Gray-900 */
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06);
+}
+
+.light-mode .theme-mode-selector {
+    background-color: #E5E7EB; /* Gray-200 */
+}
+.light-mode .theme-mode-btn {
+    color: #4B5563; /* Gray-600 */
+}
+.light-mode .theme-mode-btn.active-theme-btn {
+    background-color: #FFFFFF;
+    color: #1F2937;
+}
+
 /* Light Mode Styles */
+@media (prefers-color-scheme: light) {
+  .auto-theme {
+    background-color: #F9FAFB;
+    color: #1F2937;
+  }
+  .auto-theme #app h1, .auto-theme #app h2, .auto-theme #app h3, .auto-theme #app h4 { color: #1F2937; }
+  .auto-theme #app p, .auto-theme #weekDateRange { color: #6B7280; }
+  .auto-theme .bg-gray-800 { background-color: #FFFFFF; border: 1px solid #E5E7EB; }
+  .auto-theme .bg-gray-900 { background-color: #F3F4F6; }
+  .auto-theme .border-gray-700 { border-color: #E5E7EB; }
+  .auto-theme .nav-btn, .auto-theme .view-btn { background-color: #E5E7EB; color: #1F2937; }
+  .auto-theme .nav-btn:hover, .auto-theme .view-btn:hover { background-color: #D1D5DB; }
+  .auto-theme .view-btn.bg-blue-600 { background-color: #3B82F6; color: #FFFFFF; }
+  .auto-theme input[type="text"], .auto-theme input[type="number"] { background-color: #FFFFFF; border-color: #D1D5DB; color: #1F2937; }
+  .auto-theme .table-cell { border-color: #E5E7EB; }
+  .auto-theme .planner-task-item { color: #FFFFFF; }
+  .auto-theme #taskManagerModal .text-gray-800 { color: #1F2937; }
+  .auto-theme .modal-content, .auto-theme #advanced-options-modal .modal-content, .auto-theme #task-modal .modal-content { background-color: #FFFFFF; color: #111827; border-color: #e2e8f0; }
+  .auto-theme .close-button { color: #9CA3AF; }
+  .auto-theme .close-button:hover { color: #1F2937; }
+  .auto-theme .modal-content h2, .auto-theme .modal-content legend, .auto-theme .modal-content .form-label, .auto-theme .modal-content label, .auto-theme .modal-content span, .auto-theme .modal-content div { color: #1F2937 !important; }
+  .auto-theme .modal-content .form-hint { color: #6B7280 !important; }
+  .auto-theme .modal-content input[type="text"], .auto-theme .modal-content input[type="number"], .auto-theme .modal-content input[type="datetime-local"], .auto-theme .modal-content select { background-color: #FFFFFF; border-color: #D1D5DB; color: #111827; }
+  .auto-theme .modal-content .checkbox-label { border-color: #D1D5DB; color: #1F2937; }
+  .auto-theme .modal-content .peer:checked + .checkbox-label-text { background-color: #DBEAFE; border-color: #93C5FD; color: #1E40AF; }
+}
+
 .light-mode {
     background-color: #F9FAFB; /* very light gray */
     color: #1F2937; /* very dark gray */
@@ -385,6 +466,59 @@ legend {
     color: #111827;
 }
 
+/* Night Mode Modal Form Element Styles */
+.modal-content .form-label,
+.modal-content legend,
+.modal-content h2 {
+    color: #E2E8F0; /* Gray 200 */
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="number"],
+.modal-content input[type="datetime-local"],
+.modal-content select {
+    background-color: #1A202C; /* Gray 900 */
+    border-color: #4A5568; /* Gray 600 */
+    color: #F7FAFC; /* Gray 100 */
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: #63B3ED; /* Blue 400 */
+    box-shadow: 0 0 0 1px #63B3ED;
+}
+
+.modal-content .form-hint {
+    color: #A0AEC0; /* Gray 400 */
+}
+
+.modal-content fieldset {
+    border-color: #4A5568; /* Gray 600 */
+}
+
+.modal-content .close-button {
+    color: #A0AEC0; /* Gray 400 */
+}
+
+.modal-content .close-button:hover {
+    color: #F7FAFC; /* Gray 100 */
+}
+
+.modal-content .checkbox-label {
+    border-color: #4A5568; /* Gray 600 */
+    color: #E2E8F0; /* Gray 200 */
+}
+
+.modal-content .checkbox-label:hover {
+    background-color: #4A5568; /* Gray 600 */
+}
+
+.modal-content .peer:checked + .checkbox-label-text {
+    background-color: #4f46e5; /* indigo-600 */
+    border-color: #a5b4fc; /* indigo-300 */
+    color: #ffffff;
+}
+
 .light-mode .form-label {
     color: #374151;
 }
@@ -414,9 +548,10 @@ legend {
     color: #111827;
 }
 
-.light-mode #advanced-options-modal .modal-content, .light-mode #task-modal .modal-content {
+.light-mode .modal-content, .light-mode #advanced-options-modal .modal-content, .light-mode #task-modal .modal-content {
     background-color: #FFFFFF;
     color: #111827;
+    border-color: #e2e8f0; /* gray-200 */
 }
 
 .light-mode .close-button {
