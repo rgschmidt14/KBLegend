@@ -47,6 +47,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 1.7) - 09/20/2025**
+
+This update focused on improving the long-term robustness of the application and restoring key functionality.
+
+*   **Task Archiving:** Implemented a critical architectural improvement to enhance performance. Completed or missed non-repeating tasks are now moved from the main `tasks` array to a `historicalTasks` array. This keeps the active task list lean, ensuring the application remains fast and responsive as more tasks are added.
+*   **KPI Editability Restored:** Fixed a regression where Key Performance Indicator (KPI) goals and actuals were not editable in the Progress Tracker. The `disabled` attribute was removed from the inputs, allowing users to edit past KPI data again. The existing amendment tracking system correctly flags these changes to maintain a transparent record.
+
 ### **✅ Recently Completed (Version 1.6) - 09/20/2025**
 
 This update focused on improving the visual consistency and user experience of the application by fixing theme-related bugs.
@@ -75,23 +82,16 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Clickable Week Navigator:**
     *   **Problem:** User cannot easily jump to a specific week in the past or future without clicking the navigation buttons multiple times.
     *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar widget that allows the user to select and jump to any week.
-*   **KPI & Progress Tracker Updates:**
-    *   **Problem:** KPI goals/actuals are not editable, and the system doesn't distinguish between daily and weekly KPIs.
-    *   **Objective:** Make KPIs editable again and add a daily auto-task feature.
-    *   **Implementation:**
-        1.  **Editability:** In `renderProgressTracker()`, remove the `disabled` attribute from the `.kpi-goal-input` and `.kpi-actual-input` elements.
-        2.  **Daily/Weekly Distinction:** Add a `frequency` property ('daily' or 'weekly') to KPI objects. Create a daily function to auto-generate tasks for all 'daily' KPIs.
 *   **Advanced Options Accessibility:**
     *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
     *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
 
-#### **2. Core Architecture: Task Archiving**
+#### **2. Core Architecture**
 
-*   **Problem:** All tasks, active and completed, are stored in one array, which will become slow over time.
-*   **Objective:** Move completed/missed tasks to a separate `historicalTasks` array to improve performance.
-*   **Implementation:**
-    1.  **Data Structure:** Ensure `appState.historicalTasks` is saved to and loaded from localStorage.
-    2.  **Modify Completion Logic:** In `confirmCompletionAction` and `confirmMissAction`, when a task is finished, move it from the main `tasks` array to the `historicalTasks` array. For repeating tasks, create a historical copy before updating the original task to its next due date.
+*   **KPI Daily Auto-Tasking:**
+    *   **Problem:** The system doesn't distinguish between daily and weekly KPIs.
+    *   **Objective:** Add a feature to automatically generate tasks for daily KPIs.
+    *   **Implementation:** Add a `frequency` property ('daily' or 'weekly') to KPI objects. Create a daily function to auto-generate tasks for all 'daily' KPIs.
 
 ### **🚀 Future Roadmap**
 

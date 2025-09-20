@@ -1906,31 +1906,27 @@ function triggerCompletion(taskId) {
 function confirmCompletionAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
-    const task = tasks[taskIndex];
+
+    let task = tasks[taskIndex];
     const cyclesToComplete = task.pendingCycles || 1;
     const wasOverdue = !!task.overdueStartDate;
-    const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || null);
+    const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+
     if (confirmed) {
         stopTaskTimer(taskId);
-        let missCountReduced = false;
-        if (task.repetitionType !== 'none' && baseDate) {
-            // Create historical record before changing the date
-            if (appState.historicalTasks) {
-                const historicalTask = {
-                    originalTaskId: task.id,
-                    name: task.name,
-                    completionDate: baseDate,
-                    status: 'completed',
-                    categoryId: task.categoryId,
-                    durationAmount: task.estimatedDurationAmount,
-                    durationUnit: task.estimatedDurationUnit,
-                };
-                appState.historicalTasks.push(historicalTask);
-            }
+
+        if (task.repetitionType !== 'none') {
+            // Logic for repeating tasks
+            const historicalTask = {
+                originalTaskId: task.id, name: task.name, completionDate: baseDate, status: 'completed',
+                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+            };
+            appState.historicalTasks.push(historicalTask);
 
             const missesBefore = task.misses || 0;
             task.misses = Math.max(0, missesBefore - cyclesToComplete);
-            if (task.misses < missesBefore) missCountReduced = true;
+            let missCountReduced = task.misses < missesBefore;
+
             let nextDueDate = null;
             if (task.repetitionType === 'relative') {
                 let current = new Date(baseDate);
@@ -1940,15 +1936,11 @@ function confirmCompletionAction(taskId, confirmed) {
                 const futureOccurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(baseDate.getFullYear() + 5, 0, 1));
                 if (futureOccurrences.length >= cyclesToComplete) nextDueDate = futureOccurrences[cyclesToComplete - 1];
             }
+
             if (nextDueDate) {
                 task.dueDate = nextDueDate;
-                if (wasOverdue) {
-                    task.status = calculateStatus(task, Date.now(), tasks).name;
-                    task.cycleEndDate = null;
-                } else {
-                    task.status = 'blue';
-                    task.cycleEndDate = baseDate;
-                }
+                task.status = wasOverdue ? calculateStatus(task, Date.now(), tasks).name : 'blue';
+                task.cycleEndDate = wasOverdue ? null : baseDate;
                 task.completionReducedMisses = missCountReduced;
             } else {
                 task.status = calculateStatus(task, Date.now(), tasks).name;
@@ -1957,15 +1949,24 @@ function confirmCompletionAction(taskId, confirmed) {
             task.currentProgress = 0;
             task.completed = false;
             task.confirmationState = null;
-        } else {
-            task.completed = true;
-            task.status = 'blue';
-            task.misses = 0;
-            task.confirmationState = null;
-            delete task.completionReducedMisses;
+            delete task.pendingCycles;
+            delete task.overdueStartDate;
+            saveData();
+            updateAllTaskStatuses(true);
+
+        } else { // Logic for non-repeating tasks
+            const historicalTask = {
+                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
+                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+            };
+            appState.historicalTasks.push(historicalTask);
+            tasks = tasks.filter(t => t.id !== taskId);
+            saveData();
+            updateAllTaskStatuses(true);
+            return;
         }
-    } else {
-        if (task.overdueStartDate) {
+    } else { // User clicked "No"
+        if (wasOverdue) {
             task.confirmationState = 'awaiting_overdue_input';
         } else {
             task.confirmationState = null;
@@ -1974,13 +1975,15 @@ function confirmCompletionAction(taskId, confirmed) {
                 task.currentProgress = target - (task.completionType === 'time' ? 1000 : 1);
             }
         }
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
+        // Do not nullify confirmationState here if it was just set
+        if (task.confirmationState !== 'awaiting_overdue_input') {
+            task.confirmationState = null;
+        }
+        saveData();
+        updateAllTaskStatuses(true);
     }
-    delete task.pendingCycles;
-    if (!confirmed && !task.overdueStartDate) delete task.overdueStartDate;
-    if (confirmed) delete task.overdueStartDate;
-
-    saveData();
-    updateAllTaskStatuses(true);
 }
 function confirmUndoAction(taskId, confirmed) {
     const task = tasks.find(t => t.id === taskId);
@@ -1999,31 +2002,32 @@ function confirmUndoAction(taskId, confirmed) {
     updateAllTaskStatuses(true);
 }
 function confirmMissAction(taskId, confirmed) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+    let task = tasks[taskIndex];
+
     if (confirmed) {
         const totalCycles = task.pendingCycles || 1;
         const inputEl = document.getElementById(`miss-count-input-${taskId}`);
         const missesToApply = (inputEl && totalCycles > 1) ? parseInt(inputEl.value, 10) : totalCycles;
         const completionsToApply = totalCycles - missesToApply;
-        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || null);
-        if (task.repetitionType !== 'none' && baseDate) {
-            if (missesToApply > 0 && appState.historicalTasks) {
-                 const historicalTask = {
-                    originalTaskId: task.id,
-                    name: task.name,
-                    completionDate: baseDate,
-                    status: 'missed',
-                    categoryId: task.categoryId,
-                    durationAmount: task.estimatedDurationAmount,
-                    durationUnit: task.estimatedDurationUnit,
+        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+
+        if (task.repetitionType !== 'none') {
+            // Logic for repeating tasks
+            if (missesToApply > 0) {
+                const historicalTask = {
+                    originalTaskId: task.id, name: task.name, completionDate: baseDate, status: 'missed',
+                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                 };
                 appState.historicalTasks.push(historicalTask);
             }
+
             if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
             if (missesToApply > 0 && task.trackMisses) {
                 task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
             }
+
             let nextDueDate = null;
             if (task.repetitionType === 'relative') {
                 let current = new Date(baseDate);
@@ -2036,16 +2040,28 @@ function confirmMissAction(taskId, confirmed) {
             task.dueDate = nextDueDate;
             task.cycleEndDate = null;
             task.currentProgress = 0;
-        } else if (task.repetitionType === 'none') {
-            task.status = 'black';
-            task.misses = 1;
-            task.maxMisses = 1;
+            task.confirmationState = null;
+            delete task.pendingCycles;
+            delete task.overdueStartDate;
+        } else { // Logic for non-repeating tasks
+            const historicalTask = {
+                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
+                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+            };
+            appState.historicalTasks.push(historicalTask);
+            tasks = tasks.filter(t => t.id !== taskId);
+            // Save and render immediately, then exit function.
+            saveData();
+            updateAllTaskStatuses(true);
+            return;
         }
-        delete task.pendingCycles;
-        delete task.overdueStartDate;
     } else {
         task.confirmationState = 'awaiting_overdue_input';
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
     }
+
+    task.confirmationState = null;
     saveData();
     updateAllTaskStatuses(true);
 }
@@ -3796,7 +3812,7 @@ function renderProgressTracker() {
     if (appState.viewingIndex >= appState.weeks.length) return;
 
     const week = appState.weeks[appState.viewingIndex];
-    const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
+    const isEditable = appState.viewingIndex <= CURRENT_WEEK_INDEX;
 
     appState.indicators.forEach(indicator => {
         const { id, name } = indicator;
