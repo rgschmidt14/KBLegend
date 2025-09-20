@@ -1113,7 +1113,7 @@ function generateActionHtml(task) {
     switch (task.confirmationState) {
         case 'confirming_complete':
             const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
         case 'awaiting_overdue_input':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red">Missed</button></div>`;
         case 'confirming_miss':

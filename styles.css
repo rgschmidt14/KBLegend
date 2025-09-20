@@ -792,3 +792,9 @@ legend {
 .light-mode .progress-bar {
     background-color: #2563eb; /* Blue-600 */
 }
+
+/* Ensure all text within the KPI indicator is readable in light mode */
+.light-mode .kpi-indicator,
+.light-mode .kpi-indicator h4 {
+    color: #1f2937;
+}

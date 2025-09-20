@@ -47,6 +47,12 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 1.6) - 09/20/2025**
+
+This update focused on improving the visual consistency and user experience of the application by fixing theme-related bugs.
+
+*   **Light Mode Theme Fix:** Corrected a visual bug where some elements in light mode had dark text on dark backgrounds, making them unreadable. This was resolved by removing hardcoded text colors from HTML elements and adding specific CSS rules to ensure all text has appropriate contrast against the background in both light and dark themes.
+
 ### **✅ Recently Completed (Version 1.5) - 09/20/2025**
 
 This update focused on improving the long-term stability and maintainability of the application by addressing critical bugs and refactoring the planner's rendering engine.
@@ -69,11 +75,6 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Clickable Week Navigator:**
     *   **Problem:** User cannot easily jump to a specific week in the past or future without clicking the navigation buttons multiple times.
     *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar widget that allows the user to select and jump to any week.
-*   **Light Mode Theme Fix:**
-    *   **Problem:** In light mode, some elements have dark text on a dark background, making them unreadable.
-    *   **Objective:** Ensure all elements have light backgrounds and dark text in light mode.
-    *   **Files to Edit:** `styles.css`
-    *   **Elements:** `#prevWeekBtn`, `#nextWeekBtn`, `.kpi-indicator`, `#progressTrackerContainer`.
 *   **KPI & Progress Tracker Updates:**
     *   **Problem:** KPI goals/actuals are not editable, and the system doesn't distinguish between daily and weekly KPIs.
     *   **Objective:** Make KPIs editable again and add a daily auto-task feature.
