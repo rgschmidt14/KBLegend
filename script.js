@@ -2534,6 +2534,58 @@ function initializeDOMElements() {
     weekStatusEl = document.getElementById('weekStatus');
     weekDateRangeEl = document.getElementById('weekDateRange');
 }
+function promptToAdvanceWeeks(weekDiff) {
+    const modalTitle = confirmModal.querySelector('h3');
+    const modalText = confirmModal.querySelector('p');
+    const confirmBtn = document.getElementById('confirmNewWeek');
+    const cancelBtn = document.getElementById('cancelNewWeek');
+
+    if (weekDiff === 1) {
+        modalTitle.textContent = 'Advance to Next Week?';
+        modalText.textContent = 'This will archive the current week, make your "Next Week Preview" the new current week, and remove the oldest week\'s data. This action cannot be undone.';
+    } else {
+        modalTitle.textContent = `Catch up by ${weekDiff} weeks?`;
+        modalText.textContent = `You are ${weekDiff} weeks behind. This will archive all past weeks and catch you up to the current date. This action cannot be undone.`;
+    }
+
+    const onConfirm = () => {
+        for (let i = 0; i < weekDiff; i++) {
+            const weekToSnapshot = appState.weeks[CURRENT_WEEK_INDEX];
+            if (!weekToSnapshot.originalState) {
+                weekToSnapshot.originalState = {
+                    weeklyGoals: weekToSnapshot.weeklyGoals,
+                    schedule: deepClone(weekToSnapshot.schedule),
+                    kpiData: deepClone(weekToSnapshot.kpiData)
+                };
+            }
+            const lastWeek = appState.weeks[appState.weeks.length - 1];
+            const nextWeekStartDate = new Date(lastWeek.startDate); nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
+            appState.weeks.push(createNewWeek(nextWeekStartDate)); appState.weeks.shift();
+        }
+        appState.viewingIndex = CURRENT_WEEK_INDEX;
+        savePlannerData();
+        saveViewState();
+        renderPlanner();
+        confirmModal.classList.add('hidden');
+        cleanup();
+    };
+
+    const onCancel = () => {
+        confirmModal.classList.add('hidden');
+        cleanup();
+    };
+
+    const cleanup = () => {
+        confirmBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
+    };
+
+    confirmBtn.addEventListener('click', onConfirm, { once: true });
+    cancelBtn.addEventListener('click', onCancel, { once: true });
+
+    confirmModal.classList.remove('hidden');
+}
+
 function setupEventListeners() {
     // Task Manager
     const taskManagerModal = document.getElementById('taskManagerModal');
@@ -2867,26 +2919,10 @@ function setupEventListeners() {
         savePlannerData();
     });
 
-    startNewWeekBtn.addEventListener('click', () => confirmModal.classList.remove('hidden'));
-    cancelNewWeekBtn.addEventListener('click', () => confirmModal.classList.add('hidden'));
-    confirmNewWeekBtn.addEventListener('click', () => {
-        const weekToSnapshot = appState.weeks[CURRENT_WEEK_INDEX];
-        if (!weekToSnapshot.originalState) {
-            weekToSnapshot.originalState = {
-                weeklyGoals: weekToSnapshot.weeklyGoals,
-                schedule: deepClone(weekToSnapshot.schedule),
-                kpiData: deepClone(weekToSnapshot.kpiData)
-            };
-        }
-        const lastWeek = appState.weeks[appState.weeks.length - 1];
-        const nextWeekStartDate = new Date(lastWeek.startDate); nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
-        appState.weeks.push(createNewWeek(nextWeekStartDate)); appState.weeks.shift();
-        appState.viewingIndex = CURRENT_WEEK_INDEX;
-        savePlannerData();
-        saveViewState();
-        renderPlanner();
-        confirmModal.classList.add('hidden');
-    });
+    const addNewTaskBtnPlanner = document.getElementById('addNewTaskBtnPlanner');
+    if (addNewTaskBtnPlanner) {
+        addNewTaskBtnPlanner.addEventListener('click', () => openModal());
+    }
 
     // Add the listener for page visibility changes.
     document.addEventListener('visibilitychange', () => {
@@ -3508,7 +3544,7 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
     taskElement.style.textShadow = textStyle.textShadow;
 
     taskElement.dataset.taskId = task.id;
-    taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+    taskElement.dataset.occurrenceDate = occurrenceStartDate.toISOString();
 
     const width = 100 / totalLanes;
     const left = laneIndex * width;
@@ -3692,19 +3728,7 @@ const initializePlannerState = () => {
         const storedCurrentWeekStart = new Date(appState.weeks[CURRENT_WEEK_INDEX].startDate);
         let weekDiff = Math.round((currentWeekStartDate.getTime() - storedCurrentWeekStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
         if (weekDiff > 0) {
-            for (let i = 0; i < weekDiff; i++) {
-                const weekToSnapshot = appState.weeks[CURRENT_WEEK_INDEX];
-                if (!weekToSnapshot.originalState) {
-                    weekToSnapshot.originalState = {
-                        weeklyGoals: weekToSnapshot.weeklyGoals,
-                        schedule: deepClone(weekToSnapshot.schedule),
-                        kpiData: deepClone(weekToSnapshot.kpiData)
-                    };
-                }
-                const lastWeek = appState.weeks[appState.weeks.length - 1];
-                const nextWeekStartDate = new Date(lastWeek.startDate); nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
-                appState.weeks.push(createNewWeek(nextWeekStartDate)); appState.weeks.shift();
-            }
+            promptToAdvanceWeeks(weekDiff);
         }
     }
     while(appState.weeks.length > MAX_WEEKS_STORED) appState.weeks.shift();

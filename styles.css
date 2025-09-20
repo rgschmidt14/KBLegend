@@ -600,3 +600,83 @@ legend {
     border-color: #93C5FD;
     color: #1E40AF; /* Darker blue text for selected items */
 }
+
+/* 5-Week Progress Tracker Styles */
+.kpi-indicator {
+    background-color: #1f2937; /* Gray-800 */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #374151; /* Gray-700 */
+}
+
+.daily-inputs {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.daily-input-group {
+    text-align: center;
+}
+
+.daily-input-group label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #9ca3af; /* Gray-400 */
+}
+
+.kpi-goal-input, .kpi-actual-input {
+    width: 100%;
+    text-align: center;
+    border: 1px solid #4b5563; /* Gray-600 */
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    background-color: transparent; /* As requested */
+    color: #f3f4f6; /* Light Gray */
+}
+
+.progress-bar-bg {
+    background-color: #4b5563; /* Gray-600 */
+    border-radius: 9999px;
+    height: 0.75rem;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #3b82f6; /* Blue-500 */
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Light mode styles for progress tracker */
+.light-mode .kpi-indicator {
+    background-color: #f9fafb; /* Gray-50 */
+    border-color: #e5e7eb; /* Gray-200 */
+}
+
+.light-mode .daily-inputs {
+    background-color: #e5e7eb; /* Gray-200 */
+}
+
+.light-mode .daily-input-group label {
+    color: #6b7280; /* Gray-500 */
+}
+
+.light-mode .kpi-goal-input, .light-mode .kpi-actual-input {
+    border-color: #d1d5db; /* Gray-300 */
+    color: #111827; /* Gray-900 */
+}
+
+.light-mode .progress-bar-bg {
+    background-color: #e5e7eb; /* Gray-200 */
+}
+
+.light-mode .progress-bar {
+    background-color: #2563eb; /* Blue-600 */
+}
