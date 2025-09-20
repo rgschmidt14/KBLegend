@@ -43,43 +43,53 @@ Integrated directly with the task manager, the mission planner provides a high-l
 *   **Amendment Tracking:** If you edit a past week's schedule, goals, or KPIs, the changes are flagged with an asterisk, ensuring an honest record.
 *   **Seamless Week Advancement:** At the end of the week, a single click archives the current week and sets up a fresh week for planning.
 
-## Project Roadmap & Future Updates
-This document outlines the planned features and improvements for the Modular Task Manager.
+## Project Updates
 
-### Phase 1: Core Functionality & UX Polish (Complete)
-*   **Task Icons:** Implemented the ability to associate Font Awesome icons with tasks.
-*   **Customizable Task Cards:** Implemented a feature in "Advanced Options" allowing users to toggle the visibility of individual details on the task cards.
-*   **Planner/Task Manager Sync:** Deeply integrated the planner and task manager, allowing for click-to-create tasks and seamless data flow between views.
-*   **Planner History & Future View:** The planner now stores a 4-week history and can project repeating tasks infinitely into the future.
-*   **Start Time vs. Due Time:** Users can now define tasks by their start time and duration, not just the due date.
-*   **Accessibility (A11y) Audit:** Reviewed and improved the application to ensure it is more accessible to users with disabilities.
+This section provides a high-level overview of the project's status, recent updates, and future plans.
 
-### Phase 2: Analytics & Deeper Customization
+### ✅ Recently Completed (Version 1.1)
+
+This latest update focused on significant user experience improvements, UI polish, and a major refactoring of the planner's rendering engine.
+
+*   **UI & Styling Overhaul:**
+    *   Fixed an issue where the Task Manager background remained white in Night Mode.
+    *   Corrected the sizing of the "Add New Task" and "Advanced Options" buttons to be more prominent.
+    *   Made the Task Manager content area scrollable to improve usability on smaller screens.
+    *   Redesigned the "Restore Defaults" confirmation prompt to be clearer and more user-friendly.
+    *   Added a toggle in Advanced Settings to switch between 12-hour and 24-hour time formats throughout the application.
+
+*   **Weekly View Rendering Engine:**
+    *   Completely refactored the weekly planner's rendering logic.
+    *   Tasks are now scheduled to **end** at their due time, correctly blocking out their duration on the calendar (e.g., a 1-hour task due at 4 PM now appears from 3 PM to 4 PM).
+    *   The task layout in the weekly view has been fixed to prevent tasks from rendering side-by-side; they now stack vertically as intended.
+    *   Enabled task editing directly from the weekly planner view. Clicking any task occurrence on the grid now opens the edit form with the correct details for that specific instance.
+    *   The read-only future weeks view now uses the same rendering engine as the main planner, ensuring a consistent and accurate look.
+
+### 🔜 Up Next
+
+These are the features currently in the development pipeline.
+
 *   **Fix Notifications:** Investigate and debug the notification engine to ensure users receive timely alerts for task status changes.
-*   **Task History & Analytics:** Store and visualize historical data on task completion and misses.
+*   **Task History & Analytics:** Store and visualize historical data on task completion and misses to provide insights into productivity trends.
 *   **Data Portability (Import/Export):** Implement features to import and export tasks and categories via JSON files.
 *   **Advanced `calculateStatus` Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
-### Phase 3: Backend & Monetization
+### 🚀 Future Roadmap
+
+These are larger, more long-term goals for the project.
+
 *   **Database Integration:** Transition from `localStorage` to a persistent database like Firebase Firestore.
 *   **User Authentication:** Implement user accounts.
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices.
 *   **Collaborative Features:** Allow users to share specific categories or tasks.
 *   **Monetization:** Introduce a premium tier to unlock advanced features.
 
-## AI Suggested Updates
-Here are some suggestions for future enhancements:
+### 💡 Community Suggestions
 
-### 1. Code Organization and Modularity
+A collection of great ideas suggested for future consideration.
+
 *   **Split `script.js` into modules:** The `script.js` file is quite large. Breaking it up into smaller, more focused files (like `task-manager.js`, `planner.js`, etc.) would make the code much easier to manage and maintain in the long run.
 *   **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.
-
-### 2. Testing
 *   **Implement a test suite:** The project doesn't currently have any automated tests. Adding a testing framework (like Jest or Mocha) would be a great way to ensure the application remains stable and bug-free as we add more features.
-
-### 3. User Experience (UX) Enhancements
 *   **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.
 *   **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
-
-### 4. Backend and Data
-*   **Move to a database:** The `README.md` mentions this, and it's a great idea for the future. Moving from `localStorage` to a real database would open the door for features like user accounts and syncing your tasks across multiple devices.

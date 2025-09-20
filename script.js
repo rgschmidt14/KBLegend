@@ -14,7 +14,7 @@ let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
 let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto' };
-let appSettings = { title: "Task & Mission Planner" };
+let appSettings = { title: "Task & Mission Planner", use24HourFormat: false };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let editingTaskId = null;
 let countdownIntervals = {};
@@ -86,6 +86,20 @@ const appState = {
 // =================================================================================
 function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
 const pad = (num, length = 2) => String(num).padStart(length, '0');
+
+function formatDateTime(date) {
+    if (!date || isNaN(date)) return 'N/A';
+    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
+    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !appSettings.use24HourFormat };
+    return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
+}
+
+function formatTime(date) {
+    if (!date || isNaN(date)) return 'N/A';
+    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !appSettings.use24HourFormat };
+    return date.toLocaleTimeString('en-US', timeOptions);
+}
+
 function formatDateForInput(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '';
     try {
@@ -618,47 +632,54 @@ function getDueDateGroup(dueDate) {
 function getTaskOccurrences(task, viewStartDate, viewEndDate) {
     if (!task.dueDate) return [];
 
+    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
+
+    // We need to search for due dates in a slightly expanded window to catch tasks that start before the view
+    const expandedViewStartDate = new Date(viewStartDate.getTime() - (24 * MS_PER_HOUR)); // Look back 24h as a safe buffer
+
+    let dueDatesInExpandedWindow = [];
     const initialDueDate = new Date(task.dueDate);
 
     if (task.repetitionType === 'none') {
-        if (initialDueDate >= viewStartDate && initialDueDate < viewEndDate) {
-            return [initialDueDate];
-        }
-        return [];
-    }
-
-    if (task.repetitionType === 'absolute') {
-        // For absolute, we can just generate occurrences within the window.
-        // We need a reliable start date for the generation, let's use the task's creation date or an early date.
-        const generationStartDate = new Date(Math.min(initialDueDate.getTime(), viewStartDate.getTime()));
-        return generateAbsoluteOccurrences(task, generationStartDate, viewEndDate)
-               .filter(occ => occ >= viewStartDate && occ < viewEndDate);
-    }
-
-    if (task.repetitionType === 'relative') {
-        let results = [];
+        dueDatesInExpandedWindow.push(initialDueDate);
+    } else if (task.repetitionType === 'absolute') {
+        // Generate all occurrences in the expanded window
+        dueDatesInExpandedWindow = generateAbsoluteOccurrences(task, expandedViewStartDate, viewEndDate);
+    } else if (task.repetitionType === 'relative') {
         const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-        if (intervalMs <= 0) return [];
-
-        // Start from the task's due date and generate forward.
-        let currentDate = new Date(initialDueDate);
-        while (currentDate < viewStartDate) {
-             currentDate = new Date(currentDate.getTime() + intervalMs);
-        }
-
-        // Generate occurrences within the view window
-        let i = 0; // Safety break
-        while (currentDate < viewEndDate && i < 100) {
-            if (currentDate >= viewStartDate) {
-                 results.push(new Date(currentDate));
+        if (intervalMs > 0) {
+            let currentDate = new Date(initialDueDate);
+            // Move backward from the initial due date to find the first potential occurrence before our expanded view.
+            while (currentDate.getTime() > expandedViewStartDate.getTime()) {
+                currentDate = new Date(currentDate.getTime() - intervalMs);
             }
-            currentDate = new Date(currentDate.getTime() + intervalMs);
-            i++;
+            // Now, `currentDate` is before or at the start of our search window.
+            // Move forward and collect all due dates that fall within the search window up to the view's end.
+            let i = 0; // Safety break
+            while (currentDate.getTime() < viewEndDate.getTime() && i < 500) {
+                // We only need to add it if it's after the start of our search window.
+                if (currentDate.getTime() >= expandedViewStartDate.getTime()) {
+                    dueDatesInExpandedWindow.push(new Date(currentDate));
+                }
+                currentDate = new Date(currentDate.getTime() + intervalMs);
+                i++;
+            }
         }
-        return results;
     }
 
-    return [];
+    // Now, map the candidate due dates to occurrence objects { start, due }
+    // and filter for the ones that actually overlap with the *original* view window.
+    const occurrences = dueDatesInExpandedWindow.map(dueDate => {
+        return {
+            occurrenceDueDate: dueDate,
+            occurrenceStartDate: new Date(dueDate.getTime() - durationMs)
+        };
+    }).filter(occ => {
+        // Overlap condition: The task's start is before the view's end, AND the task's end is after the view's start.
+        return occ.occurrenceStartDate < viewEndDate && occ.occurrenceDueDate > viewStartDate;
+    });
+
+    return occurrences;
 }
 
 
@@ -982,7 +1003,7 @@ function renderSingleTask(task, options = {}) {
             categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor}; color: ${categoryTextStyle.color}; text-shadow: ${categoryTextStyle.textShadow};">${categoryName}</span>`;
         }
 
-        const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? task.dueDate.toLocaleString() : 'No due date';
+        const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate) : 'No due date';
         const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
 
         let repetitionStr = '';
@@ -1443,6 +1464,10 @@ function renderAppSettings() {
     const titleInput = document.getElementById('app-title-input');
     if (titleInput) {
         titleInput.value = appSettings.title;
+    }
+    const timeFormatToggle = document.getElementById('time-format-toggle');
+    if (timeFormatToggle) {
+        timeFormatToggle.checked = appSettings.use24HourFormat;
     }
 }
 
@@ -2248,7 +2273,15 @@ function cancelStatusNameEdit(statusKey) {
 function triggerRestoreDefaults() {
     const container = document.getElementById('restore-defaults-container');
     if (container) {
-        container.innerHTML = `<span class="action-area-text text-sm">Reset all view settings? This will restore default colors, sorting, and theme settings. Your tasks, categories, and planner entries will not be affected.</span> <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes</button> <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No</button>`;
+        container.innerHTML = `
+            <div class="flex flex-col items-center gap-2 text-center">
+                <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
+                <div class="flex gap-2 mt-2">
+                    <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes, Reset</button>
+                    <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No, Cancel</button>
+                </div>
+            </div>
+        `;
     }
 }
 
@@ -2668,6 +2701,12 @@ function setupEventListeners() {
                     renderThemeControls();
                     saveData();
                     break;
+                case 'toggleTimeFormat':
+                    appSettings.use24HourFormat = event.target.checked;
+                    saveData();
+                    renderTasks();
+                    renderPlanner();
+                    break;
             }
         });
         const themeModeSelector = document.getElementById('theme-mode-selector');
@@ -2777,8 +2816,8 @@ function setupEventListeners() {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            const occurrenceDate = taskItem.dataset.occurrenceDate ? new Date(taskItem.dataset.occurrenceDate) : null;
-            openModal(taskId, { occurrenceDate: occurrenceDate });
+            const occurrenceDueDate = taskItem.dataset.dueDate ? new Date(taskItem.dataset.dueDate) : null;
+            openModal(taskId, { occurrenceDate: occurrenceDueDate }); // Pass the specific due date of this occurrence
 
         } else if (slot) {
             handlePlannerSlotClick(slot);
@@ -3181,23 +3220,34 @@ const renderFutureWeeklyView = (startDate) => {
 
     plannerContainer.innerHTML = ''; // Clear previous content
 
-    // --- Render Header ---
-    plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">Time</div>`);
+    // --- Render Header (copied from renderWeeklyView) ---
+    plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 1;">Time</div>`);
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(weekStartDate);
         dayDate.setDate(weekStartDate.getDate() + i);
-        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: ${i + 2};">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
     }
 
-    // --- Render Time Slots (read-only) ---
+    // --- Render Time Labels and Grid Cells (copied from renderWeeklyView) ---
     for (let hour = 6; hour <= 22; hour++) {
-        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800">${hour}:00</div>`);
+        const rowStart = (hour - 6) * 4 + 2;
+        const d = new Date();
+        d.setHours(hour, 0);
+        const timeStr = formatTime(d);
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell time-label-cell font-semibold bg-gray-800" style="grid-row: ${rowStart} / span 4;">${timeStr}</div>`);
         for (let day = 0; day < 7; day++) {
-            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell planner-slot" data-key="${day}-${hour}"></div>`);
+            for (let i = 0; i < 4; i++) {
+                const slotRow = rowStart + i;
+                // Note: In a read-only view, these slots are not interactive for creating new tasks.
+                // We still need them for the grid structure.
+                plannerContainer.insertAdjacentHTML('beforeend', `<div class="planner-slot" style="grid-column: ${day + 2}; grid-row: ${slotRow};"></div>`);
+            }
         }
     }
 
-    // --- Render Task Manager Tasks onto the Grid ---
+    // --- Process and Render Tasks (copied from renderWeeklyView) ---
+    const dailyTasks = Array.from({ length: 7 }, () => []);
+
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
         const filteredTasks = tasks.filter(task => {
             if (categoryFilter.length === 0) return true;
@@ -3207,29 +3257,16 @@ const renderFutureWeeklyView = (startDate) => {
 
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
-            occurrences.forEach(occurrenceDate => {
-                const dayOfWeek = occurrenceDate.getDay();
-                const hour = occurrenceDate.getHours();
-
-                if (hour >= 6 && hour <= 22) {
-                    const cell = plannerContainer.querySelector(`.planner-slot[data-key="${dayOfWeek}-${hour}"]`);
-                    if (cell) {
-                        const taskElement = document.createElement('div');
-                        taskElement.className = 'planner-task-item';
-                        taskElement.textContent = task.name;
-                        taskElement.style.backgroundColor = statusColors['green']; // Future tasks are neutral
-                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
-                        taskElement.style.color = textStyle.color;
-                        taskElement.style.textShadow = textStyle.textShadow;
-                        taskElement.dataset.taskId = task.id;
-                        // Store occurrence date on the element to be picked up by the event listener
-                        taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
-                        cell.appendChild(taskElement);
-                    }
-                }
+            occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
+                const dayOfWeek = occurrenceStartDate.getDay();
+                dailyTasks[dayOfWeek].push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
             });
         });
     }
+
+    dailyTasks.forEach((tasksForDay, dayIndex) => {
+        layoutDay(tasksForDay, dayIndex, plannerContainer);
+    });
 };
 
 
@@ -3362,7 +3399,10 @@ function renderWeeklyView() {
     // --- Render Time Labels and Grid Cells ---
     for (let hour = 6; hour <= 22; hour++) {
         const rowStart = (hour - 6) * 4 + 2;
-        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell time-label-cell font-semibold bg-gray-800" style="grid-row: ${rowStart} / span 4;">${hour}:00</div>`);
+        const d = new Date();
+        d.setHours(hour, 0);
+        const timeStr = formatTime(d);
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell time-label-cell font-semibold bg-gray-800" style="grid-row: ${rowStart} / span 4;">${timeStr}</div>`);
         for (let day = 0; day < 7; day++) {
             for (let i = 0; i < 4; i++) {
                 const slotRow = rowStart + i;
@@ -3387,9 +3427,10 @@ function renderWeeklyView() {
 
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
-            occurrences.forEach(occurrenceDate => {
-                const dayOfWeek = occurrenceDate.getDay();
-                dailyTasks[dayOfWeek].push({ task, occurrenceDate });
+            occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
+                const dayOfWeek = occurrenceStartDate.getDay();
+                // Pass the specific start and due date for this occurrence to the layout engine.
+                dailyTasks[dayOfWeek].push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
             });
         });
     }
@@ -3402,45 +3443,27 @@ function renderWeeklyView() {
 function layoutDay(tasksForDay, dayIndex, container) {
     if (tasksForDay.length === 0) return;
 
-    // Sort tasks by start time, then duration
+    // The objects in tasksForDay are now { task, occurrenceDate, dueDate }
     tasksForDay.sort((a, b) => {
         const startDiff = a.occurrenceDate.getTime() - b.occurrenceDate.getTime();
         if (startDiff !== 0) return startDiff;
-        const durationA = getDurationMs(a.task.estimatedDurationAmount, a.task.estimatedDurationUnit) || 0;
-        const durationB = getDurationMs(b.task.estimatedDurationAmount, b.task.estimatedDurationUnit) || 0;
+        // duration is just dueDate - occurrenceDate
+        const durationA = a.dueDate.getTime() - a.occurrenceDate.getTime();
+        const durationB = b.dueDate.getTime() - b.occurrenceDate.getTime();
         return durationB - durationA; // Longer tasks first
     });
 
-    const lanes = []; // Each lane is an array of tasks
-
-    tasksForDay.forEach(({ task, occurrenceDate }) => {
-        let placed = false;
-        for (let i = 0; i < lanes.length; i++) {
-            const lastTaskInLane = lanes[i][lanes[i].length - 1];
-            const lastTaskEndTime = new Date(lastTaskInLane.occurrenceDate.getTime() + (getDurationMs(lastTaskInLane.task.estimatedDurationAmount, lastTaskInLane.task.estimatedDurationUnit) || 0));
-            if (occurrenceDate.getTime() >= lastTaskEndTime.getTime()) {
-                lanes[i].push({ task, occurrenceDate });
-                placed = true;
-                break;
-            }
-        }
-        if (!placed) {
-            lanes.push([{ task, occurrenceDate }]);
-        }
-    });
-
-    // Always render all tasks, never show a "more" link.
-    lanes.forEach((lane, laneIndex) => {
-        lane.forEach(({ task, occurrenceDate }) => {
-            renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, lanes.length, container);
-        });
+    // Simplified logic: no lanes. Just render each task.
+    tasksForDay.forEach(({ task, occurrenceDate, dueDate }) => {
+        // Pass 0, 1 for laneIndex and totalLanes to make it full width
+        renderTaskOnGrid(task, occurrenceDate, dueDate, dayIndex, 0, 1, container);
     });
 }
 
-function renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, totalLanes, container) {
-    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60 * 60 * 1000;
-    const startTime = occurrenceDate;
-    const endTime = new Date(startTime.getTime() + durationMs);
+
+function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex, laneIndex, totalLanes, container) {
+    const startTime = occurrenceStartDate;
+    const endTime = occurrenceDueDate;
 
     const startRow = Math.max(0, (startTime.getHours() - 6) * 4 + Math.floor(startTime.getMinutes() / 15)) + 2;
     const endRow = Math.min(68, (endTime.getHours() - 6) * 4 + Math.ceil(endTime.getMinutes() / 15)) + 2;
@@ -3496,7 +3519,10 @@ function renderDailyView() {
 
         const slot = document.createElement('div');
         slot.className = 'daily-slot';
-        slot.innerHTML = `<div class="time-label">${hour}:00</div>`;
+        const d = new Date();
+        d.setHours(hour, 0);
+        const timeStr = formatTime(d);
+        slot.innerHTML = `<div class="time-label">${timeStr}</div>`;
 
         const contentDiv = document.createElement('div');
         contentDiv.className = `planner-slot ${amendedClass}`;
@@ -3521,12 +3547,12 @@ function renderDailyView() {
 
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
-            occurrences.forEach(occurrenceDate => {
-                const hour = occurrenceDate.getHours();
+            occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
+                const hour = occurrenceStartDate.getHours();
                 if (hour >= 6 && hour <= 22) {
                     const cell = grid.querySelector(`.planner-slot[data-key="${dayIndex}-${hour}"]`);
                     if (cell) {
-                         const taskElement = document.createElement('div');
+                        const taskElement = document.createElement('div');
                         taskElement.className = 'planner-task-item';
                         taskElement.textContent = task.name;
 
@@ -3537,7 +3563,8 @@ function renderDailyView() {
                         taskElement.style.color = textStyle.color;
                         taskElement.style.textShadow = textStyle.textShadow;
                         taskElement.dataset.taskId = task.id;
-                        taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+                        taskElement.dataset.occurrenceDate = occurrenceStartDate.toISOString();
+                        taskElement.dataset.dueDate = occurrenceDueDate.toISOString();
                         cell.appendChild(taskElement);
                     }
                 }

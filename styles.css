@@ -147,10 +147,6 @@ body.modal-open {
     margin-right: 0.25rem;
 }
 
-.control-button {
-    @apply text-xs font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow;
-}
-
 .control-button-green { @apply bg-green-500 hover:bg-green-600 text-white focus:ring-green-400; }
 .control-button-yellow { @apply bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-400; }
 .control-button-blue { @apply bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-400; }
