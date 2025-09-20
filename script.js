@@ -2433,6 +2433,19 @@ function initializeDOMElements() {
 }
 function setupEventListeners() {
     // Task Manager
+    const toggleTaskManagerBtn = document.getElementById('toggleTaskManagerBtn');
+    if (toggleTaskManagerBtn) {
+        toggleTaskManagerBtn.addEventListener('click', () => {
+            document.getElementById('taskManagerModal').classList.toggle('hidden');
+        });
+    }
+    const closeTaskManagerBtn = document.getElementById('closeTaskManagerBtn');
+    if (closeTaskManagerBtn) {
+        closeTaskManagerBtn.addEventListener('click', () => {
+            document.getElementById('taskManagerModal').classList.add('hidden');
+        });
+    }
+
     const addTaskBtn = document.getElementById('add-task-btn');
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', () => openModal());
@@ -2674,7 +2687,7 @@ function setupEventListeners() {
     });
 
     prevWeekBtn.addEventListener('click', () => { if (appState.viewingIndex > 0) { appState.viewingIndex--; saveViewState(); renderPlanner(); } });
-    nextWeekBtn.addEventListener('click', () => { if (appState.viewingIndex < appState.weeks.length - 1) { appState.viewingIndex++; saveViewState(); renderPlanner(); } });
+    nextWeekBtn.addEventListener('click', () => { appState.viewingIndex++; saveViewState(); renderPlanner(); });
     viewBtns.forEach(btn => btn.addEventListener('click', () => { appState.currentView = btn.dataset.view; saveViewState(); renderPlanner(); }));
     addIndicatorBtn.addEventListener('click', () => { const name = newIndicatorInput.value.trim(); if (name) { const newId = appState.indicators.length > 0 ? Math.max(...appState.indicators.map(i => i.id)) + 1 : 1; appState.indicators.push({ id: newId, name: name }); newIndicatorInput.value = ''; savePlannerData(); renderPlanner(); }});
     indicatorListEl.addEventListener('click', e => { if(e.target.matches('.remove-indicator-btn')) { appState.indicators = appState.indicators.filter(i => i.id !== parseInt(e.target.dataset.id)); savePlannerData(); renderPlanner(); } });
@@ -2706,13 +2719,6 @@ function setupEventListeners() {
         if (checkAmendment(week, 'weeklyGoals', 'weeklyGoals', null, newGoals)) renderPlanner();
         week.weeklyGoals = newGoals;
         savePlannerData();
-    });
-
-    dailyViewContainer.addEventListener('click', e => {
-        let dayChanged = false;
-        if (e.target.id === 'prevDayBtn') { appState.currentDayIndex = (appState.currentDayIndex - 1 + 7) % 7; dayChanged = true; }
-        if (e.target.id === 'nextDayBtn') { appState.currentDayIndex = (appState.currentDayIndex + 1) % 7; dayChanged = true; }
-        if(dayChanged) { saveViewState(); renderDailyView(); }
     });
 
     startNewWeekBtn.addEventListener('click', () => confirmModal.classList.remove('hidden'));
@@ -3101,18 +3107,293 @@ const renderFutureWeeklyView = (startDate) => {
 };
 
 
+// =================================================================================
+// --- PILOT MISSION PLANNER SCRIPT (RECONSTRUCTED RENDER FUNCTIONS) ---
+// =================================================================================
+
+// Jules' note: Avast! It seems these functions went walkin' the plank. I've recreated them based on the clues in the code.
+
+function checkAmendment(week, area, key, type, newValue) {
+    const originalState = week.originalState;
+    if (!originalState) return false;
+
+    let originalValue;
+    switch(area) {
+        case 'weeklyGoals':
+            originalValue = originalState.weeklyGoals;
+            break;
+        case 'schedule':
+            originalValue = originalState.schedule[key] || '';
+            break;
+        case 'kpi':
+            originalValue = (originalState.kpiData[key] && originalState.kpiData[key][type]) || 0;
+            break;
+        default:
+            return false;
+    }
+
+    const isAmended = String(newValue) !== String(originalValue);
+
+    if (area === 'weeklyGoals') {
+        week.amendedItems.weeklyGoals = isAmended;
+    } else if (area === 'schedule') {
+        week.amendedItems.schedule[key] = isAmended;
+    } else if (area === 'kpi') {
+        if (!week.amendedItems.kpi) week.amendedItems.kpi = {};
+        week.amendedItems.kpi[key] = isAmended;
+    }
+
+    return isAmended;
+}
+
+function renderNavigation() {
+    const isFutureView = appState.viewingIndex >= appState.weeks.length;
+    let startDate, endDate;
+
+    if (isFutureView) {
+        startDate = getFutureWeekStartDate(appState.viewingIndex);
+    } else {
+        const week = appState.weeks[appState.viewingIndex];
+        if (!week) return;
+        startDate = new Date(week.startDate);
+    }
+
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    weekDateRangeEl.textContent = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+
+    if (isFutureView) {
+        weekStatusEl.textContent = 'Future (Read-Only)';
+    } else if (appState.viewingIndex === CURRENT_WEEK_INDEX) {
+        weekStatusEl.textContent = 'Current Week';
+    } else if (appState.viewingIndex < CURRENT_WEEK_INDEX) {
+        weekStatusEl.textContent = 'Past Week';
+    } else {
+        weekStatusEl.textContent = 'Future Week';
+    }
+
+    prevWeekBtn.disabled = appState.viewingIndex === 0;
+    nextWeekBtn.disabled = false;
+
+    if (startNewWeekBtn) {
+        startNewWeekBtn.style.display = (appState.viewingIndex === CURRENT_WEEK_INDEX && !isFutureView) ? 'block' : 'none';
+    }
+}
+
+function renderGoals() {
+    if (appState.viewingIndex >= appState.weeks.length) {
+        weeklyGoalsEl.innerHTML = '<i>Future planning not available.</i>';
+        weeklyGoalsEl.contentEditable = 'false';
+        return;
+    }
+    const week = appState.weeks[appState.viewingIndex];
+    weeklyGoalsEl.innerHTML = week.weeklyGoals;
+    weeklyGoalsEl.contentEditable = (appState.viewingIndex === CURRENT_WEEK_INDEX).toString();
+    if (week.amendedItems.weeklyGoals) {
+        weeklyGoalsEl.classList.add('amended');
+    } else {
+        weeklyGoalsEl.classList.remove('amended');
+    }
+}
+
+function renderIndicators() {
+    indicatorListEl.innerHTML = '';
+    if (appState.viewingIndex >= appState.weeks.length) {
+        return;
+    }
+    appState.indicators.forEach(indicator => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+        li.innerHTML = `
+            <span>${indicator.name}</span>
+            <button data-id="${indicator.id}" class="remove-indicator-btn text-red-500 hover:text-red-700">&times;</button>
+        `;
+        indicatorListEl.appendChild(li);
+    });
+}
+
+function updateViewButtons() {
+    viewBtns.forEach(btn => {
+        btn.classList.toggle('bg-blue-700', btn.dataset.view === appState.currentView);
+        btn.classList.toggle('text-white', btn.dataset.view === appState.currentView);
+    });
+}
+
+function renderWeeklyView() {
+    const week = appState.weeks[appState.viewingIndex];
+    plannerContainer.innerHTML = '';
+
+    plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">Time</div>`);
+    for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(week.startDate);
+        dayDate.setDate(new Date(week.startDate).getDate() + i);
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
+    }
+
+    for (let hour = 6; hour <= 22; hour++) {
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800">${hour}:00</div>`);
+        for (let day = 0; day < 7; day++) {
+            const key = `${day}-${hour}`;
+            const scheduleContent = week.schedule[key] || '';
+            const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
+            const amendedClass = week.amendedItems.schedule[key] ? 'amended' : '';
+            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell planner-slot ${amendedClass}" data-key="${key}" contenteditable="${isEditable}">${scheduleContent}</div>`);
+        }
+    }
+
+    const weekStartDate = new Date(week.startDate);
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekEndDate.getDate() + 7);
+
+    if (typeof tasks !== 'undefined' && tasks.length > 0) {
+        tasks.forEach(task => {
+            const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
+            occurrences.forEach(occurrenceDate => {
+                const dayOfWeek = occurrenceDate.getDay();
+                const hour = occurrenceDate.getHours();
+
+                if (hour >= 6 && hour <= 22) {
+                    const cell = plannerContainer.querySelector(`.planner-slot[data-key="${dayOfWeek}-${hour}"]`);
+                    if (cell) {
+                        const taskElement = document.createElement('div');
+                        taskElement.className = 'planner-task-item';
+                        taskElement.textContent = task.name;
+
+                        const category = categories.find(c => c.id === task.categoryId);
+                        taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
+
+                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+                        taskElement.style.color = textStyle.color;
+                        taskElement.style.textShadow = textStyle.textShadow;
+                        taskElement.dataset.taskId = task.id;
+                        taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+                        cell.appendChild(taskElement);
+                    }
+                }
+            });
+        });
+    }
+}
+
+function renderDailyView() {
+    const week = appState.weeks[appState.viewingIndex];
+    const dayIndex = appState.currentDayIndex;
+    const dayDate = new Date(week.startDate);
+    dayDate.setDate(new Date(week.startDate).getDate() + dayIndex);
+
+    dailyViewContainer.innerHTML = `
+        <div class="flex justify-between items-center p-2 bg-gray-800 rounded-t-lg">
+            <button id="prevDayBtn" class="px-2 py-1 bg-gray-600 rounded">&lt; Prev</button>
+            <h3 class="text-lg font-bold">${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+            <button id="nextDayBtn" class="px-2 py-1 bg-gray-600 rounded">Next &gt;</button>
+        </div>
+        <div id="daily-planner-grid" class="daily-planner-grid p-2"></div>
+    `;
+
+    const grid = dailyViewContainer.querySelector('#daily-planner-grid');
+    for (let hour = 6; hour <= 22; hour++) {
+        const key = `${dayIndex}-${hour}`;
+        const scheduleContent = week.schedule[key] || '';
+        const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
+        const amendedClass = week.amendedItems.schedule[key] ? 'amended' : '';
+
+        const slot = document.createElement('div');
+        slot.className = 'daily-slot';
+        slot.innerHTML = `<div class="time-label">${hour}:00</div>`;
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `planner-slot ${amendedClass}`;
+        contentDiv.dataset.key = key;
+        contentDiv.contentEditable = isEditable;
+        contentDiv.innerHTML = scheduleContent;
+        slot.appendChild(contentDiv);
+        grid.appendChild(slot);
+    }
+
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(23,59,59,999);
+
+    if (typeof tasks !== 'undefined' && tasks.length > 0) {
+        tasks.forEach(task => {
+            const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
+            occurrences.forEach(occurrenceDate => {
+                const hour = occurrenceDate.getHours();
+                if (hour >= 6 && hour <= 22) {
+                    const cell = grid.querySelector(`.planner-slot[data-key="${dayIndex}-${hour}"]`);
+                    if (cell) {
+                         const taskElement = document.createElement('div');
+                        taskElement.className = 'planner-task-item';
+                        taskElement.textContent = task.name;
+
+                        const category = categories.find(c => c.id === task.categoryId);
+                        taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
+
+                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+                        taskElement.style.color = textStyle.color;
+                        taskElement.style.textShadow = textStyle.textShadow;
+                        taskElement.dataset.taskId = task.id;
+                        taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+                        cell.appendChild(taskElement);
+                    }
+                }
+            });
+        });
+    }
+}
+
+function renderProgressTracker() {
+    progressTrackerContainer.innerHTML = '';
+    if (appState.viewingIndex >= appState.weeks.length) return;
+
+    const week = appState.weeks[appState.viewingIndex];
+    const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
+
+    appState.indicators.forEach(indicator => {
+        const { id, name } = indicator;
+        const dayKeys = Array.from({length: 7}, (_, i) => `${id}-${i}`);
+        const kpiData = dayKeys.map(key => week.kpiData[key] || { goal: 0, actual: 0 });
+
+        const totalGoal = kpiData.reduce((sum, data) => sum + (data.goal || 0), 0);
+        const totalActual = kpiData.reduce((sum, data) => sum + (data.actual || 0), 0);
+        const progress = totalGoal > 0 ? (totalActual / totalGoal) * 100 : 0;
+
+        const amendedClass = dayKeys.some(key => week.amendedItems.kpi[key]) ? 'amended-container' : '';
+
+        const trackerHTML = `
+            <div class="kpi-indicator ${amendedClass}">
+                <h4 class="font-semibold">${name}</h4>
+                <div class="flex justify-between text-sm">
+                    <span>Actual: ${totalActual}</span>
+                    <span>Goal: ${totalGoal}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar" style="width: ${Math.min(progress, 100)}%;"></div>
+                </div>
+                <div class="daily-inputs ${isEditable ? '' : 'hidden'}">
+                    ${[...Array(7)].map((_, day) => `
+                        <div class="daily-input-group">
+                            <label>${['S','M','T','W','T','F','S'][day]}</label>
+                            <input type="number" class="kpi-goal-input" data-key="${id}-${day}" data-type="goal" value="${kpiData[day].goal}" ${isEditable ? '' : 'disabled'}>
+                            <input type="number" class="kpi-actual-input" data-key="${id}-${day}" data-type="actual" value="${kpiData[day].actual}" ${isEditable ? '' : 'disabled'}>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        progressTrackerContainer.insertAdjacentHTML('beforeend', trackerHTML);
+    });
+}
+
+
 const renderPlanner = () => {
     const isFutureView = appState.viewingIndex >= appState.weeks.length;
 
     if (isFutureView) {
         const futureStartDate = getFutureWeekStartDate(appState.viewingIndex);
-        const endDate = new Date(futureStartDate);
-        endDate.setDate(futureStartDate.getDate() + 6);
-        weekStatusEl.textContent = 'Future (Read-Only)';
-        weekDateRangeEl.textContent = `${futureStartDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-        prevWeekBtn.disabled = appState.viewingIndex === 0;
-        nextWeekBtn.disabled = false;
-        startNewWeekBtn.style.display = 'none';
+        renderNavigation();
         weeklyGoalsEl.innerHTML = '<i>Future planning not available.</i>';
         indicatorListEl.innerHTML = '';
         progressTrackerContainer.innerHTML = '';
@@ -3122,13 +3403,21 @@ const renderPlanner = () => {
         return;
     }
 
-
     if (!appState.weeks[appState.viewingIndex]) return;
-    renderNavigation(); renderGoals(); renderIndicators(); updateViewButtons();
+
+    renderNavigation();
+    renderGoals();
+    renderIndicators();
+    updateViewButtons();
+
     if (appState.currentView === 'weekly') {
-        weeklyViewContainer.classList.remove('hidden'); dailyViewContainer.classList.add('hidden'); renderWeeklyView();
+        weeklyViewContainer.classList.remove('hidden');
+        dailyViewContainer.classList.add('hidden');
+        renderWeeklyView();
     } else {
-        weeklyViewContainer.classList.add('hidden'); dailyViewContainer.classList.remove('hidden'); renderDailyView();
+        weeklyViewContainer.classList.add('hidden');
+        dailyViewContainer.classList.remove('hidden');
+        renderDailyView();
     }
     renderProgressTracker();
 };
