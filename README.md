@@ -47,6 +47,19 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 1.2) - 09/20/2025
+
+This update focused on fixing critical rendering bugs in the Mission Planner and improving the visual presentation of tasks.
+
+*   **Planner Rendering Engine Fix:**
+    *   Resolved a critical bug that caused the weekly planner view to fail to load. This was traced to a missing `accommodate` function responsible for laying out overlapping tasks.
+    *   Re-implemented the task accommodation logic to correctly arrange tasks into lanes, preventing visual overlap and ensuring all events are displayed correctly.
+    *   Both the interactive weekly view and the read-only future view have been updated with this fix.
+
+*   **Task Styling Improvements:**
+    *   Tasks in the planner now have a minimum height, ensuring that even short events are clearly visible and clickable.
+    *   Long task names are now gracefully truncated with an ellipsis (...) to prevent them from overflowing and disrupting the layout.
+
 ### ✅ Recently Completed (Version 1.1)
 
 This latest update focused on significant user experience improvements, UI polish, and a major refactoring of the planner's rendering engine.

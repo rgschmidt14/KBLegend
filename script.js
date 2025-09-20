@@ -3265,7 +3265,12 @@ const renderFutureWeeklyView = (startDate) => {
     }
 
     dailyTasks.forEach((tasksForDay, dayIndex) => {
-        layoutDay(tasksForDay, dayIndex, plannerContainer);
+        const lanes = accommodate(tasksForDay);
+        lanes.forEach((lane, laneIndex) => {
+            lane.forEach(({ task, occurrenceDate, dueDate }) => {
+                renderTaskOnGrid(task, occurrenceDate, dueDate, dayIndex, laneIndex, lanes.length, plannerContainer);
+            });
+        });
     });
 };
 
@@ -3436,28 +3441,50 @@ function renderWeeklyView() {
     }
 
     dailyTasks.forEach((tasksForDay, dayIndex) => {
-        layoutDay(tasksForDay, dayIndex, plannerContainer);
+        const lanes = accommodate(tasksForDay);
+        lanes.forEach((lane, laneIndex) => {
+            lane.forEach(({ task, occurrenceDate, dueDate }) => {
+                renderTaskOnGrid(task, occurrenceDate, dueDate, dayIndex, laneIndex, lanes.length, plannerContainer);
+            });
+        });
     });
 }
 
-function layoutDay(tasksForDay, dayIndex, container) {
-    if (tasksForDay.length === 0) return;
+function accommodate(tasksForDay) {
+    if (!tasksForDay || tasksForDay.length === 0) {
+        return [];
+    }
 
-    // The objects in tasksForDay are now { task, occurrenceDate, dueDate }
-    tasksForDay.sort((a, b) => {
+    // Sort tasks by start time, then by duration (longer tasks first)
+    const sortedTasks = tasksForDay.sort((a, b) => {
         const startDiff = a.occurrenceDate.getTime() - b.occurrenceDate.getTime();
         if (startDiff !== 0) return startDiff;
-        // duration is just dueDate - occurrenceDate
         const durationA = a.dueDate.getTime() - a.occurrenceDate.getTime();
         const durationB = b.dueDate.getTime() - b.occurrenceDate.getTime();
-        return durationB - durationA; // Longer tasks first
+        return durationB - durationA;
     });
 
-    // Simplified logic: no lanes. Just render each task.
-    tasksForDay.forEach(({ task, occurrenceDate, dueDate }) => {
-        // Pass 0, 1 for laneIndex and totalLanes to make it full width
-        renderTaskOnGrid(task, occurrenceDate, dueDate, dayIndex, 0, 1, container);
-    });
+    const lanes = [];
+
+    for (const task of sortedTasks) {
+        let placed = false;
+        for (const lane of lanes) {
+            const lastTaskInLane = lane[lane.length - 1];
+            // Check for overlap: if the new task starts after the last one in the lane ends
+            if (task.occurrenceDate.getTime() >= lastTaskInLane.dueDate.getTime()) {
+                lane.push(task);
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            // No suitable lane found, create a new one
+            lanes.push([task]);
+        }
+    }
+
+    return lanes;
 }
 
 
