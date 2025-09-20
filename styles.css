@@ -22,7 +22,7 @@ body {
 }
 
 .modal-content { 
-    background-color: #fefefe; 
+    background-color: #fefefe !important;
     margin: auto; 
     padding: 2rem; 
     border: 1px solid #888; 
@@ -216,6 +216,86 @@ legend {
 
 .collapsible-header.collapsed span {
     transform: rotate(-90deg);
+}
+
+/* Dark Theme Styles */
+body.dark {
+    background-color: #1f2937; /* gray-800 */
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark .max-w-4xl { /* The main container */
+    background-color: #374151; /* gray-700 */
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark h1, body.dark h2, body.dark legend, body.dark .text-gray-800, body.dark .text-gray-700 {
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark .modal-content {
+    background-color: #374151 !important; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+}
+
+body.dark .form-label {
+    color: #d1d5db; /* gray-300 */
+}
+
+body.dark input[type="text"],
+body.dark input[type="datetime-local"],
+body.dark input[type="number"],
+body.dark select {
+    background-color: #4b5563; /* gray-600 */
+    border-color: #6b7280; /* gray-500 */
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark input::placeholder {
+    color: #9ca3af; /* gray-400 */
+}
+
+body.dark .form-hint {
+    color: #9ca3af; /* gray-400 */
+}
+
+body.dark .close-button {
+    color: #9ca3af; /* gray-400 */
+}
+body.dark .close-button:hover {
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark fieldset {
+    border-color: #4b5563; /* gray-600 */
+}
+
+body.dark .checkbox-label, body.dark .day-checkbox-label {
+    border-color: #4b5563; /* gray-600 */
+}
+body.dark .checkbox-label:hover, body.dark .day-checkbox-label:hover {
+    background-color: #4b5563; /* gray-600 */
+}
+
+body.dark .peer:checked + .checkbox-label-text,
+body.dark .peer:checked + .day-checkbox-label-text {
+    background-color: #4f46e5; /* indigo-600 */
+    border-color: #6366f1; /* indigo-500 */
+    color: #f9fafb; /* gray-50 */
+}
+
+body.dark .text-gray-500 {
+    color: #9ca3af; /* gray-400 */
+}
+
+body.dark .bg-gray-300 {
+    background-color: #6b7280; /* gray-500 */
+}
+body.dark .bg-gray-300:hover {
+    background-color: #9ca3af; /* gray-400 */
+}
+body.dark .text-gray-800 {
+    color: #f9fafb; /* gray-50 */
 }
 
 

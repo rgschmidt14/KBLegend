@@ -323,15 +323,11 @@
                     <legend>Theme Management</legend>
                     <div id="theme-manager-content" class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <label for="theme-enabled-toggle" class="form-label mb-0">Enable Gradient Theme:</label>
+            <label for="theme-enabled-toggle" class="form-label mb-0">Enable Dark Mode:</label>
                             <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
                         </div>
                         <div id="theme-controls" class="hidden space-y-2">
-                            <div class="flex items-center justify-between">
-                                <label for="theme-base-color" class="form-label mb-0">Theme Base Color:</label>
-                                <input type="color" id="theme-base-color" data-action="setThemeColor" class="h-8 w-12 border-none cursor-pointer rounded">
-                            </div>
-                            <button data-action="randomizeTheme" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Randomize Theme</button>
+            <!-- Hiding these for now to focus on simple light/dark toggle -->
                         </div>
                     </div>
                 </fieldset>

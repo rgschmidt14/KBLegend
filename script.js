@@ -52,8 +52,8 @@ let notificationEngine = {
 
 // Global state for the theming engine.
 let theming = {
-    enabled: false,
-    baseColor: '#3b82f6' // A default blue
+    mode: 'light', // 'light' or 'dark'
+    baseColor: '#3b82f6' // A default blue, used for gradients in dark mode
 };
 
 // Global state for calendar-specific view settings.
@@ -67,7 +67,7 @@ let editingTaskId = null;
 let countdownIntervals = {};
 let mainUpdateInterval = null;
 let taskTimers = {};
-let sortBy = 'status'; 
+let sortBy = 'status';
 let sortDirection = 'asc';
 let categoryFilter = [];
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -473,7 +473,7 @@ function sanitizeAndUpgradeTask(task) {
             upgradedTask[key] = task[key];
         }
     }
-    
+
     upgradedTask.id = task.id;
     if (task.createdAt) {
       upgradedTask.createdAt = task.createdAt;
@@ -512,8 +512,8 @@ function sanitizeAndUpgradeTask(task) {
     return upgradedTask;
 }
 function getRandomColor() {
-    // If theming is enabled, use one of the complementary colors for new categories.
-    if (theming.enabled) {
+    // If dark mode is enabled, use one of the complementary colors for new categories.
+    if (theming.mode === 'dark') {
         const complementaryPalette = generateComplementaryPalette(theming.baseColor);
         // Return a random color from the complementary set (excluding the main button colors)
         return complementaryPalette[Math.floor(Math.random() * (complementaryPalette.length - 2)) + 2];
@@ -534,13 +534,13 @@ function getRandomColor() {
 }
 function getContrastingTextColor(hexcolor) {
     if (!hexcolor) return { color: '#000000', textShadow: 'none' };
-    
+
     const r = parseInt(hexcolor.substr(1, 2), 16);
     const g = parseInt(hexcolor.substr(3, 2), 16);
     const b = parseInt(hexcolor.substr(5, 2), 16);
-    
+
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
+
     let textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
     let textShadow = 'none';
 
@@ -551,7 +551,7 @@ function getContrastingTextColor(hexcolor) {
         let shadowColor = luminance > 0.5 ? `rgba(255, 255, 255, ${opacity * 0.7})` : `rgba(0, 0, 0, ${opacity * 0.7})`;
         textShadow = `0px 0px 1px ${shadowColor}`;
     }
-    
+
     return { color: textColor, textShadow: textShadow };
 }
 function hexToRgb(hex) {
@@ -663,11 +663,11 @@ function hexToHSL(H) {
 function HSLToHex(h, s, l) {
     s /= 100; l /= 100;
     let c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c/2, r = 0, g = 0, b = 0;
-    if (0 <= h && h < 60) { r = c; g = x; b = 0; } 
-    else if (60 <= h && h < 120) { r = x; g = c; b = 0; } 
-    else if (120 <= h && h < 180) { r = 0; g = c; b = x; } 
-    else if (180 <= h && h < 240) { r = 0; g = x; b = c; } 
-    else if (240 <= h && h < 300) { r = x; g = 0; b = c; } 
+    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
     else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
     r = Math.round((r + m) * 255).toString(16);
     g = Math.round((g + m) * 255).toString(16);
@@ -696,7 +696,7 @@ function generateComplementaryPalette(baseColor) {
     const addTaskBtnColor = HSLToHex(baseHSL.h, baseHSL.s, baseHSL.l);
     const calendarBtnColor = HSLToHex((baseHSL.h + 120) % 360, baseHSL.s, baseHSL.l);
     const advancedOptionsBtnColor = HSLToHex((baseHSL.h + 240) % 360, baseHSL.s, baseHSL.l);
-    
+
     // Category colors are more varied, derived from the complementary
     const complementaryHue = (baseHSL.h + 180) % 360;
     const catColor1 = HSLToHex(complementaryHue, baseHSL.s - 10, baseHSL.l + 10);
@@ -706,16 +706,23 @@ function generateComplementaryPalette(baseColor) {
 }
 
 function applyTheme() {
+    const body = document.body;
+    if (theming.mode === 'dark') {
+        body.classList.add('dark');
+    } else {
+        body.classList.remove('dark');
+    }
+
     const addTaskBtn = document.getElementById('add-task-btn');
     const calendarBtn = document.getElementById('calendar-btn');
     const advancedOptionsBtn = document.getElementById('advanced-options-btn');
 
-    if (theming.enabled) {
+    if (theming.mode === 'dark') {
         const gradientPalette = generateGradientPalette(theming.baseColor);
         statusColors = gradientPalette;
 
         const complementaryPalette = generateComplementaryPalette(theming.baseColor);
-        
+
         [addTaskBtn, calendarBtn, advancedOptionsBtn].forEach((btn, index) => {
             if (btn) {
                 const bgColor = complementaryPalette[index];
@@ -725,23 +732,20 @@ function applyTheme() {
                 btn.style.textShadow = textStyle.textShadow;
             }
         });
-        
+
     } else {
-        // Revert to default colors
+        // Revert to default colors for light mode
         statusColors = { ...defaultStatusColors };
         [addTaskBtn, calendarBtn, advancedOptionsBtn].forEach(btn => {
             if (btn) {
-                btn.style.backgroundColor = ''; // Revert to CSS
+                btn.style.backgroundColor = ''; // Revert to CSS defined in the stylesheet
                 btn.style.color = '';
                 btn.style.textShadow = '';
             }
         });
     }
-    renderTasks();
+    renderTasks(); // Re-render tasks to apply new status colors
 }
-
-
-
 
 
 // =================================================================================
@@ -780,7 +784,7 @@ function renderTasks() {
         return;
     }
     const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
-    
+
     // 1. FIRST: Sort the tasks and create the final sorted array.
     const sortedTasks = filteredTasks.sort((a, b) => {
         const completedA = a.repetitionType === 'none' && a.completed;
@@ -831,7 +835,7 @@ function renderTasks() {
             const group = groupedByDate[groupIndex];
             const header = document.createElement('div');
             header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-            
+
             const percent = groupOrder.length <= 1 ? 0 : (sortDirection === 'asc' ? i / (groupOrder.length - 1) : (groupOrder.length - 1 - i) / (groupOrder.length - 1));
             const bgColor = interpolateFiveColors(percent);
             const textStyle = getContrastingTextColor(bgColor);
@@ -839,7 +843,7 @@ function renderTasks() {
             header.style.backgroundColor = bgColor;
             header.style.color = textStyle.color;
             header.style.textShadow = textStyle.textShadow;
-            
+
             header.innerHTML = `<h4 class="font-bold">${group.name}</h4><span class="transform transition-transform duration-200"> ▼ </span>`;
             header.dataset.group = group.name;
             taskListDiv.appendChild(header);
@@ -864,11 +868,11 @@ function renderTasks() {
                 currentGroup = category ? category.name : 'Uncategorized';
                 groupColor = category ? category.color : '#FFFFFF';
             }
-            
+
             if (currentGroup !== lastGroup) {
                 const header = document.createElement('div');
                 header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-                
+
                 textStyle = getContrastingTextColor(groupColor);
                 header.style.backgroundColor = groupColor;
                 header.style.color = textStyle.color;
@@ -890,7 +894,7 @@ function renderSingleTask(task, options = {}) {
     try {
         const taskElement = document.createElement('div');
         const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-        
+
         taskElement.className = `task-item p-2 rounded-lg shadow flex justify-between items-start`;
         taskElement.dataset.taskId = task.id;
         taskElement.dataset.status = task.status;
@@ -905,7 +909,7 @@ function renderSingleTask(task, options = {}) {
         const textStyle = getContrastingTextColor(statusColor);
         taskElement.style.color = textStyle.color;
         taskElement.style.textShadow = textStyle.textShadow;
-        
+
         if (options.groupName) {
             taskElement.dataset.group = options.groupName;
         }
@@ -916,7 +920,7 @@ function renderSingleTask(task, options = {}) {
         if (task.confirmationState === 'confirming_delete') {
             taskElement.classList.add('task-confirming-delete');
         }
-        
+
         const categoryName = category ? category.name : 'Uncategorized';
         const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? task.dueDate.toLocaleString() : 'No due date';
         const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
@@ -1056,7 +1060,7 @@ function generateActionHtml(task) {
 function generateCommonButtonsHtml(task) {
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-    
+
     if (isCompletedNonRepeating) {
         return `<button data-action="triggerDelete" data-task-id="${task.id}" class="text-red-600 hover:text-red-800 text-xs font-medium p-1 rounded hover:bg-red-100" title="Delete Task">Delete</button>`;
     }
@@ -1151,7 +1155,7 @@ function openModal(taskId = null) {
     try {
         taskForm.reset();
         editingTaskId = taskId;
-        
+
         // Reset all dynamic fields to their default state
         dueDateGroup.classList.remove('hidden');
         startDateGroup.classList.add('hidden');
@@ -1201,7 +1205,7 @@ function openModal(taskId = null) {
                 relativeAmountInput.value = task.relativeAmount || 1;
                 relativeUnitSelect.value = task.relativeUnit || 'days';
             }
-            
+
             taskRepetitionSelect.value = task.repetitionType || 'none';
             repetitionRelativeGroup.classList.toggle('hidden', task.repetitionType !== 'relative');
             repetitionAbsoluteGroup.classList.toggle('hidden', task.repetitionType !== 'absolute');
@@ -1293,7 +1297,7 @@ function renderCategoryManager() {
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between p-2 border-b';
         item.id = `category-item-${cat.id}`;
-        
+
         item.innerHTML = `
             <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
                 <span class="font-medium cursor-pointer">${cat.name}</span>
@@ -1313,7 +1317,7 @@ function renderCategoryManager() {
 }
 function openAdvancedOptionsModal() {
     renderCategoryManager();
-    renderCategoryFilters(); 
+    renderCategoryFilters();
     renderNotificationManager();
     renderThemeControls();
     renderStatusManager();
@@ -1434,23 +1438,12 @@ function renderThemeControls() {
     const themeControls = document.getElementById('theme-controls');
     const themeColorPicker = document.getElementById('theme-base-color');
 
-    if (themeToggle) themeToggle.checked = theming.enabled;
+    if (themeToggle) themeToggle.checked = theming.mode === 'dark';
     if (themeColorPicker) themeColorPicker.value = theming.baseColor;
 
-    if (themeControls) themeControls.classList.toggle('hidden', !theming.enabled);
+    // Hide the advanced controls for now, can be re-enabled later
+    if (themeControls) themeControls.classList.toggle('hidden', true);
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // =================================================================================
@@ -1494,7 +1487,7 @@ function handleFormSubmit(event) {
     event.preventDefault();
     try {
         const now = new Date();
-        
+
         const taskData = {
             name: taskNameInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
@@ -1510,7 +1503,7 @@ function handleFormSubmit(event) {
             confirmationState: null,
             overdueStartDate: null,
             pendingCycles: null,
-            categoryId: null 
+            categoryId: null
         };
 
         if (taskData.dueDateType === 'absolute') {
@@ -1619,7 +1612,7 @@ function handleFormSubmit(event) {
             taskData.completed = false;
             taskData.status = 'green';
             const newTask = sanitizeAndUpgradeTask(taskData);
-            const otherTasks = [...tasks]; 
+            const otherTasks = [...tasks];
             newTask.status = calculateStatus(newTask, now.getTime(), otherTasks).name;
             tasks.push(newTask);
         }
@@ -1705,7 +1698,7 @@ function confirmCompletionAction(taskId, confirmed) {
                 task.dueDate = nextDueDate;
                 if (wasOverdue) {
                     task.status = calculateStatus(task, Date.now(), tasks).name;
-                    task.cycleEndDate = null; 
+                    task.cycleEndDate = null;
                 } else {
                     task.status = 'blue';
                     task.cycleEndDate = baseDate;
@@ -1739,7 +1732,7 @@ function confirmCompletionAction(taskId, confirmed) {
     delete task.pendingCycles;
     if (!confirmed && !task.overdueStartDate) delete task.overdueStartDate;
     if (confirmed) delete task.overdueStartDate;
-    
+
     saveData();
     updateAllTaskStatuses(true);
 }
@@ -1848,7 +1841,7 @@ function toggleTimer(taskId) {
         if (task.currentProgress >= targetMs) {
             triggerCompletion(taskId);
         }
-    
+
     } else {
         if (task.currentProgress >= targetMs) {
             triggerCompletion(taskId);
@@ -1856,7 +1849,7 @@ function toggleTimer(taskId) {
         }
         task.isTimerRunning = true;
         task.timerLastStarted = new Date().toISOString();
-        
+
         startTimerInterval(taskId);
 
         const timerButton = document.getElementById(`timer-btn-${taskId}`);
@@ -1914,7 +1907,7 @@ function cancelProgressEdit(taskId) { renderTasks(); }
 function deleteCategory(categoryId) {
     tasks.forEach(task => {
         if (task.categoryId === categoryId) {
-            task.categoryId = null; 
+            task.categoryId = null;
         }
     });
     categories = categories.filter(cat => cat.id !== categoryId);
@@ -1965,7 +1958,7 @@ function saveCategoryEdit(categoryId) {
     if (newName && newName !== '' && !categories.find(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
         const oldId = category.id;
         category.name = newName;
-        category.id = newName; 
+        category.id = newName;
         tasks.forEach(task => {
             if (task.categoryId === oldId) {
                 task.categoryId = category.id;
@@ -2033,15 +2026,15 @@ function confirmRestoreDefaultsAction(confirmed) {
         statusNames = { ...defaultStatusNames };
         sortBy = 'status';
         sortDirection = 'asc';
-        theming.enabled = false;
-        
+        theming.mode = 'light';
+
         saveData();
         sortBySelect.value = sortBy;
         sortDirectionSelect.value = sortDirection;
         applyTheme();
         openAdvancedOptionsModal();
     }
-    
+
     if (container) {
         container.innerHTML = `<button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Restore All Defaults</button>`;
     }
@@ -2158,7 +2151,7 @@ function scheduleNotification(task, futureStatus, triggerTimestamp) {
  */
 function calculateAndScheduleAllNotifications() {
     const now = Date.now();
-    
+
     tasks.forEach(task => {
         // Skip completed, locked, or tasks with pending user actions.
         if (task.completed || task.status === 'blue' || task.confirmationState) return;
@@ -2190,7 +2183,7 @@ function calculateAndScheduleAllNotifications() {
 function startNotificationEngine() {
     console.log("Page hidden. Starting notification engine...");
     // Ensure the engine is clean before starting.
-    stopNotificationEngine(); 
+    stopNotificationEngine();
     calculateAndScheduleAllNotifications();
 }
 
@@ -2269,7 +2262,7 @@ function setupEventListeners() {
     if (taskForm) {
         taskForm.addEventListener('submit', handleFormSubmit);
     }
-    
+
     const closeButton = taskModal.querySelector('.close-button');
     const cancelButton = taskModal.querySelector('button[type="button"]');
     if (closeButton) closeButton.addEventListener('click', closeModal);
@@ -2337,7 +2330,7 @@ function setupEventListeners() {
         if (!target) return;
         const action = target.dataset.action;
         const taskId = target.dataset.taskId;
-        
+
         switch (action) {
             case 'edit': editTask(taskId); break;
             case 'triggerDelete': triggerDelete(taskId); break;
@@ -2377,11 +2370,11 @@ function setupEventListeners() {
                 case 'restoreDefaults': triggerRestoreDefaults(); break;
                 case 'confirmRestoreDefaults': confirmRestoreDefaultsAction(target.dataset.confirmed === 'true'); break;
                 case 'toggleAllNotifications': handleMasterNotificationToggle(event); break;
-                case 'toggleCategoryNotification': 
-                    toggleCategoryNotification(target.dataset.categoryId, event.target.checked); 
+                case 'toggleCategoryNotification':
+                    toggleCategoryNotification(target.dataset.categoryId, event.target.checked);
                     break;
                 case 'toggleTheme':
-                    theming.enabled = event.target.checked;
+                    theming.mode = event.target.checked ? 'dark' : 'light';
                     applyTheme();
                     renderThemeControls();
                     saveData();
@@ -2402,8 +2395,8 @@ function setupEventListeners() {
                 const category = categories.find(cat => cat.id === categoryId);
                 if (category) {
                     category.color = newColor;
-                    saveData(); 
-                    renderCategoryManager(); 
+                    saveData();
+                    renderCategoryManager();
                     renderTasks();
                 }
             } else if (target.classList.contains('category-filter-checkbox')) {
@@ -2418,7 +2411,7 @@ function setupEventListeners() {
                         .filter(cb => cb.checked)
                         .map(cb => cb.value === 'null' ? null : cb.value);
                 }
-                
+
                 if (categoryFilter.length === 0) {
                     allCheckbox.checked = true;
                 }
@@ -2491,7 +2484,7 @@ function loadData() {
     const storedTheming = localStorage.getItem('theming');
     const storedCalendarSettings = localStorage.getItem('calendarSettings');
     const storedCategoryFilter = localStorage.getItem('categoryFilter');
-    
+
     tasks = [];
     categories = [];
 
@@ -2516,7 +2509,7 @@ function loadData() {
     if (storedSortDirection) sortDirection = storedSortDirection;
     sortBySelect.value = sortBy;
     sortDirectionSelect.value = sortDirection;
-    
+
     if (storedNotifications) {
         try {
             const parsedSettings = JSON.parse(storedNotifications);
@@ -2545,7 +2538,7 @@ function loadData() {
             console.error("Error parsing theming settings:", e);
         }
     }
-    
+
     if (storedCalendarSettings) {
         try {
             const parsedSettings = JSON.parse(storedCalendarSettings);
@@ -2554,7 +2547,7 @@ function loadData() {
             console.error("Error parsing calendar settings:", e);
         }
     }
-    
+
     if (storedCategoryFilter) {
         try {
             categoryFilter = JSON.parse(storedCategoryFilter);
@@ -2584,16 +2577,16 @@ function loadData() {
                 if (isNaN(tempTask.createdAt)) tempTask.createdAt = new Date();
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
-                
+
                 return sanitizeAndUpgradeTask(tempTask);
             });
-            
+
             tasks.forEach(task => {
                 if (task.isTimerRunning && task.timerLastStarted) {
                     const elapsedWhileAway = Date.now() - task.timerLastStarted.getTime();
                     const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
                     task.currentProgress = (task.currentProgress || 0) + elapsedWhileAway;
-                    
+
                     if (task.currentProgress >= targetMs) {
                         task.currentProgress = targetMs;
                         task.isTimerRunning = false;
@@ -2615,7 +2608,7 @@ function loadData() {
             console.error("Error parsing tasks from localStorage:", error);
         }
     }
-    
+
     applyTheme(); // Apply the theme on initial load
     updateAllTaskStatuses(true);
     startMainUpdateLoop();
@@ -2733,7 +2726,7 @@ function updateAllTaskStatuses(forceRender = false) {
                 delete task.overdueStartDate;
                 delete task.pendingCycles;
             }
-            
+
             // Step 3: If the status OR the confirmation state changed, flag the UI for a full update.
             // This ensures the color changes without losing the confirmation prompt.
             if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
@@ -2773,7 +2766,3 @@ document.addEventListener('DOMContentLoaded', () => {
         if(listDiv) listDiv.innerHTML = '<p class="text-red-600 font-bold text-center">Error initializing application. Please check console.</p>';
     }
 });
-
-
-
-
