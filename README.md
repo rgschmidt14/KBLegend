@@ -47,20 +47,28 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
-### **✅ Recently Completed (Version 1.3) \- 09/20/2025**
+### **✅ Recently Completed (Version 1.5) - 09/20/2025**
 
-This update focused on a major overhaul of the Mission Planner's UI and UX, implementing several new features and fixing critical layout bugs.
+This update focused on improving the long-term stability and maintainability of the application by addressing critical bugs and refactoring the planner's rendering engine.
 
-*   **Weekly View Overhaul:** Fixed a bug where concurrent tasks would become unreadably narrow. The layout engine now correctly arranges overlapping tasks into lanes, ensuring they remain legible and easy to interact with.
-*   **Daily View as Timeline:** Reworked the daily view from a simple list into a dynamic timeline. Tasks are now positioned and scaled vertically, accurately reflecting their start time and duration over an hourly grid.
-*   **New Month View:** Implemented a brand new month view. It provides a high-level overview of the month, with days that are clickable to jump to the corresponding daily view. Each day displays color-coded indicators for scheduled tasks, showing either the task's icon or its first initial for quick identification.
+*   **Planner View Rendering Overhaul:** Fixed a major visual bug in the **Weekly and Daily** planner views where concurrent tasks would overlap and become unreadable. The rendering logic was re-architected to use a modern **CSS Grid layout**. This replaces the old, brittle positioning logic with a robust system that correctly and automatically handles laying out tasks, ensuring the planner is stable and legible.
+*   **Code Stability:** Refined the JavaScript rendering functions (`renderDailyView`, `renderWeeklyView`) to be simpler and more maintainable, directly supporting the new CSS Grid system.
 
 ### **🔜 Up Next: Future Updates**
 
 The following features and fixes have been prioritized for upcoming releases.
 
-#### **1. UI Fixes and Feature Enhancements**
+#### **1. UI/UX Enhancements**
 
+*   **Modernize Planner Views:**
+    *   **Problem:** The current daily and weekly planners, while functional after the recent bug fixes, are built with custom code that can be complex to maintain. A more modern, library-based approach could offer more features and greater stability.
+    *   **Objective:** Investigate and potentially implement a robust, pre-built calendar library like [FullCalendar.io](https://fullcalendar.io/) to replace the custom-built daily and weekly views. This would provide a more modern look and feel, better interactivity (like drag-and-drop), and reduce long-term maintenance.
+*   **Planner Layout Reorganization:**
+    *   **Problem:** The overall layout of the planner feels disconnected. The main week navigation is at the top, separated from the planner grid by the KPI section. Navigation controls are inconsistent between views (Weekly vs. Daily vs. Monthly).
+    *   **Objective:** Redesign the HTML structure to create a more intuitive and cohesive user experience. This includes co-locating navigation with its relevant view and ensuring consistent controls across all planner views.
+*   **Clickable Week Navigator:**
+    *   **Problem:** User cannot easily jump to a specific week in the past or future without clicking the navigation buttons multiple times.
+    *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar widget that allows the user to select and jump to any week.
 *   **Light Mode Theme Fix:**
     *   **Problem:** In light mode, some elements have dark text on a dark background, making them unreadable.
     *   **Objective:** Ensure all elements have light backgrounds and dark text in light mode.
@@ -72,9 +80,6 @@ The following features and fixes have been prioritized for upcoming releases.
     *   **Implementation:**
         1.  **Editability:** In `renderProgressTracker()`, remove the `disabled` attribute from the `.kpi-goal-input` and `.kpi-actual-input` elements.
         2.  **Daily/Weekly Distinction:** Add a `frequency` property ('daily' or 'weekly') to KPI objects. Create a daily function to auto-generate tasks for all 'daily' KPIs.
-*   **Clickable Week Navigator:**
-    *   **Problem:** User cannot easily jump to a specific week.
-    *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar to select a new week.
 *   **Advanced Options Accessibility:**
     *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
     *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
@@ -102,7 +107,6 @@ These are larger, more long-term goals for the project.
 
 A collection of great ideas suggested for future consideration.
 
-* **Split script.js into modules:** The script.js file is quite large. Breaking it up into smaller, more focused files (like task-manager.js, planner.js, etc.) would make the code much easier to manage and maintain in the long run.  
 * **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.  
 * **Implement a test suite:** The project doesn't currently have any automated tests. Adding a testing framework (like Jest or Mocha) would be a great way to ensure the application remains stable and bug-free as we add more features.  
 * **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.  

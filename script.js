@@ -3459,8 +3459,9 @@ function updateViewButtons() {
 
 function renderWeeklyView() {
     const week = appState.weeks[appState.viewingIndex];
-    if (!week) return; // Guard clause
-    plannerContainer.innerHTML = ''; // Clear previous content
+    if (!week) return;
+    plannerContainer.innerHTML = '';
+    plannerContainer.className = 'planner-grid'; // Use the grid class
 
     // --- Render Header ---
     plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 1;">Time</div>`);
@@ -3480,7 +3481,7 @@ function renderWeeklyView() {
         for (let day = 0; day < 7; day++) {
             for (let i = 0; i < 4; i++) {
                 const slotRow = rowStart + i;
-                plannerContainer.insertAdjacentHTML('beforeend', `<div class="planner-slot" style="grid-column: ${day + 2}; grid-row: ${slotRow};"></div>`);
+                plannerContainer.insertAdjacentHTML('beforeend', `<div class="planner-slot" data-key="${day}-${hour}" style="grid-column: ${day + 2}; grid-row: ${slotRow};"></div>`);
             }
         }
     }
@@ -3502,8 +3503,8 @@ function renderWeeklyView() {
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
             occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
-                const dayOfWeek = occurrenceStartDate.getDay();
-                // Pass the specific start and due date for this occurrence to the layout engine.
+                // Ensure day index is calculated correctly (0=Sun, 1=Mon, etc.)
+                const dayOfWeek = new Date(occurrenceStartDate).getDay();
                 dailyTasks[dayOfWeek].push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
             });
         });
@@ -3524,7 +3525,6 @@ function accommodate(tasksForDay) {
         return [];
     }
 
-    // Sort tasks by start time, then by duration (longer tasks first)
     const sortedTasks = tasksForDay.sort((a, b) => {
         const startDiff = a.occurrenceDate.getTime() - b.occurrenceDate.getTime();
         if (startDiff !== 0) return startDiff;
@@ -3540,36 +3540,30 @@ function accommodate(tasksForDay) {
         for (const lane of lanes) {
             let hasOverlap = false;
             for (const existingTask of lane) {
-                // Check for overlap: A overlaps with B if A's start is before B's end
-                // and A's end is after B's start.
                 if (task.occurrenceDate.getTime() < existingTask.dueDate.getTime() &&
                     task.dueDate.getTime() > existingTask.occurrenceDate.getTime()) {
                     hasOverlap = true;
-                    break; // Found overlap, this lane is not suitable
+                    break;
                 }
             }
-
             if (!hasOverlap) {
                 lane.push(task);
                 placed = true;
-                break; // Placed in this lane, move to next task
+                break;
             }
         }
-
         if (!placed) {
-            // No suitable lane found, create a new one
             lanes.push([task]);
         }
     }
-
     return lanes;
 }
 
-
 function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex, laneIndex, totalLanes, container) {
-    const startTime = occurrenceStartDate;
-    const endTime = occurrenceDueDate;
+    const startTime = new Date(occurrenceStartDate);
+    const endTime = new Date(occurrenceDueDate);
 
+    // Adjust for grid starting at 6 AM
     const startRow = Math.max(0, (startTime.getHours() - 6) * 4 + Math.floor(startTime.getMinutes() / 15)) + 2;
     const endRow = Math.min(68, (endTime.getHours() - 6) * 4 + Math.ceil(endTime.getMinutes() / 15)) + 2;
     const rowSpan = Math.max(1, endRow - startRow);
@@ -3586,15 +3580,19 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
     taskElement.style.textShadow = textStyle.textShadow;
 
     taskElement.dataset.taskId = task.id;
-    taskElement.dataset.occurrenceDate = occurrenceStartDate.toISOString();
+    taskElement.dataset.dueDate = occurrenceDueDate.toISOString();
 
     const width = 100 / totalLanes;
     const left = laneIndex * width;
 
+    // Use grid-column to place in the correct day, and grid-row for time
     taskElement.style.gridColumn = `${dayIndex + 2}`;
     taskElement.style.gridRow = `${startRow} / span ${rowSpan}`;
+    // Use relative positioning within the grid cell for lanes
+    taskElement.style.position = 'absolute';
     taskElement.style.width = `calc(${width}% - 4px)`;
     taskElement.style.left = `${left}%`;
+    taskElement.style.height = '100%'; // The grid-row span handles the height
 
     container.appendChild(taskElement);
 }
@@ -3709,17 +3707,18 @@ function renderDailyView() {
             <h3 class="text-lg font-bold">${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
             <button id="nextDayBtn" class="nav-btn px-2 py-1 bg-gray-600 rounded">Next &gt;</button>
         </div>
-        <div id="daily-planner-grid" class="p-2"></div>
+        <div id="daily-planner-grid" class="relative p-2"></div>
     `;
 
     const grid = dailyViewContainer.querySelector('#daily-planner-grid');
-    const PIXELS_PER_MINUTE = 1; // 60px per hour
+    const PIXELS_PER_MINUTE = 1;
     const START_HOUR = 6;
+    grid.style.height = `${(23 - START_HOUR) * 60 * PIXELS_PER_MINUTE}px`;
 
-    // Render time slots as background guides
     for (let hour = START_HOUR; hour <= 22; hour++) {
         const slot = document.createElement('div');
         slot.className = 'daily-view-time-slot';
+        slot.style.top = `${(hour - START_HOUR) * 60 * PIXELS_PER_MINUTE}px`;
 
         const label = document.createElement('div');
         label.className = 'daily-view-time-label';
@@ -3730,7 +3729,6 @@ function renderDailyView() {
         grid.appendChild(slot);
     }
 
-    // Get all task occurrences for the current day
     const dayStart = new Date(dayDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayDate);
@@ -3752,30 +3750,26 @@ function renderDailyView() {
         });
     }
 
-    // Use the same accommodate logic to handle overlaps
     const lanes = accommodate(tasksForDay);
 
     lanes.forEach((lane, laneIndex) => {
         lane.forEach(({ task, occurrenceDate, dueDate }) => {
-            const startTime = occurrenceDate;
-            const endTime = dueDate;
+            const startTime = new Date(occurrenceDate);
+            const endTime = new Date(dueDate);
 
-            // Calculate top and height
             const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
             const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
             const top = (startMinutes - (START_HOUR * 60)) * PIXELS_PER_MINUTE;
-            const height = Math.max(15, (endMinutes - startMinutes) * PIXELS_PER_MINUTE); // Min height of 15px
+            const height = Math.max(15, (endMinutes - startMinutes) * PIXELS_PER_MINUTE);
 
-            // Calculate width and left for lanes
             const totalLanes = lanes.length;
             const width = 100 / totalLanes;
             const left = laneIndex * width;
 
             const taskElement = document.createElement('div');
-            taskElement.className = 'planner-task-item'; // Re-use the same class
+            taskElement.className = 'planner-task-item';
             const iconHtml = task.icon ? `<i class="${task.icon} mr-1"></i>` : '';
             taskElement.innerHTML = `${iconHtml}${task.name}`;
-
 
             const category = categories.find(c => c.id === task.categoryId);
             taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
@@ -3784,14 +3778,13 @@ function renderDailyView() {
             taskElement.style.textShadow = textStyle.textShadow;
 
             taskElement.dataset.taskId = task.id;
-            taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
             taskElement.dataset.dueDate = dueDate.toISOString();
 
-            taskElement.style.position = 'absolute'; // Ensure it's absolute
+            taskElement.style.position = 'absolute';
             taskElement.style.top = `${top}px`;
-            taskElement.style.height = `${height - 2}px`; // -2 for border/padding
+            taskElement.style.height = `${height - 2}px`;
             taskElement.style.left = `${left}%`;
-            taskElement.style.width = `calc(${width}% - 4px)`; // Same as weekly view
+            taskElement.style.width = `calc(${width}% - 4px)`;
 
             grid.appendChild(taskElement);
         });

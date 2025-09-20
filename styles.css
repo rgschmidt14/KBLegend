@@ -298,6 +298,16 @@ legend {
     border-left: 1px solid #374151;
     position: relative;
 }
+
+.weekly-day-column {
+    position: relative;
+    height: 100%;
+}
+
+.weekly-day-column {
+    position: relative;
+    height: 100%;
+}
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #1F2937; }
@@ -322,8 +332,6 @@ legend {
 }
 .planner-task-item {
     position: absolute;
-    left: 2px;
-    right: 2px;
     padding: 2px 4px;
     border-radius: 4px;
     font-size: 0.75rem;
