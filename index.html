@@ -88,10 +88,10 @@
                 <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl" aria-label="Close Task Manager">&times;</button>
             </div>
         <div class="text-center mb-6 space-x-2">
-            <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            <button id="add-task-btn" class="control-button bg-blue-600 hover:bg-blue-700 text-white">
                 Add New Task
             </button>
-            <button id="advanced-options-btn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-6 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
+            <button id="advanced-options-btn" class="control-button bg-gray-700 hover:bg-gray-800 text-white">
                 Advanced Options
             </button>
         </div>
@@ -338,8 +338,8 @@
                       </div>
                  </fieldset>
                  <div class="flex justify-end space-x-3 mt-8">
-                    <button type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"> Cancel </button>
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"> Save Task </button>
+                    <button type="button" class="control-button control-button-gray"> Cancel </button>
+                    <button type="submit" class="control-button control-button-green"> Save Task </button>
                 </div>
              </form>
         </div>
@@ -376,6 +376,14 @@
                 <fieldset>
                     <legend>Theme Management</legend>
                     <div id="theme-manager-content" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label for="day-night-toggle" class="form-label mb-0">Theme:</label>
+                            <div class="flex items-center">
+                                <span class="text-sm mr-2">Day</span>
+                                <input type="checkbox" id="day-night-toggle" data-action="toggleDayNight" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
+                                <span class="text-sm ml-2">Night</span>
+                            </div>
+                        </div>
                         <div class="flex items-center justify-between">
                             <label for="theme-enabled-toggle" class="form-label mb-0">Enable Gradient Theme:</label>
                             <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">

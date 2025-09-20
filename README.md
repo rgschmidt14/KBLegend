@@ -66,3 +66,20 @@ This document outlines the planned features and improvements for the Modular Tas
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices.
 *   **Collaborative Features:** Allow users to share specific categories or tasks.
 *   **Monetization:** Introduce a premium tier to unlock advanced features.
+
+## AI Suggested Updates
+Here are some suggestions for future enhancements:
+
+### 1. Code Organization and Modularity
+*   **Split `script.js` into modules:** The `script.js` file is quite large. Breaking it up into smaller, more focused files (like `task-manager.js`, `planner.js`, etc.) would make the code much easier to manage and maintain in the long run.
+*   **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.
+
+### 2. Testing
+*   **Implement a test suite:** The project doesn't currently have any automated tests. Adding a testing framework (like Jest or Mocha) would be a great way to ensure the application remains stable and bug-free as we add more features.
+
+### 3. User Experience (UX) Enhancements
+*   **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.
+*   **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
+
+### 4. Backend and Data
+*   **Move to a database:** The `README.md` mentions this, and it's a great idea for the future. Moving from `localStorage` to a real database would open the door for features like user accounts and syncing your tasks across multiple devices.

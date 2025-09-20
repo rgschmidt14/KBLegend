@@ -13,7 +13,7 @@ let statusColors = { ...defaultStatusColors };
 let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
-let theming = { enabled: false, baseColor: '#3b82f6' };
+let theming = { enabled: false, baseColor: '#3b82f6', mode: 'night' };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let editingTaskId = null;
 let countdownIntervals = {};
@@ -57,7 +57,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
     taskCategorySelect, newCategoryGroup, newCategoryNameInput,
     advancedOptionsModal,
     sortBySelect, sortDirectionSelect, categoryFilterList,
-    plannerDefaultCategorySelect;
+    plannerDefaultCategorySelect, dayNightToggle;
 
 // DOM Element References (Pilot Planner)
 let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, addIndicatorBtn,
@@ -730,7 +730,21 @@ function generateComplementaryPalette(baseColor) {
     return [addTaskBtnColor, calendarBtnColor, advancedOptionsBtnColor, catColor1, catColor2, catColor3];
 }
 
+function applyDayNightMode() {
+    document.body.classList.toggle('light-mode', theming.mode === 'day');
+    // We will add more comprehensive style changes in styles.css
+    if (theming.mode === 'day') {
+        document.body.style.backgroundColor = '#F9FAFB'; // Light Gray
+        document.body.style.color = '#111827'; // Dark Gray
+    } else {
+        document.body.style.backgroundColor = '#111827'; // Dark Gray
+        document.body.style.color = '#F3F4F6'; // Light Gray
+    }
+}
+
 function applyTheme() {
+    applyDayNightMode(); // Apply day/night mode first
+
     const addTaskBtn = document.getElementById('add-task-btn');
     const advancedOptionsBtn = document.getElementById('advanced-options-btn');
 
@@ -762,6 +776,7 @@ function applyTheme() {
         });
     }
     renderTasks();
+    renderPlanner(); // Re-render planner to apply theme changes
 }
 
 
@@ -942,7 +957,12 @@ function renderSingleTask(task, options = {}) {
         }
 
         const categoryName = category ? category.name : 'Uncategorized';
-        const categoryHtml = taskDisplaySettings.showCategory ? `<span class="text-xs font-medium bg-black bg-opacity-10 px-2 py-1 rounded-full">${categoryName}</span>` : '';
+        let categoryHtml = '';
+        if (taskDisplaySettings.showCategory) {
+            const categoryColor = category ? category.color : '#808080'; // Default to gray
+            const categoryTextStyle = getContrastingTextColor(categoryColor);
+            categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor}; color: ${categoryTextStyle.color}; text-shadow: ${categoryTextStyle.textShadow};">${categoryName}</span>`;
+        }
 
         const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? task.dueDate.toLocaleString() : 'No due date';
         const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
@@ -1095,11 +1115,13 @@ function generateCommonButtonsHtml(task) {
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
 
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="text-red-600 hover:text-red-800 text-xs font-medium p-1 rounded hover:bg-red-100" title="Delete Task">Delete</button>`;
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>`;
     }
     return `
-        <button data-action="edit" data-task-id="${task.id}" class="text-blue-600 hover:text-blue-800 text-xs font-medium p-1 rounded hover:bg-blue-100" title="Edit Task">Edit</button>
-        <button data-action="triggerDelete" data-task-id="${task.id}" class="text-red-600 hover:text-red-800 text-xs font-medium p-1 rounded hover:bg-red-100" title="Delete Task">Delete</button>
+        <div class="flex space-x-1">
+            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>
+        </div>
     `;
 }
 function formatTimeRemaining(ms) {
@@ -1508,10 +1530,12 @@ function renderNotificationManager() {
 }
 
 function renderThemeControls() {
+    const dayNightToggle = document.getElementById('day-night-toggle');
     const themeToggle = document.getElementById('theme-enabled-toggle');
     const themeControls = document.getElementById('theme-controls');
     const themeColorPicker = document.getElementById('theme-base-color');
 
+    if (dayNightToggle) dayNightToggle.checked = theming.mode === 'night';
     if (themeToggle) themeToggle.checked = theming.enabled;
     if (themeColorPicker) themeColorPicker.value = theming.baseColor;
 
@@ -2410,6 +2434,7 @@ function initializeDOMElements() {
     sortDirectionSelect = document.getElementById('sort-direction');
     categoryFilterList = document.getElementById('category-filter-list');
     plannerDefaultCategorySelect = document.getElementById('planner-default-category');
+    dayNightToggle = document.getElementById('day-night-toggle');
 
     // Pilot Planner
     app = document.getElementById('app');
@@ -2577,6 +2602,11 @@ function setupEventListeners() {
                 case 'toggleCategoryNotification':
                     toggleCategoryNotification(target.dataset.categoryId, event.target.checked);
                     break;
+                case 'toggleDayNight':
+                    theming.mode = event.target.checked ? 'night' : 'day';
+                    applyTheme();
+                    saveData();
+                    break;
                 case 'toggleTheme':
                     theming.enabled = event.target.checked;
                     applyTheme();
@@ -2661,10 +2691,20 @@ function setupEventListeners() {
 
     // Pilot Planner
     const plannerClickHandler = (e) => {
-        const slot = e.target.matches('.planner-slot') ? e.target : e.target.closest('.planner-slot');
-        const taskItem = e.target.closest('.planner-task-item');
+        const target = e.target;
+        const slot = target.closest('.planner-slot');
+        const taskItem = target.closest('.planner-task-item');
+        const moreLink = target.closest('.planner-more-link');
 
-        if (taskItem && slot) {
+        if (moreLink) {
+            const dayIndex = parseInt(moreLink.dataset.dayIndex, 10);
+            if (!isNaN(dayIndex)) {
+                appState.currentView = 'daily';
+                appState.currentDayIndex = dayIndex;
+                saveViewState();
+                renderPlanner();
+            }
+        } else if (taskItem && slot) {
             e.stopPropagation();
             const taskId = taskItem.dataset.taskId;
             const task = tasks.find(t => t.id === taskId);
@@ -2837,6 +2877,9 @@ function loadData() {
         try {
             const parsedTheming = JSON.parse(storedTheming);
             theming = { ...theming, ...parsedTheming };
+            if (theming.mode !== 'day' && theming.mode !== 'night') {
+                theming.mode = 'night';
+            }
         } catch (e) {
             console.error("Error parsing theming settings:", e);
         }
@@ -2922,7 +2965,6 @@ function loadData() {
         }
     }
 
-    applyTheme(); // Apply the theme on initial load
     updateAllTaskStatuses(true);
     startMainUpdateLoop();
 }
@@ -3222,59 +3264,148 @@ function updateViewButtons() {
 
 function renderWeeklyView() {
     const week = appState.weeks[appState.viewingIndex];
-    plannerContainer.innerHTML = '';
+    if (!week) return; // Guard clause
+    plannerContainer.innerHTML = ''; // Clear previous content
 
-    plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">Time</div>`);
+    // --- Render Header ---
+    plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 1;">Time</div>`);
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(week.startDate);
         dayDate.setDate(new Date(week.startDate).getDate() + i);
-        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800 sticky top-0 z-10">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: ${i + 2};">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}<br>${dayDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</div>`);
     }
 
+    // --- Render Time Labels and Grid Cells ---
     for (let hour = 6; hour <= 22; hour++) {
-        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell font-semibold bg-gray-800">${hour}:00</div>`);
+        const rowStart = (hour - 6) * 4 + 2;
+        plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell time-label-cell font-semibold bg-gray-800" style="grid-row: ${rowStart} / span 4;">${hour}:00</div>`);
         for (let day = 0; day < 7; day++) {
-            const key = `${day}-${hour}`;
-            const scheduleContent = week.schedule[key] || '';
-            const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
-            const amendedClass = week.amendedItems.schedule[key] ? 'amended' : '';
-            plannerContainer.insertAdjacentHTML('beforeend', `<div class="table-cell planner-slot ${amendedClass}" data-key="${key}" contenteditable="${isEditable}">${scheduleContent}</div>`);
+            for (let i = 0; i < 4; i++) {
+                const slotRow = rowStart + i;
+                plannerContainer.insertAdjacentHTML('beforeend', `<div class="planner-slot" style="grid-column: ${day + 2}; grid-row: ${slotRow};"></div>`);
+            }
         }
     }
 
+    // --- Process and Render Tasks ---
     const weekStartDate = new Date(week.startDate);
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekEndDate.getDate() + 7);
+
+    const dailyTasks = Array.from({ length: 7 }, () => []);
 
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
         tasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
             occurrences.forEach(occurrenceDate => {
                 const dayOfWeek = occurrenceDate.getDay();
-                const hour = occurrenceDate.getHours();
+                dailyTasks[dayOfWeek].push({ task, occurrenceDate });
+            });
+        });
+    }
 
-                if (hour >= 6 && hour <= 22) {
-                    const cell = plannerContainer.querySelector(`.planner-slot[data-key="${dayOfWeek}-${hour}"]`);
-                    if (cell) {
-                        const taskElement = document.createElement('div');
-                        taskElement.className = 'planner-task-item';
-                        taskElement.textContent = task.name;
+    dailyTasks.forEach((tasksForDay, dayIndex) => {
+        layoutDay(tasksForDay, dayIndex, plannerContainer);
+    });
+}
 
-                        const category = categories.find(c => c.id === task.categoryId);
-                        taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
+function layoutDay(tasksForDay, dayIndex, container) {
+    const MAX_LANES = 3;
+    if (tasksForDay.length === 0) return;
 
-                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
-                        taskElement.style.color = textStyle.color;
-                        taskElement.style.textShadow = textStyle.textShadow;
-                        taskElement.dataset.taskId = task.id;
-                        taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
-                        cell.appendChild(taskElement);
-                    }
-                }
+    // Sort tasks by start time, then duration
+    tasksForDay.sort((a, b) => {
+        const startDiff = a.occurrenceDate.getTime() - b.occurrenceDate.getTime();
+        if (startDiff !== 0) return startDiff;
+        const durationA = getDurationMs(a.task.estimatedDurationAmount, a.task.estimatedDurationUnit) || 0;
+        const durationB = getDurationMs(b.task.estimatedDurationAmount, b.task.estimatedDurationUnit) || 0;
+        return durationB - durationA; // Longer tasks first
+    });
+
+    const lanes = []; // Each lane is an array of tasks
+
+    tasksForDay.forEach(({ task, occurrenceDate }) => {
+        let placed = false;
+        for (let i = 0; i < lanes.length; i++) {
+            const lastTaskInLane = lanes[i][lanes[i].length - 1];
+            const lastTaskEndTime = new Date(lastTaskInLane.occurrenceDate.getTime() + (getDurationMs(lastTaskInLane.task.estimatedDurationAmount, lastTaskInLane.task.estimatedDurationUnit) || 0));
+            if (occurrenceDate.getTime() >= lastTaskEndTime.getTime()) {
+                lanes[i].push({ task, occurrenceDate });
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            lanes.push([{ task, occurrenceDate }]);
+        }
+    });
+
+    if (lanes.length > MAX_LANES) {
+        const totalTasks = tasksForDay.length;
+        const row = Math.floor((tasksForDay[0].occurrenceDate.getHours() - 6) * 4 + (tasksForDay[0].occurrenceDate.getMinutes() / 15)) + 2;
+        renderMoreLink(totalTasks, dayIndex, row, container);
+    } else {
+        lanes.forEach((lane, laneIndex) => {
+            lane.forEach(({ task, occurrenceDate }) => {
+                renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, lanes.length, container);
             });
         });
     }
 }
+
+function renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, totalLanes, container) {
+    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60 * 60 * 1000;
+    const startTime = occurrenceDate;
+    const endTime = new Date(startTime.getTime() + durationMs);
+
+    const startRow = Math.max(0, (startTime.getHours() - 6) * 4 + Math.floor(startTime.getMinutes() / 15)) + 2;
+    const endRow = Math.min(68, (endTime.getHours() - 6) * 4 + Math.ceil(endTime.getMinutes() / 15)) + 2;
+    const rowSpan = Math.max(1, endRow - startRow);
+
+    const taskElement = document.createElement('div');
+    taskElement.className = 'planner-task-item';
+    taskElement.textContent = task.name;
+
+    const category = categories.find(c => c.id === task.categoryId);
+    taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
+
+    const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+    taskElement.style.color = textStyle.color;
+    taskElement.style.textShadow = textStyle.textShadow;
+
+    taskElement.dataset.taskId = task.id;
+    taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+
+    const width = 100 / totalLanes;
+    const left = laneIndex * width;
+
+    taskElement.style.gridColumn = `${dayIndex + 2}`;
+    taskElement.style.gridRow = `${startRow} / span ${rowSpan}`;
+    taskElement.style.width = `calc(${width}% - 4px)`;
+    taskElement.style.left = `${left}%`;
+
+    container.appendChild(taskElement);
+}
+
+
+function renderMoreLink(count, dayIndex, startRow, container) {
+    const moreLink = document.createElement('div');
+    moreLink.className = 'planner-more-link';
+    moreLink.textContent = `+${count} more`;
+    moreLink.dataset.action = 'showMore';
+    moreLink.dataset.dayIndex = dayIndex;
+
+    moreLink.style.gridColumn = `${dayIndex + 2}`;
+    moreLink.style.gridRow = `${startRow} / span 4`;
+    moreLink.style.position = 'relative';
+    moreLink.style.top = 'auto';
+    moreLink.style.left = 'auto';
+    moreLink.style.width = '100%';
+    moreLink.style.textAlign = 'center';
+
+    container.appendChild(moreLink);
+}
+
 
 function renderDailyView() {
     const week = appState.weeks[appState.viewingIndex];
@@ -3482,6 +3613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log("Initializing Pilot Mission Planner...");
         initializePlannerState(); // Renamed from initializeOrSyncState
+        applyTheme(); // Apply theme after state is initialized
         // setupPlannerEventListeners(); // This is already called in the main setupEventListeners
         renderPlanner(); // Initial render for the planner
         console.log("Pilot Mission Planner initialized.");
