@@ -14,6 +14,7 @@ let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
 let theming = { enabled: false, baseColor: '#3b82f6', mode: 'night' };
+let appSettings = { title: "Task & Mission Planner" };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let editingTaskId = null;
 let countdownIntervals = {};
@@ -59,18 +60,18 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
     sortBySelect, sortDirectionSelect, categoryFilterList,
     plannerDefaultCategorySelect, dayNightToggle;
 
-// DOM Element References (Pilot Planner)
+// DOM Element References (Planner)
 let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, addIndicatorBtn,
     plannerContainer, weeklyViewContainer, dailyViewContainer,
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn,
     weekStatusEl, weekDateRangeEl;
 
-// Pilot Planner State
+// Planner State
 const MAX_WEEKS_STORED = 6;
 const CURRENT_WEEK_INDEX = 4;
-const DATA_KEY = 'pilotPlannerDataV8';
-const VIEW_STATE_KEY = 'pilotPlannerViewStateV8';
+const DATA_KEY = 'appDataV8';
+const VIEW_STATE_KEY = 'appViewStateV8';
 
 const appState = {
     weeks: [],
@@ -742,6 +743,19 @@ function applyDayNightMode() {
     }
 }
 
+function setAppTitle(newTitle) {
+    if (!newTitle || newTitle.trim() === '') {
+        newTitle = "Task & Mission Planner"; // Default title
+    }
+    appSettings.title = newTitle;
+    const headerTitle = document.querySelector('#app header h1');
+    if (headerTitle) {
+        headerTitle.textContent = newTitle;
+    }
+    document.title = newTitle;
+    saveData();
+}
+
 function applyTheme() {
     applyDayNightMode(); // Apply day/night mode first
 
@@ -1409,6 +1423,13 @@ function renderTaskDisplaySettings() {
     }
 }
 
+function renderAppSettings() {
+    const titleInput = document.getElementById('app-title-input');
+    if (titleInput) {
+        titleInput.value = appSettings.title;
+    }
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1417,6 +1438,7 @@ function openAdvancedOptionsModal() {
     renderStatusManager();
     renderPlannerSettings();
     renderTaskDisplaySettings();
+    renderAppSettings();
     advancedOptionsModal.classList.add('active');
 }
 function renderCategoryFilters() {
@@ -2623,6 +2645,10 @@ function setupEventListeners() {
         });
         advancedOptionsContent.addEventListener('change', (event) => {
             const target = event.target;
+            if (target.id === 'app-title-input') {
+                setAppTitle(target.value);
+                return; // Prevent other handlers from running
+            }
             if (target.classList.contains('category-color-picker')) {
                 const categoryId = target.dataset.categoryId;
                 const newColor = target.value;
@@ -2807,6 +2833,7 @@ function saveData() {
         localStorage.setItem('categoryFilter', JSON.stringify(categoryFilter));
         localStorage.setItem('plannerSettings', JSON.stringify(plannerSettings));
         localStorage.setItem('taskDisplaySettings', JSON.stringify(taskDisplaySettings));
+        localStorage.setItem('appSettings', JSON.stringify(appSettings));
         savePlannerData();
     } catch (error) {
         console.error("Error saving data to localStorage:", error);
@@ -2827,6 +2854,7 @@ function loadData() {
     const storedCategoryFilter = localStorage.getItem('categoryFilter');
     const storedPlannerSettings = localStorage.getItem('plannerSettings');
     const storedTaskDisplaySettings = localStorage.getItem('taskDisplaySettings');
+    const storedAppSettings = localStorage.getItem('appSettings');
 
     tasks = [];
     categories = [];
@@ -2917,6 +2945,15 @@ function loadData() {
             taskDisplaySettings = { ...taskDisplaySettings, ...parsedSettings };
         } catch (e) {
             console.error("Error parsing task display settings:", e);
+        }
+    }
+
+    if (storedAppSettings) {
+        try {
+            const parsedSettings = JSON.parse(storedAppSettings);
+            appSettings = { ...appSettings, ...parsedSettings };
+        } catch (e) {
+            console.error("Error parsing app settings:", e);
         }
     }
 
@@ -3030,7 +3067,7 @@ function startMainUpdateLoop() {
 }
 
 // =================================================================================
-// --- PILOT MISSION PLANNER SCRIPT ---
+// --- MISSION PLANNER SCRIPT ---
 // =================================================================================
 const getStartOfWeek = (date = new Date()) => { const d = new Date(date); d.setDate(d.getDate() - d.getDay()); d.setHours(0,0,0,0); return d; };
 const getISOStringAtMidnight = (date) => { const d = new Date(date); d.setHours(0, 0, 0, 0); return d.toISOString(); };
@@ -3150,7 +3187,7 @@ const renderFutureWeeklyView = (startDate) => {
 
 
 // =================================================================================
-// --- PILOT MISSION PLANNER SCRIPT (RECONSTRUCTED RENDER FUNCTIONS) ---
+// --- MISSION PLANNER SCRIPT (RECONSTRUCTED RENDER FUNCTIONS) ---
 // =================================================================================
 
 // Jules' note: Avast! It seems these functions went walkin' the plank. I've recreated them based on the clues in the code.
@@ -3310,7 +3347,6 @@ function renderWeeklyView() {
 }
 
 function layoutDay(tasksForDay, dayIndex, container) {
-    const MAX_LANES = 3;
     if (tasksForDay.length === 0) return;
 
     // Sort tasks by start time, then duration
@@ -3340,17 +3376,12 @@ function layoutDay(tasksForDay, dayIndex, container) {
         }
     });
 
-    if (lanes.length > MAX_LANES) {
-        const totalTasks = tasksForDay.length;
-        const row = Math.floor((tasksForDay[0].occurrenceDate.getHours() - 6) * 4 + (tasksForDay[0].occurrenceDate.getMinutes() / 15)) + 2;
-        renderMoreLink(totalTasks, dayIndex, row, container);
-    } else {
-        lanes.forEach((lane, laneIndex) => {
-            lane.forEach(({ task, occurrenceDate }) => {
-                renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, lanes.length, container);
-            });
+    // Always render all tasks, never show a "more" link.
+    lanes.forEach((lane, laneIndex) => {
+        lane.forEach(({ task, occurrenceDate }) => {
+            renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, lanes.length, container);
         });
-    }
+    });
 }
 
 function renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, totalLanes, container) {
@@ -3385,25 +3416,6 @@ function renderTaskOnGrid(task, occurrenceDate, dayIndex, laneIndex, totalLanes,
     taskElement.style.left = `${left}%`;
 
     container.appendChild(taskElement);
-}
-
-
-function renderMoreLink(count, dayIndex, startRow, container) {
-    const moreLink = document.createElement('div');
-    moreLink.className = 'planner-more-link';
-    moreLink.textContent = `+${count} more`;
-    moreLink.dataset.action = 'showMore';
-    moreLink.dataset.dayIndex = dayIndex;
-
-    moreLink.style.gridColumn = `${dayIndex + 2}`;
-    moreLink.style.gridRow = `${startRow} / span 4`;
-    moreLink.style.position = 'relative';
-    moreLink.style.top = 'auto';
-    moreLink.style.left = 'auto';
-    moreLink.style.width = '100%';
-    moreLink.style.textAlign = 'center';
-
-    container.appendChild(moreLink);
 }
 
 
@@ -3602,6 +3614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeDOMElements(); // From Task Manager
         setupEventListeners();   // From Task Manager
         loadData();              // From Task Manager
+        setAppTitle(appSettings.title); // Set the title on load
         console.log("Task Manager initialized.");
     } catch (e) {
         console.error("Error during Task Manager initialization:", e);
@@ -3609,15 +3622,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(listDiv) listDiv.innerHTML = '<p class="text-red-600 font-bold text-center">Error initializing Task Manager. Please check console.</p>';
     }
 
-    // --- Initialize Pilot Mission Planner ---
+    // --- Initialize Mission Planner ---
     try {
-        console.log("Initializing Pilot Mission Planner...");
+        console.log("Initializing Mission Planner...");
         initializePlannerState(); // Renamed from initializeOrSyncState
         applyTheme(); // Apply theme after state is initialized
         // setupPlannerEventListeners(); // This is already called in the main setupEventListeners
         renderPlanner(); // Initial render for the planner
-        console.log("Pilot Mission Planner initialized.");
+        console.log("Mission Planner initialized.");
     } catch (e) {
-        console.error("Error during Pilot Mission Planner initialization:", e);
+        console.error("Error during Mission Planner initialization:", e);
     }
 });

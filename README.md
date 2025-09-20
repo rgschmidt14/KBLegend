@@ -1,6 +1,6 @@
-# Pilot's Mission Planner & Task Manager
+# Dynamic Task & Mission Planner
 
-Welcome to the Pilot's Mission Planner & Task Manager, a powerful, highly customizable application designed to help you organize your life with intelligent, predictive scheduling and integrated planning. This app goes beyond a simple to-do list by analyzing your schedule, tracking your goals, and providing a clear visual interface to manage both your daily tasks and long-term missions.
+Welcome to the Dynamic Task & Mission Planner, a powerful, highly customizable application designed to help you organize your life with intelligent, predictive scheduling and integrated planning. This app goes beyond a simple to-do list by analyzing your schedule, tracking your goals, and providing a clear visual interface to manage both your daily tasks and long-term missions.
 
 ## In-Depth Features
 
@@ -28,7 +28,7 @@ The core of the application is a dynamic and intelligent task management system.
     *   **Theming Engine:** Choose a base color to generate a dynamic, cohesive theme across the entire application, or stick with the default color scheme. You can also randomize the theme for a fresh look.
 *   **Notifications:** Receive desktop notifications when a task's status changes, ensuring you never miss an important deadline. (Currently under development).
 
-### The Pilot's Mission Planner
+### The Mission Planner
 
 Integrated directly with the task manager, the mission planner provides a high-level view of your week and long-term progress.
 
