@@ -70,8 +70,8 @@ let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, addIndicatorBtn,
 // Planner State
 const MAX_WEEKS_STORED = 6;
 const CURRENT_WEEK_INDEX = 4;
-const DATA_KEY = 'appDataV8';
-const VIEW_STATE_KEY = 'appViewStateV8';
+const DATA_KEY = 'pilotPlannerDataV8';
+const VIEW_STATE_KEY = 'pilotPlannerViewStateV8';
 
 const appState = {
     weeks: [],
@@ -706,28 +706,34 @@ function HSLToHex(h, s, l) {
 
 function generateGradientPalette(baseColor) {
     const baseHSL = hexToHSL(baseColor);
+    const isDarkMode = theming.mode === 'night';
+    const minLightness = isDarkMode ? 45 : 0; // Ensure minimum brightness in dark mode
+
     const palette = {
-        blue:   HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 10), Math.min(100, baseHSL.l + 15)),
-        green:  HSLToHex(baseHSL.h, baseHSL.s, baseHSL.l),
-        yellow: HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 15), Math.max(0, baseHSL.l - 15)),
-        red:    HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 25), Math.max(0, baseHSL.l - 30)),
-        black:  HSLToHex(baseHSL.h, baseHSL.s, Math.max(0, baseHSL.l - 45))
+        blue:   HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 10), Math.max(minLightness, baseHSL.l + 15)),
+        green:  HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l)),
+        yellow: HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 15), Math.max(minLightness, baseHSL.l - 15)),
+        red:    HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 25), Math.max(minLightness, baseHSL.l - 30)),
+        black:  HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l - 45))
     };
     return palette;
 }
 
 function generateComplementaryPalette(baseColor) {
     const baseHSL = hexToHSL(baseColor);
+    const isDarkMode = theming.mode === 'night';
+    const minLightness = isDarkMode ? 50 : 0; // Ensure minimum brightness for buttons in dark mode
+
     // Main buttons are a triadic color scheme (evenly spaced on the color wheel)
-    const addTaskBtnColor = HSLToHex(baseHSL.h, baseHSL.s, baseHSL.l);
-    const calendarBtnColor = HSLToHex((baseHSL.h + 120) % 360, baseHSL.s, baseHSL.l);
-    const advancedOptionsBtnColor = HSLToHex((baseHSL.h + 240) % 360, baseHSL.s, baseHSL.l);
+    const addTaskBtnColor = HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l));
+    const calendarBtnColor = HSLToHex((baseHSL.h + 120) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
+    const advancedOptionsBtnColor = HSLToHex((baseHSL.h + 240) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
 
     // Category colors are more varied, derived from the complementary
     const complementaryHue = (baseHSL.h + 180) % 360;
-    const catColor1 = HSLToHex(complementaryHue, baseHSL.s - 10, baseHSL.l + 10);
-    const catColor2 = HSLToHex((complementaryHue + 60) % 360, baseHSL.s - 10, baseHSL.l + 10);
-    const catColor3 = HSLToHex((complementaryHue - 60 + 360) % 360, baseHSL.s, baseHSL.l);
+    const catColor1 = HSLToHex(complementaryHue, baseHSL.s - 10, Math.max(minLightness, baseHSL.l + 10));
+    const catColor2 = HSLToHex((complementaryHue + 60) % 360, baseHSL.s - 10, Math.max(minLightness, baseHSL.l + 10));
+    const catColor3 = HSLToHex((complementaryHue - 60 + 360) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
     return [addTaskBtnColor, calendarBtnColor, advancedOptionsBtnColor, catColor1, catColor2, catColor3];
 }
 
@@ -3158,7 +3164,13 @@ const renderFutureWeeklyView = (startDate) => {
 
     // --- Render Task Manager Tasks onto the Grid ---
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
-        tasks.forEach(task => {
+        const filteredTasks = tasks.filter(task => {
+            if (categoryFilter.length === 0) return true;
+            if (!task.categoryId) return categoryFilter.includes(null);
+            return categoryFilter.includes(task.categoryId);
+        });
+
+        filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
             occurrences.forEach(occurrenceDate => {
                 const dayOfWeek = occurrenceDate.getDay();
@@ -3332,7 +3344,13 @@ function renderWeeklyView() {
     const dailyTasks = Array.from({ length: 7 }, () => []);
 
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
-        tasks.forEach(task => {
+        const filteredTasks = tasks.filter(task => {
+            if (categoryFilter.length === 0) return true;
+            if (!task.categoryId) return categoryFilter.includes(null);
+            return categoryFilter.includes(task.categoryId);
+        });
+
+        filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
             occurrences.forEach(occurrenceDate => {
                 const dayOfWeek = occurrenceDate.getDay();
@@ -3460,7 +3478,13 @@ function renderDailyView() {
     dayEnd.setHours(23,59,59,999);
 
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
-        tasks.forEach(task => {
+        const filteredTasks = tasks.filter(task => {
+            if (categoryFilter.length === 0) return true;
+            if (!task.categoryId) return categoryFilter.includes(null);
+            return categoryFilter.includes(task.categoryId);
+        });
+
+        filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
             occurrences.forEach(occurrenceDate => {
                 const hour = occurrenceDate.getHours();
