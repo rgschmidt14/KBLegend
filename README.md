@@ -47,6 +47,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 1.8) - 09/20/2025**
+
+This update focused on establishing a modern, professional development environment to improve the long-term robustness and maintainability of the application.
+
+*   **Testing Framework:** Introduced **Jest** as a formal testing framework. This is a critical first step towards ensuring code quality, preventing regressions, and enabling developers to build new features with confidence.
+*   **Unit Tests for Core Logic:** Wrote the first suite of unit tests for the `calculateStatus` function, which is a core piece of the application's "intelligent" task scheduling. These tests verify its behavior under multiple conditions.
+*   **Code Modularization:** Refactored the monolithic `script.js` into smaller, more manageable modules (`js/task-logic.js` and `js/script.js`). This improves code organization and makes it possible to test individual components in isolation.
+*   **NPM Integration:** The project is now managed with `npm`, allowing for easy installation of dependencies and the execution of development scripts (like running tests).
+
 ### **✅ Recently Completed (Version 1.7) - 09/20/2025**
 
 This update focused on improving the long-term robustness of the application and restoring key functionality.
@@ -109,6 +118,25 @@ These are larger, more long-term goals for the project.
 A collection of great ideas suggested for future consideration.
 
 * **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.  
-* **Implement a test suite:** The project doesn't currently have any automated tests. Adding a testing framework (like Jest or Mocha) would be a great way to ensure the application remains stable and bug-free as we add more features.  
 * **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.  
 * **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
+
+## **Development**
+
+This project uses `npm` to manage development dependencies.
+
+### **Getting Started**
+
+1.  Clone the repository.
+2.  Install the necessary development dependencies:
+    ```bash
+    npm install
+    ```
+
+### **Running Tests**
+
+This project uses [Jest](https://jestjs.io/) for testing. To run the test suite, use the following command:
+
+```bash
+npm test
+```
