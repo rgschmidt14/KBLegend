@@ -47,51 +47,45 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
-### **✅ Recently Completed (Version 1.2) \- 09/20/2025**
+### **✅ Recently Completed (Version 1.3) \- 09/20/2025**
 
-This update focused on fixing critical rendering bugs in the Mission Planner and improving the visual presentation of tasks.
+This update focused on a major overhaul of the Mission Planner's UI and UX, implementing several new features and fixing critical layout bugs.
 
-* **Planner Rendering Engine Fix:**  
-  * Resolved a critical bug that caused the weekly planner view to fail to load. This was traced to a missing accommodate function responsible for laying out overlapping tasks.  
-  * Re-implemented the task accommodation logic to correctly arrange tasks into lanes, preventing visual overlap and ensuring all events are displayed correctly.  
-  * Both the interactive weekly view and the read-only future view have been updated with this fix.  
-* **Task Styling Improvements:**  
-  * Tasks in the planner now have a minimum height, ensuring that even short events are clearly visible and clickable.  
-  * Long task names are now gracefully truncated with an ellipsis (...) to prevent them from overflowing and disrupting the layout.
+*   **Weekly View Overhaul:** Fixed a bug where concurrent tasks would become unreadably narrow. The layout engine now correctly arranges overlapping tasks into lanes, ensuring they remain legible and easy to interact with.
+*   **Daily View as Timeline:** Reworked the daily view from a simple list into a dynamic timeline. Tasks are now positioned and scaled vertically, accurately reflecting their start time and duration over an hourly grid.
+*   **New Month View:** Implemented a brand new month view. It provides a high-level overview of the month, with days that are clickable to jump to the corresponding daily view. Each day displays color-coded indicators for scheduled tasks, showing either the task's icon or its first initial for quick identification.
 
-### **✅ Recently Completed (Version 1.1)**
+### **🔜 Up Next: Future Updates**
 
-This latest update focused on significant user experience improvements, UI polish, and a major refactoring of the planner's rendering engine.
+The following features and fixes have been prioritized for upcoming releases.
 
-* **UI & Styling Overhaul:**  
-  * Fixed an issue where the Task Manager background remained white in Night Mode.  
-  * Corrected the sizing of the "Add New Task" and "Advanced Options" buttons to be more prominent.  
-  * Made the Task Manager content area scrollable to improve usability on smaller screens.  
-  * Redesigned the "Restore Defaults" confirmation prompt to be clearer and more user-friendly.  
-  * Added a toggle in Advanced Settings to switch between 12-hour and 24-hour time formats throughout the application.  
-* **Weekly View Rendering Engine:**  
-  * Completely refactored the weekly planner's rendering logic.  
-  * Tasks are now scheduled to **end** at their due time, correctly blocking out their duration on the calendar (e.g., a 1-hour task due at 4 PM now appears from 3 PM to 4 PM).  
-  * The task layout in the weekly view has been fixed to prevent tasks from rendering side-by-side; they now stack vertically as intended.  
-  * Enabled task editing directly from the weekly planner view. Clicking any task occurrence on the grid now opens the edit form with the correct details for that specific instance.  
-  * The read-only future weeks view now uses the same rendering engine as the main planner, ensuring a consistent and accurate look.
+#### **1. UI Fixes and Feature Enhancements**
 
-### **🔜 Up Next**
+*   **Light Mode Theme Fix:**
+    *   **Problem:** In light mode, some elements have dark text on a dark background, making them unreadable.
+    *   **Objective:** Ensure all elements have light backgrounds and dark text in light mode.
+    *   **Files to Edit:** `styles.css`
+    *   **Elements:** `#prevWeekBtn`, `#nextWeekBtn`, `.kpi-indicator`, `#progressTrackerContainer`.
+*   **KPI & Progress Tracker Updates:**
+    *   **Problem:** KPI goals/actuals are not editable, and the system doesn't distinguish between daily and weekly KPIs.
+    *   **Objective:** Make KPIs editable again and add a daily auto-task feature.
+    *   **Implementation:**
+        1.  **Editability:** In `renderProgressTracker()`, remove the `disabled` attribute from the `.kpi-goal-input` and `.kpi-actual-input` elements.
+        2.  **Daily/Weekly Distinction:** Add a `frequency` property ('daily' or 'weekly') to KPI objects. Create a daily function to auto-generate tasks for all 'daily' KPIs.
+*   **Clickable Week Navigator:**
+    *   **Problem:** User cannot easily jump to a specific week.
+    *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar to select a new week.
+*   **Advanced Options Accessibility:**
+    *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
+    *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
 
-These are the features and fixes currently in the development pipeline.
+#### **2. Core Architecture: Task Archiving**
 
-* **Planner Visual Overhaul:**  
-  * Fix weekly view so that overlapping tasks render in "lanes" instead of becoming too narrow.  
-  * Improve the layout and usability of the daily view.  
-  * Implement a new monthly calendar view.  
-* **Task Archiving System:** Create a new data store for completed/missed tasks to improve performance and prepare for future analytics features. Past tasks will be moved from the active list to this historical archive.  
-* **UI & Theme Fixes:** Correct elements in Day Mode that are not updating their backgrounds, making them unreadable (e.g., Prev/Next buttons, KPI tracker).  
-* **KPI Enhancements:**  
-  * Make KPI goals and actuals editable on the main planner view again.  
-  * Add a distinction between "Daily" and "Weekly" KPIs.  
-  * Automatically generate a task in the Task Manager for each "Daily" KPI, due at midnight.  
-* **Calendar Quick-Jump:** Make the week date range at the top of the planner clickable to open a calendar for easy navigation to any week.  
-* **Fix Notifications:** Investigate and debug the notification engine to ensure users receive timely alerts for task status changes.
+*   **Problem:** All tasks, active and completed, are stored in one array, which will become slow over time.
+*   **Objective:** Move completed/missed tasks to a separate `historicalTasks` array to improve performance.
+*   **Implementation:**
+    1.  **Data Structure:** Ensure `appState.historicalTasks` is saved to and loaded from localStorage.
+    2.  **Modify Completion Logic:** In `confirmCompletionAction` and `confirmMissAction`, when a task is finished, move it from the main `tasks` array to the `historicalTasks` array. For repeating tasks, create a historical copy before updating the original task to its next due date.
 
 ### **🚀 Future Roadmap**
 

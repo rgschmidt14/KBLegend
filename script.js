@@ -62,7 +62,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
 
 // DOM Element References (Planner)
 let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, addIndicatorBtn,
-    plannerContainer, weeklyViewContainer, dailyViewContainer,
+    plannerContainer, weeklyViewContainer, dailyViewContainer, monthViewContainer,
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn,
     weekStatusEl, weekDateRangeEl;
@@ -2523,6 +2523,7 @@ function initializeDOMElements() {
     plannerContainer = document.getElementById('plannerContainer');
     weeklyViewContainer = document.getElementById('weeklyViewContainer');
     dailyViewContainer = document.getElementById('dailyViewContainer');
+    monthViewContainer = document.getElementById('monthViewContainer');
     progressTrackerContainer = document.getElementById('progressTrackerContainer');
     viewBtns = document.querySelectorAll('.view-btn');
     startNewWeekBtn = document.getElementById('startNewWeekBtn');
@@ -2882,6 +2883,35 @@ function setupEventListeners() {
         if (e.target.id === 'nextDayBtn') { appState.currentDayIndex = (appState.currentDayIndex + 1) % 7; dayChanged = true; }
         if(dayChanged) { saveViewState(); renderDailyView(); }
         else { plannerClickHandler(e) }
+    });
+
+    monthViewContainer.addEventListener('click', e => {
+        const cell = e.target.closest('.month-day-cell');
+        if (!cell || cell.classList.contains('other-month')) return;
+
+        const dateStr = cell.dataset.date;
+        const clickedDate = new Date(dateStr);
+
+        // Find the week and day index that corresponds to the clicked date
+        const weekStartDate = getStartOfWeek(clickedDate);
+        const weekIndex = appState.weeks.findIndex(w => new Date(w.startDate).getTime() === weekStartDate.getTime());
+
+        if (weekIndex !== -1) {
+            appState.viewingIndex = weekIndex;
+            appState.currentView = 'daily';
+            appState.currentDayIndex = clickedDate.getDay();
+            saveViewState();
+            renderPlanner();
+        } else {
+            // If the week is not in our currently loaded weeks, we might need to handle this
+            // For now, we just switch to the daily view of the current week
+            console.warn("Clicked a date that is not within the loaded weeks.");
+            const dayOfWeek = clickedDate.getDay();
+            appState.currentView = 'daily';
+            appState.currentDayIndex = dayOfWeek;
+            saveViewState();
+            renderPlanner();
+        }
     });
 
     prevWeekBtn.addEventListener('click', () => { if (appState.viewingIndex > 0) { appState.viewingIndex--; saveViewState(); renderPlanner(); } });
@@ -3419,8 +3449,11 @@ function renderIndicators() {
 
 function updateViewButtons() {
     viewBtns.forEach(btn => {
-        btn.classList.toggle('bg-blue-700', btn.dataset.view === appState.currentView);
-        btn.classList.toggle('text-white', btn.dataset.view === appState.currentView);
+        const view = btn.dataset.view;
+        const isActive = view === appState.currentView;
+        btn.classList.toggle('bg-blue-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('bg-gray-700', !isActive);
     });
 }
 
@@ -3505,12 +3538,21 @@ function accommodate(tasksForDay) {
     for (const task of sortedTasks) {
         let placed = false;
         for (const lane of lanes) {
-            const lastTaskInLane = lane[lane.length - 1];
-            // Check for overlap: if the new task starts after the last one in the lane ends
-            if (task.occurrenceDate.getTime() >= lastTaskInLane.dueDate.getTime()) {
+            let hasOverlap = false;
+            for (const existingTask of lane) {
+                // Check for overlap: A overlaps with B if A's start is before B's end
+                // and A's end is after B's start.
+                if (task.occurrenceDate.getTime() < existingTask.dueDate.getTime() &&
+                    task.dueDate.getTime() > existingTask.occurrenceDate.getTime()) {
+                    hasOverlap = true;
+                    break; // Found overlap, this lane is not suitable
+                }
+            }
+
+            if (!hasOverlap) {
                 lane.push(task);
                 placed = true;
-                break;
+                break; // Placed in this lane, move to next task
             }
         }
 
@@ -3558,6 +3600,103 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
 }
 
 
+function renderMonthView() {
+    const week = appState.weeks[appState.viewingIndex];
+    const viewDate = new Date(week.startDate);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+
+    monthViewContainer.innerHTML = ''; // Clear previous content
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDayOfMonth.getDay(); // 0=Sun, 1=Mon, ...
+
+    // Create a map of tasks for the visible month
+    const tasksByDate = {};
+    const monthStart = new Date(year, month, 1 - firstDayOfWeek);
+    const monthEnd = new Date(year, month, lastDayOfMonth.getDate() + (6 - lastDayOfMonth.getDay()));
+
+    if (typeof tasks !== 'undefined' && tasks.length > 0) {
+        const filteredTasks = tasks.filter(task => {
+            if (categoryFilter.length === 0) return true;
+            if (!task.categoryId) return categoryFilter.includes(null);
+            return categoryFilter.includes(task.categoryId);
+        });
+
+        filteredTasks.forEach(task => {
+            const occurrences = getTaskOccurrences(task, monthStart, monthEnd);
+            occurrences.forEach(({ occurrenceStartDate }) => {
+                const dateKey = occurrenceStartDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                if (!tasksByDate[dateKey]) {
+                    tasksByDate[dateKey] = [];
+                }
+                tasksByDate[dateKey].push(task);
+            });
+        });
+    }
+
+
+    // Create calendar cells
+    for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+        const cell = document.createElement('div');
+        cell.className = 'month-day-cell';
+
+        const cellDate = new Date(firstDayOfMonth);
+        cellDate.setDate(1 - firstDayOfWeek + i);
+
+        cell.dataset.date = cellDate.toISOString();
+
+        if (cellDate.getMonth() !== month) {
+            cell.classList.add('other-month');
+        }
+
+        const dateNumber = document.createElement('div');
+        dateNumber.className = 'month-day-number';
+        dateNumber.textContent = cellDate.getDate();
+        cell.appendChild(dateNumber);
+
+        const indicatorsContainer = document.createElement('div');
+        indicatorsContainer.className = 'month-task-indicators';
+
+        const dateKey = cellDate.toISOString().split('T')[0];
+        if (tasksByDate[dateKey]) {
+            // Use a Set to only show one indicator per category to avoid clutter
+            const uniqueCategories = new Set();
+            const tasksForIndicator = [];
+            tasksByDate[dateKey].forEach(task => {
+                const catId = task.categoryId || 'uncategorized';
+                if(!uniqueCategories.has(catId)) {
+                    uniqueCategories.add(catId);
+                    tasksForIndicator.push(task);
+                }
+            });
+
+            tasksForIndicator.slice(0, 4).forEach(task => { // Limit to 4 indicators
+                const indicator = document.createElement('div');
+                indicator.className = 'month-task-indicator';
+
+                const category = categories.find(c => c.id === task.categoryId);
+                indicator.style.backgroundColor = category ? category.color : '#808080';
+
+                const textStyle = getContrastingTextColor(indicator.style.backgroundColor);
+                indicator.style.color = textStyle.color;
+                indicator.style.textShadow = textStyle.textShadow;
+
+                if (task.icon) {
+                    indicator.innerHTML = `<i class="${task.icon}"></i>`;
+                } else {
+                    indicator.textContent = task.name ? task.name.charAt(0).toUpperCase() : '?';
+                }
+                indicatorsContainer.appendChild(indicator);
+            });
+        }
+
+        cell.appendChild(indicatorsContainer);
+        monthViewContainer.appendChild(cell);
+    }
+}
+
 function renderDailyView() {
     const week = appState.weeks[appState.viewingIndex];
     const dayIndex = appState.currentDayIndex;
@@ -3566,41 +3705,38 @@ function renderDailyView() {
 
     dailyViewContainer.innerHTML = `
         <div class="flex justify-between items-center p-2 bg-gray-800 rounded-t-lg">
-            <button id="prevDayBtn" class="px-2 py-1 bg-gray-600 rounded">&lt; Prev</button>
+            <button id="prevDayBtn" class="nav-btn px-2 py-1 bg-gray-600 rounded">&lt; Prev</button>
             <h3 class="text-lg font-bold">${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
-            <button id="nextDayBtn" class="px-2 py-1 bg-gray-600 rounded">Next &gt;</button>
+            <button id="nextDayBtn" class="nav-btn px-2 py-1 bg-gray-600 rounded">Next &gt;</button>
         </div>
-        <div id="daily-planner-grid" class="daily-planner-grid p-2"></div>
+        <div id="daily-planner-grid" class="p-2"></div>
     `;
 
     const grid = dailyViewContainer.querySelector('#daily-planner-grid');
-    for (let hour = 6; hour <= 22; hour++) {
-        const key = `${dayIndex}-${hour}`;
-        const scheduleContent = week.schedule[key] || '';
-        const isEditable = appState.viewingIndex === CURRENT_WEEK_INDEX;
-        const amendedClass = week.amendedItems.schedule[key] ? 'amended' : '';
+    const PIXELS_PER_MINUTE = 1; // 60px per hour
+    const START_HOUR = 6;
 
+    // Render time slots as background guides
+    for (let hour = START_HOUR; hour <= 22; hour++) {
         const slot = document.createElement('div');
-        slot.className = 'daily-slot';
+        slot.className = 'daily-view-time-slot';
+
+        const label = document.createElement('div');
+        label.className = 'daily-view-time-label';
         const d = new Date();
         d.setHours(hour, 0);
-        const timeStr = formatTime(d);
-        slot.innerHTML = `<div class="time-label">${timeStr}</div>`;
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = `planner-slot ${amendedClass}`;
-        contentDiv.dataset.key = key;
-        contentDiv.contentEditable = isEditable;
-        contentDiv.innerHTML = scheduleContent;
-        slot.appendChild(contentDiv);
+        label.textContent = formatTime(d);
+        slot.appendChild(label);
         grid.appendChild(slot);
     }
 
+    // Get all task occurrences for the current day
     const dayStart = new Date(dayDate);
-    dayStart.setHours(0,0,0,0);
+    dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayDate);
-    dayEnd.setHours(23,59,59,999);
+    dayEnd.setHours(23, 59, 59, 999);
 
+    let tasksForDay = [];
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
         const filteredTasks = tasks.filter(task => {
             if (categoryFilter.length === 0) return true;
@@ -3611,29 +3747,55 @@ function renderDailyView() {
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
             occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
-                const hour = occurrenceStartDate.getHours();
-                if (hour >= 6 && hour <= 22) {
-                    const cell = grid.querySelector(`.planner-slot[data-key="${dayIndex}-${hour}"]`);
-                    if (cell) {
-                        const taskElement = document.createElement('div');
-                        taskElement.className = 'planner-task-item';
-                        taskElement.textContent = task.name;
-
-                        const category = categories.find(c => c.id === task.categoryId);
-                        taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
-
-                        const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
-                        taskElement.style.color = textStyle.color;
-                        taskElement.style.textShadow = textStyle.textShadow;
-                        taskElement.dataset.taskId = task.id;
-                        taskElement.dataset.occurrenceDate = occurrenceStartDate.toISOString();
-                        taskElement.dataset.dueDate = occurrenceDueDate.toISOString();
-                        cell.appendChild(taskElement);
-                    }
-                }
+                tasksForDay.push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
             });
         });
     }
+
+    // Use the same accommodate logic to handle overlaps
+    const lanes = accommodate(tasksForDay);
+
+    lanes.forEach((lane, laneIndex) => {
+        lane.forEach(({ task, occurrenceDate, dueDate }) => {
+            const startTime = occurrenceDate;
+            const endTime = dueDate;
+
+            // Calculate top and height
+            const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+            const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+            const top = (startMinutes - (START_HOUR * 60)) * PIXELS_PER_MINUTE;
+            const height = Math.max(15, (endMinutes - startMinutes) * PIXELS_PER_MINUTE); // Min height of 15px
+
+            // Calculate width and left for lanes
+            const totalLanes = lanes.length;
+            const width = 100 / totalLanes;
+            const left = laneIndex * width;
+
+            const taskElement = document.createElement('div');
+            taskElement.className = 'planner-task-item'; // Re-use the same class
+            const iconHtml = task.icon ? `<i class="${task.icon} mr-1"></i>` : '';
+            taskElement.innerHTML = `${iconHtml}${task.name}`;
+
+
+            const category = categories.find(c => c.id === task.categoryId);
+            taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
+            const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
+            taskElement.style.color = textStyle.color;
+            taskElement.style.textShadow = textStyle.textShadow;
+
+            taskElement.dataset.taskId = task.id;
+            taskElement.dataset.occurrenceDate = occurrenceDate.toISOString();
+            taskElement.dataset.dueDate = dueDate.toISOString();
+
+            taskElement.style.position = 'absolute'; // Ensure it's absolute
+            taskElement.style.top = `${top}px`;
+            taskElement.style.height = `${height - 2}px`; // -2 for border/padding
+            taskElement.style.left = `${left}%`;
+            taskElement.style.width = `calc(${width}% - 4px)`; // Same as weekly view
+
+            grid.appendChild(taskElement);
+        });
+    });
 }
 
 function renderProgressTracker() {
@@ -3691,6 +3853,7 @@ const renderPlanner = () => {
         progressTrackerContainer.innerHTML = '';
         weeklyViewContainer.classList.remove('hidden');
         dailyViewContainer.classList.add('hidden');
+        monthViewContainer.classList.add('hidden');
         renderFutureWeeklyView(futureStartDate);
         return;
     }
@@ -3702,14 +3865,19 @@ const renderPlanner = () => {
     renderIndicators();
     updateViewButtons();
 
+    weeklyViewContainer.classList.add('hidden');
+    dailyViewContainer.classList.add('hidden');
+    monthViewContainer.classList.add('hidden');
+
     if (appState.currentView === 'weekly') {
         weeklyViewContainer.classList.remove('hidden');
-        dailyViewContainer.classList.add('hidden');
         renderWeeklyView();
-    } else {
-        weeklyViewContainer.classList.add('hidden');
+    } else if (appState.currentView === 'daily') {
         dailyViewContainer.classList.remove('hidden');
         renderDailyView();
+    } else if (appState.currentView === 'month') {
+        monthViewContainer.classList.remove('hidden');
+        renderMonthView();
     }
     renderProgressTracker();
 };

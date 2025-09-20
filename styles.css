@@ -353,6 +353,110 @@ legend {
     cursor: pointer;
 }
 
+/* --- Daily View Timeline Styles --- */
+#daily-planner-grid {
+    position: relative;
+    height: calc((22 - 6 + 1) * 60px); /* 17 hours * 60px/hour */
+    margin-left: 60px; /* Space for time labels */
+}
+
+.daily-view-time-slot {
+    position: relative;
+    border-top: 1px solid #374151; /* Gray-700 */
+    height: 60px; /* 1 hour slot */
+    box-sizing: border-box;
+}
+
+.daily-view-time-label {
+    position: absolute;
+    top: -10px;
+    left: -60px;
+    width: 50px;
+    text-align: right;
+    font-size: 0.75rem;
+    color: #9CA3AF; /* Gray-400 */
+}
+
+.light-mode #daily-planner-grid {
+    /* No change needed unless borders/etc are different */
+}
+
+.light-mode .daily-view-time-slot {
+    border-top-color: #E5E7EB; /* Gray-200 */
+}
+
+.light-mode .daily-view-time-label {
+    color: #6B7280; /* Gray-500 */
+}
+
+/* --- Month View Styles --- */
+#monthViewContainer {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+}
+
+.month-day-cell {
+    min-height: 120px;
+    background-color: #1F2937; /* Gray-800 */
+    border: 1px solid #374151; /* Gray-700 */
+    padding: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    overflow: hidden;
+}
+
+.month-day-cell:hover {
+    background-color: #374151; /* Gray-700 */
+}
+
+.month-day-cell.other-month {
+    background-color: #111827; /* Gray-900 */
+    color: #4B5563; /* Gray-600 */
+}
+
+.month-day-number {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.month-task-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.month-task-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    overflow: hidden;
+    line-height: 1;
+}
+
+.month-task-indicator i { /* For font-awesome icons */
+    font-size: 0.7rem;
+}
+
+.light-mode .month-day-cell {
+    background-color: #F9FAFB; /* Gray-50 */
+    border-color: #E5E7EB; /* Gray-200 */
+}
+
+.light-mode .month-day-cell:hover {
+    background-color: #F3F4F6; /* Gray-100 */
+}
+
+.light-mode .month-day-cell.other-month {
+    background-color: #E5E7EB; /* Gray-200 */
+    color: #9CA3AF; /* Gray-400 */
+}
+
 /* Theme Mode Selector Styles */
 .theme-mode-btn {
     color: #4A5568; /* Gray-600 */
