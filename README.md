@@ -143,6 +143,7 @@ A collection of great ideas suggested for future consideration.
 * **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
 * **Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.
 * **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
+* **Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.
 
 ## **Development**
 

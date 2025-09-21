@@ -2570,6 +2570,7 @@ function setupEventListeners() {
                     allCheckbox.checked = true;
                 }
                 renderTasks();
+                renderPlanner();
             } else if (target.classList.contains('status-color-picker')) {
                  const statusKey = target.dataset.statusKey;
                  const newColor = target.value;
@@ -3073,8 +3074,8 @@ const renderFutureWeeklyView = (startDate) => {
     }
 
     // --- Render Time Labels and Grid Cells (copied from renderWeeklyView) ---
-    for (let hour = 6; hour <= 22; hour++) {
-        const rowStart = (hour - 6) * 4 + 2;
+    for (let hour = 0; hour <= 23; hour++) {
+        const rowStart = hour * 4 + 2;
         const d = new Date();
         d.setHours(hour, 0);
         const timeStr = formatTime(d);
@@ -3250,8 +3251,8 @@ function renderWeeklyView() {
     }
 
     // --- Render Time Labels and Grid Cells ---
-    for (let hour = 6; hour <= 22; hour++) {
-        const rowStart = (hour - 6) * 4 + 2;
+    for (let hour = 0; hour <= 23; hour++) {
+        const rowStart = hour * 4 + 2;
         const d = new Date();
         d.setHours(hour, 0);
         const timeStr = formatTime(d);
@@ -3364,9 +3365,11 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
     const startTime = new Date(occurrenceStartDate);
     const endTime = new Date(occurrenceDueDate);
 
-    // Adjust for grid starting at 6 AM
-    const startRow = Math.max(0, (startTime.getHours() - 6) * 4 + Math.floor(startTime.getMinutes() / 15)) + 2;
-    const endRow = Math.min(68, (endTime.getHours() - 6) * 4 + Math.ceil(endTime.getMinutes() / 15)) + 2;
+    // Grid starts at midnight (hour 0)
+    const startRow = Math.max(0, startTime.getHours() * 4 + Math.floor(startTime.getMinutes() / 15)) + 2;
+    // Clamp to the bottom of the grid. Edge case: a task ends exactly at midnight (24:00), which is hour 0 of the next day.
+    const endHour = (endTime.getHours() === 0 && endTime.getMinutes() === 0) ? 24 : endTime.getHours();
+    const endRow = Math.min(98, endHour * 4 + Math.ceil(endTime.getMinutes() / 15)) + 2;
     const rowSpan = Math.max(1, endRow - startRow);
 
     const taskElement = document.createElement('div');
@@ -3520,8 +3523,8 @@ function renderDailyView() {
     gridContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 2;">Tasks</div>`);
 
     // --- Render Time Labels and Grid Cells ---
-    for (let hour = 6; hour <= 22; hour++) {
-        const rowStart = (hour - 6) * 4 + 2;
+    for (let hour = 0; hour <= 23; hour++) {
+        const rowStart = hour * 4 + 2;
         const d = new Date();
         d.setHours(hour, 0);
         const timeStr = formatTime(d);

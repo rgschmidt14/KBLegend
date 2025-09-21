@@ -273,7 +273,7 @@ legend {
 .planner-grid {
     display: grid;
     grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
-    grid-template-rows: auto repeat(68, 15px); /* 17 hours * 4 rows per hour */
+    grid-template-rows: auto repeat(96, 15px); /* 24 hours * 4 rows per hour */
     position: relative;
 }
 
@@ -306,6 +306,11 @@ legend {
 .weekly-day-column {
     position: relative;
     height: 100%;
+}
+
+#weeklyViewContainer {
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .weekly-day-column {
@@ -369,7 +374,7 @@ legend {
 /* --- Daily View Timeline Styles --- */
 #daily-planner-grid {
     position: relative;
-    height: calc((22 - 6 + 1) * 60px); /* 17 hours * 60px/hour */
+    /* Height is now determined by the grid-template-rows of .planner-grid */
     margin-left: 60px; /* Space for time labels */
 }
 
