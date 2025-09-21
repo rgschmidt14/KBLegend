@@ -141,6 +141,8 @@ A collection of great ideas suggested for future consideration.
 * **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript, following the pattern established in the new `js/templates.js` file. The goal is to make the code more modular and maintainable.
 * **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.  
 * **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
+* **Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.
+* **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
 
 ## **Development**
 

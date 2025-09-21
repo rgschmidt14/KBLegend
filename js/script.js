@@ -2651,6 +2651,13 @@ function setupEventListeners() {
     });
 
     monthViewContainer.addEventListener('click', e => {
+        const indicator = e.target.closest('.month-task-indicator');
+        if (indicator && indicator.dataset.taskId) {
+            e.stopPropagation(); // Prevent the day cell click from firing
+            openModal(indicator.dataset.taskId);
+            return;
+        }
+
         const cell = e.target.closest('.month-day-cell');
         if (!cell || cell.classList.contains('other-month')) return;
 
@@ -3274,9 +3281,32 @@ function renderWeeklyView() {
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, weekStartDate, weekEndDate);
             occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
-                // Ensure day index is calculated correctly (0=Sun, 1=Mon, etc.)
-                const dayOfWeek = new Date(occurrenceStartDate).getDay();
-                dailyTasks[dayOfWeek].push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
+                let loopDate = new Date(occurrenceStartDate);
+
+                // Clamp the start of our loop to the beginning of the visible week
+                if (loopDate < weekStartDate) {
+                    loopDate = new Date(weekStartDate);
+                }
+
+                // Loop day by day for the duration of the event within the view
+                while (loopDate < occurrenceDueDate && loopDate < weekEndDate) {
+                    const dayOfWeek = loopDate.getDay();
+
+                    // The chunk's start is the later of the actual event start or the beginning of the current loop day
+                    const chunkStartDate = new Date(Math.max(occurrenceStartDate.getTime(), loopDate.getTime()));
+
+                    // The chunk's end is the earlier of the actual event end or the end of the current loop day
+                    let endOfLoopDay = new Date(loopDate);
+                    endOfLoopDay.setHours(23, 59, 59, 999);
+                    const chunkEndDate = new Date(Math.min(occurrenceDueDate.getTime(), endOfLoopDay.getTime()));
+
+                    // Add the calculated chunk to the tasks for that day
+                    dailyTasks[dayOfWeek].push({ task, occurrenceDate: chunkStartDate, dueDate: chunkEndDate });
+
+                    // Advance to the start of the next day for the next iteration
+                    loopDate.setDate(loopDate.getDate() + 1);
+                    loopDate.setHours(0, 0, 0, 0);
+                }
             });
         });
     }
@@ -3444,6 +3474,7 @@ function renderMonthView() {
             tasksForIndicator.slice(0, 4).forEach(task => { // Limit to 4 indicators
                 const indicator = document.createElement('div');
                 indicator.className = 'month-task-indicator';
+                indicator.dataset.taskId = task.id; // Add task ID for click handling
 
                 const category = categories.find(c => c.id === task.categoryId);
                 indicator.style.backgroundColor = category ? category.color : '#808080';
