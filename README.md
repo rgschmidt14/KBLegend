@@ -50,6 +50,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 2.1) - 09/21/2025**
+
+This update introduces a "Simple Mode" for the task creation form to improve the user experience, especially for new users.
+
+*   **Simple Mode for Task Creation:**
+    *   **New Toggle:** The task creation modal now features a "Simple/Advanced" toggle switch. By default, the form opens in "Simple Mode," showing only the most essential fields: task name and due date.
+    *   **Clutter-Free UI:** This hides the numerous advanced options (like detailed repetition schedules, completion tracking, categories, etc.) from users who just want to quickly add a task, reducing initial overwhelm.
+    *   **Smart Detection:** When editing an existing task that already uses advanced properties, the form will automatically open in "Advanced Mode" to ensure all settings are visible and editable.
+
 ### **✅ Recently Completed (Version 2.0) - 09/21/2025**
 
 This is a major feature release that introduces a powerful new intelligent scheduling engine to the planner. The application can now automatically deconflict tasks to help users visualize their true schedule and avoid overbooking.
@@ -122,9 +131,6 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Clickable Week Navigator:**
     *   **Problem:** User cannot easily jump to a specific week in the past or future without clicking the navigation buttons multiple times.
     *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar widget that allows the user to select and jump to any week.
-*   **Simple Mode for Task Creation:**
-    *   **Problem:** The task creation modal has many advanced features, which can be overwhelming for new users.
-    *   **Objective:** Implement a "Simple Mode" that hides advanced options (like complex repetition, completion tracking, etc.) by default. A toggle would allow power users to access the advanced features.
 *   **Advanced Options Accessibility:**
     *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
     *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.

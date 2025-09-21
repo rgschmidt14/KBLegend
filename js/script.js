@@ -19,6 +19,7 @@ let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto' };
 let appSettings = { title: "Task & Mission Planner", use24HourFormat: false };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let editingTaskId = null;
+let isSimpleMode = true;
 let countdownIntervals = {};
 let mainUpdateInterval = null;
 let taskTimers = {};
@@ -1123,10 +1124,21 @@ function openModal(taskId = null, options = {}) {
             timeTargetAmountInput.value = task.timeTargetAmount || '';
             timeTargetUnitSelect.value = task.timeTargetUnit || 'minutes';
             taskCategorySelect.value = task.categoryId || '';
+
+            const isComplex = (task.repetitionType && task.repetitionType !== 'none') ||
+                (task.completionType && task.completionType !== 'simple') ||
+                task.icon || task.categoryId ||
+                (task.timeInputType && task.timeInputType === 'start') ||
+                (task.dueDateType && task.dueDateType === 'relative');
+            isSimpleMode = !isComplex;
+
         } else {
             modalTitle.textContent = 'Add New Task';
             taskIdInput.value = '';
+            isSimpleMode = true; // Default to simple mode for new tasks
         }
+
+        toggleSimpleMode(); // Set the view based on isSimpleMode
 
         // Ensure estimated duration requirement is set based on time input type
         if (estimatedDurationAmountInput) {
@@ -1143,6 +1155,17 @@ function closeModal() {
     deactivateModal(taskModal);
     editingTaskId = null;
 }
+
+function toggleSimpleMode() {
+    const advancedFields = document.getElementById('advanced-task-fields');
+    const simpleModeToggle = document.getElementById('simple-mode-toggle');
+
+    if (advancedFields && simpleModeToggle) {
+        advancedFields.classList.toggle('hidden', isSimpleMode);
+        simpleModeToggle.checked = !isSimpleMode;
+    }
+}
+
 function toggleCompletionFields(type) {
     completionCountGroup.classList.toggle('hidden', type !== 'count');
     completionTimeGroup.classList.toggle('hidden', type !== 'time');
@@ -2449,6 +2472,14 @@ function setupEventListeners() {
     const cancelButton = taskModal.querySelector('button[type="button"]');
     if (closeButton) closeButton.addEventListener('click', closeModal);
     if (cancelButton) cancelButton.addEventListener('click', closeModal);
+
+    const simpleModeToggle = document.getElementById('simple-mode-toggle');
+    if (simpleModeToggle) {
+        simpleModeToggle.addEventListener('change', (e) => {
+            isSimpleMode = !e.target.checked;
+            toggleSimpleMode();
+        });
+    }
 
     const openIconPickerBtn = document.getElementById('open-icon-picker');
     if (openIconPickerBtn) {

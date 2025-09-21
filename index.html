@@ -112,244 +112,263 @@
     <div id="task-modal" class="modal">
         <div class="modal-content">
             <button class="close-button" aria-label="Close Task Form">&times;</button>
-            <h2 id="modal-title" class="text-2xl font-semibold mb-6 text-gray-700">Add New Task</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modal-title" class="text-2xl font-semibold text-gray-700">Add New Task</h2>
+                <div class="flex items-center space-x-2">
+                    <span id="simple-mode-label" class="text-sm font-medium text-gray-600">Simple</span>
+                    <input type="checkbox" id="simple-mode-toggle" class="toggle-checkbox">
+                    <span class="text-sm font-medium text-gray-600">Advanced</span>
+                </div>
+            </div>
              <form id="task-form">
-                 <input type="hidden" id="task-id">
-                 <div class="mb-4"> <label for="task-name" class="form-label">Task Name:</label> <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
-                 <div class="mb-4">
-                    <label for="task-icon" class="form-label">Task Icon:</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <button type="button" id="open-icon-picker" class="control-button control-button-gray">Choose Icon</button>
-                    </div>
-                    <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
-                 </div>
-                 <div class="mb-4">
-                     <label class="form-label">Time Input Type:</label>
-                     <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                         <option value="due">Due Time</option>
-                         <option value="start">Start Time</option>
-                     </select>
-                 </div>
+                <input type="hidden" id="task-id">
 
-                 <div id="due-date-group" class="mb-4"> <label for="task-due-date" class="form-label">Due Date & Time:</label> <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
-                 <div id="start-date-group" class="mb-4 hidden"> <label for="task-start-date" class="form-label">Start Date & Time:</label> <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
+                <!-- Simple Fields -->
+                <div class="mb-4">
+                    <label for="task-name" class="form-label">Task Name:</label>
+                    <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div id="due-date-group" class="mb-4">
+                    <label for="task-due-date" class="form-label">Due Date & Time:</label>
+                    <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
 
-                 <div class="mb-4"> <label class="form-label">Due Date Type:</label> <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"> <option value="absolute">Absolute Date & Time</option> <option value="relative">Relative Time</option> </select> </div>
-                 <div id="relative-due-date-group" class="mb-4 hidden"> <label class="form-label">Due In:</label> <div class="flex space-x-2 items-center"> <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Due relative to the time the task is saved.</p> </div>
-
-                 <fieldset>
-                    <legend>Repetition</legend>
-                     <div class="mb-4">
-                         <label class="form-label sr-only">Repetition Type:</label>
-                         <select id="task-repetition" name="task-repetition" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                             <option value="none">Non-Repeating</option>
-                             <option value="relative">Relative Interval</option>
-                             <option value="absolute">Absolute Schedule</option>
-                         </select>
-                     </div>
-                     <div id="repetition-relative-group" class="mb-4 hidden"> <label class="form-label">Repeat Every:</label> <div class="flex space-x-2 items-center"> <input type="number" id="repetition-amount" name="repetition-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="repetition-unit" name="repetition-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Task will repeat at this interval after its due date/time.</p> </div>
-                     <div id="repetition-absolute-group" class="mb-4 hidden space-y-4">
-                         <fieldset>
-                             <legend>Frequency & Details</legend>
-                             <div>
-                                 <label class="form-label">Frequency:</label>
-                                 <select id="absolute-frequency" name="absolute-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                     <option value="weekly">Weekly</option>
-                                     <option value="monthly">Monthly</option>
-                                     <option value="yearly">Yearly</option>
-                                 </select>
-                             </div>
-                             <div id="absolute-weekly-options" class="sub-option-group space-y-2">
-                                 <label class="form-label">Repeat On Days:</label>
-                                 <div class="grid-cols-checkboxes">
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
-                                     <label class="checkbox-label"> <input type="checkbox" name="weekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
-                                 </div>
-                                 <p class="form-hint text-xs">Select at least one day.</p>
-                             </div>
-                             <div id="absolute-monthly-options" class="hidden sub-option-group space-y-2">
-                                 <label class="form-label">Repeat Monthly On:</label>
-                                 <div>
-                                     <label><input type="radio" name="monthlyOption" value="day_number" checked class="mr-1"> Day Number</label>
-                                     <label><input type="radio" name="monthlyOption" value="day_of_week" class="ml-4 mr-1"> Day of Week</label>
-                                 </div>
-                                 <div id="monthly-day-number-options" class="sub-option-group">
-                                      <label class="form-label text-xs">Day(s) of Month:</label>
-                                      <div class="grid-cols-days">
-                                           <script> for(let i=1; i<=31; i++) document.write(`<label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="${i}" class="day-checkbox peer"> <span class="day-checkbox-label-text">${i}</span></label>`); </script>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="third_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">3rd Last</span></label>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
-                                      </div>
-                                      <p class="form-hint text-xs">Select at least one day number.</p>
-                                 </div>
-                                 <div id="monthly-day-of-week-options" class="sub-option-group hidden space-y-2">
-                                      <label class="form-label text-xs">Which Week(s):</label>
-                                      <div class="grid-cols-checkboxes">
-                                          <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="1" class="occurrence-checkbox peer"> <span class="checkbox-label-text">First</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="2" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Second</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="3" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Third</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
-                                      </div>
-                                       <p class="form-hint text-xs">Select at least one occurrence.</p>
-                                      <label class="form-label text-xs">Day(s) of Week:</label>
-                                      <div class="grid-cols-checkboxes">
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
-                                         <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
-                                     </div>
-                                      <p class="form-hint text-xs">Select at least one weekday.</p>
-                                 </div>
-                             </div>
-                             <div id="absolute-yearly-options" class="hidden sub-option-group space-y-2">
-                                 <label class="form-label">Repeat Yearly In Month(s):</label>
-                                 <div class="grid-cols-checkboxes">
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="0" class="month-checkbox peer"> <span class="checkbox-label-text">Jan</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="1" class="month-checkbox peer"> <span class="checkbox-label-text">Feb</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="2" class="month-checkbox peer"> <span class="checkbox-label-text">Mar</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="3" class="month-checkbox peer"> <span class="checkbox-label-text">Apr</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="4" class="month-checkbox peer"> <span class="checkbox-label-text">May</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="5" class="month-checkbox peer"> <span class="checkbox-label-text">Jun</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="6" class="month-checkbox peer"> <span class="checkbox-label-text">Jul</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="7" class="month-checkbox peer"> <span class="checkbox-label-text">Aug</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="8" class="month-checkbox peer"> <span class="checkbox-label-text">Sep</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="9" class="month-checkbox peer"> <span class="checkbox-label-text">Oct</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="10" class="month-checkbox peer"> <span class="checkbox-label-text">Nov</span></label>
-                                      <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="11" class="month-checkbox peer"> <span class="checkbox-label-text">Dec</span></label>
-                                 </div>
-                                  <p class="form-hint text-xs">Select at least one month.</p>
-                                 <div class="mt-2">
-                                     <label><input type="radio" name="yearlyOption" value="day_number" checked class="mr-1"> On Day Number</label>
-                                     <label><input type="radio" name="yearlyOption" value="day_of_week" class="ml-4 mr-1"> On Day of Week</label>
-                                 </div>
-                                 <div id="yearly-day-number-options" class="sub-option-group">
-                                     <label class="form-label text-xs">Day(s) of Month:</label>
-                                     <div class="grid-cols-days">
-                                           <script> for(let i=1; i<=31; i++) document.write(`<label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="${i}" class="day-checkbox peer"> <span class="day-checkbox-label-text">${i}</span></label>`); </script>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="third_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">3rd Last</span></label>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
-                                           <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
-                                      </div>
-                                      <p class="form-hint text-xs">Select at least one day number.</p>
-                                 </div>
-                                 <div id="yearly-day-of-week-options" class="sub-option-group hidden">
-                                     <label class="form-label text-xs">Which Week(s):</label>
-                                     <div class="grid-cols-checkboxes">
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="1" class="occurrence-checkbox peer"> <span class="checkbox-label-text">First</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="2" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Second</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="3" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Third</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
-                                      </div>
-                                      <p class="form-hint text-xs">Select at least one occurrence.</p>
-                                      <label class="form-label text-xs">Day(s) of Week:</label>
-                                      <div class="grid-cols-checkboxes">
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
-                                          <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
-                                     </div>
-                                      <p class="form-hint text-xs">Select at least one weekday.</p>
-                                 </div>
-                             </div>
-                         </fieldset>
-                     </div>
-                     <div id="repeating-options-group" class="mb-4 hidden">
-                         <fieldset>
-                             <legend>Failure Tracking</legend>
-                             <div id="max-misses-group" class="mb-4">
-                                 <label for="max-misses" class="form-label">Max Misses Before Failure:</label>
-                                 <input type="number" id="max-misses" name="max-misses" min="1" placeholder="e.g., 3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                 <p class="form-hint">How many misses trigger failure (Black status).</p>
-                             </div>
-                             <div class="mb-4">
-                                <label for="track-misses" class="flex items-center">
-                                    <input type="checkbox" id="track-misses" name="track-misses" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                    <span class="ml-2 text-sm text-gray-700">Track Misses?</span>
-                                </label>
-                                <p class="form-hint">Untick if missing this task doesn't count as a failure.</p>
-                            </div>
-                         </fieldset>
-                     </div>
-                 </fieldset>
-                 <fieldset>
-                    <legend>Category</legend>
+                <!-- Advanced Fields Container -->
+                <div id="advanced-task-fields" class="hidden space-y-4">
                     <div class="mb-4">
-                        <label for="task-category" class="form-label">Category:</label>
-                        <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                            <option value="">None</option>
-                            <option value="new_category">-- Add New Category --</option>
-                            <!-- Existing categories will be populated here by JavaScript -->
+                        <label for="task-icon" class="form-label">Task Icon:</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <button type="button" id="open-icon-picker" class="control-button control-button-gray">Choose Icon</button>
+                        </div>
+                        <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Time Input Type:</label>
+                        <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <option value="due">Due Time</option>
+                            <option value="start">Start Time</option>
                         </select>
                     </div>
-                    <div id="new-category-group" class="mb-4 hidden">
-                        <label for="new-category-name" class="form-label">New Category Name:</label>
-                        <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                 </fieldset>
-                 <fieldset>
-                     <legend>Completion</legend>
-                     <div class="mb-4">
-                         <label class="form-label">Completion Type:</label>
-                         <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                             <option value="simple">Simple (Mark Done)</option>
-                             <option value="count">Count</option>
-                             <option value="time">Time</option>
-                         </select>
-                     </div>
-                     <div id="completion-count-group" class="mb-4 hidden">
-                          <label for="count-target" class="form-label">Target Count:</label>
-                          <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                          <p class="form-hint">The total count needed to complete the task.</p>
-                     </div>
-                     <div id="completion-time-group" class="mb-4 hidden">
-                          <label class="form-label">Target Time:</label>
-                          <div class="flex space-x-2 items-center">
-                              <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                              <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                 <option value="minutes">Minute(s)</option>
-                                 <option value="hours">Hour(s)</option>
-                              </select>
-                          </div>
-                          <p class="form-hint">The total time needed to complete the task.</p>
-                      </div>
-                      <div id="estimated-duration-group" class="mb-4">
-                          <label class="form-label">Estimated Duration:</label>
-                          <div class="flex space-x-2 items-center">
-                              <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                              <select id="estimated-duration-unit" name="estimated-duration-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                 <option value="minutes">Minute(s)</option>
-                                 <option value="hours">Hour(s)</option>
-                              </select>
-                          </div>
-                          <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
-                      </div>
-                      <div class="mb-4">
-                            <label for="requires-full-attention" class="flex items-center">
-                                <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
-                            </label>
-                            <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
+
+                    <div id="start-date-group" class="mb-4 hidden"> <label for="task-start-date" class="form-label">Start Date & Time:</label> <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
+
+                    <div class="mb-4"> <label class="form-label">Due Date Type:</label> <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"> <option value="absolute">Absolute Date & Time</option> <option value="relative">Relative Time</option> </select> </div>
+                    <div id="relative-due-date-group" class="mb-4 hidden"> <label class="form-label">Due In:</label> <div class="flex space-x-2 items-center"> <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Due relative to the time the task is saved.</p> </div>
+
+                    <fieldset>
+                       <legend>Repetition</legend>
+                        <div class="mb-4">
+                            <label class="form-label sr-only">Repetition Type:</label>
+                            <select id="task-repetition" name="task-repetition" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="none">Non-Repeating</option>
+                                <option value="relative">Relative Interval</option>
+                                <option value="absolute">Absolute Schedule</option>
+                            </select>
                         </div>
-                 </fieldset>
-                 <div class="flex justify-end space-x-3 mt-8">
-                    <button type="button" class="control-button control-button-gray"> Cancel </button>
-                    <button type="submit" class="control-button control-button-green"> Save Task </button>
+                        <div id="repetition-relative-group" class="mb-4 hidden"> <label class="form-label">Repeat Every:</label> <div class="flex space-x-2 items-center"> <input type="number" id="repetition-amount" name="repetition-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="repetition-unit" name="repetition-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Task will repeat at this interval after its due date/time.</p> </div>
+                        <div id="repetition-absolute-group" class="mb-4 hidden space-y-4">
+                            <fieldset>
+                                <legend>Frequency & Details</legend>
+                                <div>
+                                    <label class="form-label">Frequency:</label>
+                                    <select id="absolute-frequency" name="absolute-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div id="absolute-weekly-options" class="sub-option-group space-y-2">
+                                    <label class="form-label">Repeat On Days:</label>
+                                    <div class="grid-cols-checkboxes">
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
+                                        <label class="checkbox-label"> <input type="checkbox" name="weekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
+                                    </div>
+                                    <p class="form-hint text-xs">Select at least one day.</p>
+                                </div>
+                                <div id="absolute-monthly-options" class="hidden sub-option-group space-y-2">
+                                    <label class="form-label">Repeat Monthly On:</label>
+                                    <div>
+                                        <label><input type="radio" name="monthlyOption" value="day_number" checked class="mr-1"> Day Number</label>
+                                        <label><input type="radio" name="monthlyOption" value="day_of_week" class="ml-4 mr-1"> Day of Week</label>
+                                    </div>
+                                    <div id="monthly-day-number-options" class="sub-option-group">
+                                         <label class="form-label text-xs">Day(s) of Month:</label>
+                                         <div class="grid-cols-days">
+                                              <script> for(let i=1; i<=31; i++) document.write(`<label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="${i}" class="day-checkbox peer"> <span class="day-checkbox-label-text">${i}</span></label>`); </script>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="third_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">3rd Last</span></label>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
+                                         </div>
+                                         <p class="form-hint text-xs">Select at least one day number.</p>
+                                    </div>
+                                    <div id="monthly-day-of-week-options" class="sub-option-group hidden space-y-2">
+                                         <label class="form-label text-xs">Which Week(s):</label>
+                                         <div class="grid-cols-checkboxes">
+                                             <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="1" class="occurrence-checkbox peer"> <span class="checkbox-label-text">First</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="2" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Second</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="3" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Third</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
+                                         </div>
+                                          <p class="form-hint text-xs">Select at least one occurrence.</p>
+                                         <label class="form-label text-xs">Day(s) of Week:</label>
+                                         <div class="grid-cols-checkboxes">
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
+                                            <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
+                                        </div>
+                                         <p class="form-hint text-xs">Select at least one weekday.</p>
+                                    </div>
+                                </div>
+                                <div id="absolute-yearly-options" class="hidden sub-option-group space-y-2">
+                                    <label class="form-label">Repeat Yearly In Month(s):</label>
+                                    <div class="grid-cols-checkboxes">
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="0" class="month-checkbox peer"> <span class="checkbox-label-text">Jan</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="1" class="month-checkbox peer"> <span class="checkbox-label-text">Feb</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="2" class="month-checkbox peer"> <span class="checkbox-label-text">Mar</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="3" class="month-checkbox peer"> <span class="checkbox-label-text">Apr</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="4" class="month-checkbox peer"> <span class="checkbox-label-text">May</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="5" class="month-checkbox peer"> <span class="checkbox-label-text">Jun</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="6" class="month-checkbox peer"> <span class="checkbox-label-text">Jul</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="7" class="month-checkbox peer"> <span class="checkbox-label-text">Aug</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="8" class="month-checkbox peer"> <span class="checkbox-label-text">Sep</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="9" class="month-checkbox peer"> <span class="checkbox-label-text">Oct</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="10" class="month-checkbox peer"> <span class="checkbox-label-text">Nov</span></label>
+                                         <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="11" class="month-checkbox peer"> <span class="checkbox-label-text">Dec</span></label>
+                                    </div>
+                                     <p class="form-hint text-xs">Select at least one month.</p>
+                                    <div class="mt-2">
+                                        <label><input type="radio" name="yearlyOption" value="day_number" checked class="mr-1"> On Day Number</label>
+                                        <label><input type="radio" name="yearlyOption" value="day_of_week" class="ml-4 mr-1"> On Day of Week</label>
+                                    </div>
+                                    <div id="yearly-day-number-options" class="sub-option-group">
+                                        <label class="form-label text-xs">Day(s) of Month:</label>
+                                        <div class="grid-cols-days">
+                                              <script> for(let i=1; i<=31; i++) document.write(`<label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="${i}" class="day-checkbox peer"> <span class="day-checkbox-label-text">${i}</span></label>`); </script>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="third_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">3rd Last</span></label>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
+                                              <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
+                                         </div>
+                                         <p class="form-hint text-xs">Select at least one day number.</p>
+                                    </div>
+                                    <div id="yearly-day-of-week-options" class="sub-option-group hidden">
+                                        <label class="form-label text-xs">Which Week(s):</label>
+                                        <div class="grid-cols-checkboxes">
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="1" class="occurrence-checkbox peer"> <span class="checkbox-label-text">First</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="2" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Second</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="3" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Third</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
+                                         </div>
+                                         <p class="form-hint text-xs">Select at least one occurrence.</p>
+                                         <label class="form-label text-xs">Day(s) of Week:</label>
+                                         <div class="grid-cols-checkboxes">
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="1" class="weekday-checkbox peer"> <span class="checkbox-label-text">Mon</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="2" class="weekday-checkbox peer"> <span class="checkbox-label-text">Tue</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="3" class="weekday-checkbox peer"> <span class="checkbox-label-text">Wed</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="4" class="weekday-checkbox peer"> <span class="checkbox-label-text">Thu</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
+                                             <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
+                                        </div>
+                                         <p class="form-hint text-xs">Select at least one weekday.</p>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div id="repeating-options-group" class="mb-4 hidden">
+                            <fieldset>
+                                <legend>Failure Tracking</legend>
+                                <div id="max-misses-group" class="mb-4">
+                                    <label for="max-misses" class="form-label">Max Misses Before Failure:</label>
+                                    <input type="number" id="max-misses" name="max-misses" min="1" placeholder="e.g., 3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                    <p class="form-hint">How many misses trigger failure (Black status).</p>
+                                </div>
+                                <div class="mb-4">
+                                   <label for="track-misses" class="flex items-center">
+                                       <input type="checkbox" id="track-misses" name="track-misses" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                       <span class="ml-2 text-sm text-gray-700">Track Misses?</span>
+                                   </label>
+                                   <p class="form-hint">Untick if missing this task doesn't count as a failure.</p>
+                               </div>
+                            </fieldset>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                       <legend>Category</legend>
+                       <div class="mb-4">
+                           <label for="task-category" class="form-label">Category:</label>
+                           <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                               <option value="">None</option>
+                               <option value="new_category">-- Add New Category --</option>
+                               <!-- Existing categories will be populated here by JavaScript -->
+                           </select>
+                       </div>
+                       <div id="new-category-group" class="mb-4 hidden">
+                           <label for="new-category-name" class="form-label">New Category Name:</label>
+                           <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                       </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Completion</legend>
+                        <div class="mb-4">
+                            <label class="form-label">Completion Type:</label>
+                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="simple">Simple (Mark Done)</option>
+                                <option value="count">Count</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div id="completion-count-group" class="mb-4 hidden">
+                             <label for="count-target" class="form-label">Target Count:</label>
+                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <p class="form-hint">The total count needed to complete the task.</p>
+                        </div>
+                        <div id="completion-time-group" class="mb-4 hidden">
+                             <label class="form-label">Target Time:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">The total time needed to complete the task.</p>
+                         </div>
+                         <div id="estimated-duration-group" class="mb-4">
+                             <label class="form-label">Estimated Duration:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
+                         </div>
+                         <div class="mb-4">
+                               <label for="requires-full-attention" class="flex items-center">
+                                   <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                   <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
+                               </label>
+                               <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
+                           </div>
+                    </fieldset>
                 </div>
+                <div class="flex justify-end space-x-3 mt-8">
+                   <button type="button" class="control-button control-button-gray"> Cancel </button>
+                   <button type="submit" class="control-button control-button-green"> Save Task </button>
+               </div>
              </form>
         </div>
     </div>
