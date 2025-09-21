@@ -47,6 +47,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 1.9) - 09/20/2025**
+
+This update introduces a core architectural enhancement to the Key Performance Indicator (KPI) system, making it more powerful and automated.
+
+*   **KPI Frequency and Auto-Tasking:** The system now distinguishes between 'daily' and 'weekly' KPIs.
+    *   **UI Update:** When creating a new KPI, you can now specify its frequency using a dropdown menu.
+    *   **Automatic Task Generation:** The application will now automatically generate a new task every day for each KPI marked as 'daily'. This ensures you never forget to track your daily metrics and removes the need to create these tasks manually.
+*   **Robust Testing:** Added a comprehensive test suite for the new auto-generation logic to ensure its reliability and prevent future regressions.
+
 ### **✅ Recently Completed (Version 1.8) - 09/20/2025**
 
 This update focused on establishing a modern, professional development environment to improve the long-term robustness and maintainability of the application.
@@ -98,13 +107,6 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Advanced Options Accessibility:**
     *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
     *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
-
-#### **2. Core Architecture**
-
-*   **KPI Daily Auto-Tasking:**
-    *   **Problem:** The system doesn't distinguish between daily and weekly KPIs.
-    *   **Objective:** Add a feature to automatically generate tasks for daily KPIs.
-    *   **Implementation:** Add a `frequency` property ('daily' or 'weekly') to KPI objects. Create a daily function to auto-generate tasks for all 'daily' KPIs.
 
 ### **🚀 Future Roadmap**
 
