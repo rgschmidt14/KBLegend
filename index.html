@@ -335,11 +335,11 @@
                           </div>
                           <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
                           <div class="mb-4">
-                                <label for="counts-as-busy" class="flex items-center">
-                                    <input type="checkbox" id="counts-as-busy" name="counts-as-busy" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                    <span class="ml-2 text-sm text-gray-700">Task requires active focus (counts towards busy time)?</span>
+                                <label for="requires-full-attention" class="flex items-center">
+                                    <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                    <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
                                 </label>
-                                <p class="form-hint">Uncheck if you can do other things while this task is 'in progress' (e.g. turn the lamp on for the turtle).</p>
+                                <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
                             </div>
                       </div>
                  </fieldset>
