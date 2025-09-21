@@ -277,6 +277,10 @@ legend {
     position: relative;
 }
 
+.daily-view-grid {
+    grid-template-columns: 6rem minmax(0, 1fr);
+}
+
 .table-cell {
     border: 1px solid #374151; /* Gray-700 */
     padding: 8px;
@@ -345,6 +349,7 @@ legend {
     text-overflow: ellipsis;
     display: flex;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .planner-task-item:hover {

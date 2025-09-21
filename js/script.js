@@ -2612,8 +2612,21 @@ function setupEventListeners() {
     // Pilot Planner
     const plannerClickHandler = (e) => {
         const target = e.target;
-        const slot = target.closest('.planner-slot');
         const taskItem = target.closest('.planner-task-item');
+
+        // Prioritize checking for a task item click first.
+        if (taskItem) {
+            e.stopPropagation();
+            const taskId = taskItem.dataset.taskId;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const occurrenceDueDate = taskItem.dataset.dueDate ? new Date(taskItem.dataset.dueDate) : null;
+            openModal(taskId, { occurrenceDate: occurrenceDueDate });
+            return; // Done
+        }
+
+        const slot = target.closest('.planner-slot');
         const moreLink = target.closest('.planner-more-link');
 
         if (moreLink) {
@@ -2624,15 +2637,6 @@ function setupEventListeners() {
                 saveViewState();
                 renderPlanner();
             }
-        } else if (taskItem && slot) {
-            e.stopPropagation();
-            const taskId = taskItem.dataset.taskId;
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-
-            const occurrenceDueDate = taskItem.dataset.dueDate ? new Date(taskItem.dataset.dueDate) : null;
-            openModal(taskId, { occurrenceDate: occurrenceDueDate }); // Pass the specific due date of this occurrence
-
         } else if (slot) {
             handlePlannerSlotClick(slot);
         }
@@ -3468,38 +3472,40 @@ function renderDailyView() {
     const dayDate = new Date(week.startDate);
     dayDate.setDate(new Date(week.startDate).getDate() + dayIndex);
 
+    // --- Create Header and Grid Container ---
     dailyViewContainer.innerHTML = `
         <div class="flex justify-between items-center p-2 bg-gray-800 rounded-t-lg">
             <button id="prevDayBtn" class="nav-btn px-2 py-1 bg-gray-600 rounded">&lt; Prev</button>
             <h3 class="text-lg font-bold">${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
             <button id="nextDayBtn" class="nav-btn px-2 py-1 bg-gray-600 rounded">Next &gt;</button>
         </div>
-        <div id="daily-planner-grid" class="relative p-2"></div>
+        <div id="daily-planner-grid" class="planner-grid daily-view-grid"></div>
     `;
 
-    const grid = dailyViewContainer.querySelector('#daily-planner-grid');
-    const PIXELS_PER_MINUTE = 1;
-    const START_HOUR = 6;
-    grid.style.height = `${(23 - START_HOUR) * 60 * PIXELS_PER_MINUTE}px`;
+    const gridContainer = dailyViewContainer.querySelector('#daily-planner-grid');
 
-    for (let hour = START_HOUR; hour <= 22; hour++) {
-        const slot = document.createElement('div');
-        slot.className = 'daily-view-time-slot';
-        slot.style.top = `${(hour - START_HOUR) * 60 * PIXELS_PER_MINUTE}px`;
+    // --- Render Header Row ---
+    gridContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 1;">Time</div>`);
+    gridContainer.insertAdjacentHTML('beforeend', `<div class="table-cell day-header-cell font-semibold bg-gray-800 sticky top-0 z-10" style="grid-column: 2;">Tasks</div>`);
 
-        const label = document.createElement('div');
-        label.className = 'daily-view-time-label';
+    // --- Render Time Labels and Grid Cells ---
+    for (let hour = 6; hour <= 22; hour++) {
+        const rowStart = (hour - 6) * 4 + 2;
         const d = new Date();
         d.setHours(hour, 0);
-        label.textContent = formatTime(d);
-        slot.appendChild(label);
-        grid.appendChild(slot);
+        const timeStr = formatTime(d);
+        // Time Label in Column 1
+        gridContainer.insertAdjacentHTML('beforeend', `<div class="table-cell time-label-cell font-semibold bg-gray-800" style="grid-row: ${rowStart} / span 4;">${timeStr}</div>`);
+        // 15-minute slots in Column 2
+        for (let i = 0; i < 4; i++) {
+            const slotRow = rowStart + i;
+            gridContainer.insertAdjacentHTML('beforeend', `<div class="planner-slot" data-key="${dayIndex}-${hour}" style="grid-column: 2; grid-row: ${slotRow};"></div>`);
+        }
     }
 
-    const dayStart = new Date(dayDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    // --- Process and Render Tasks ---
+    const dayStart = new Date(dayDate); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate); dayEnd.setHours(23, 59, 59, 999);
 
     let tasksForDay = [];
     if (typeof tasks !== 'undefined' && tasks.length > 0) {
@@ -3508,7 +3514,6 @@ function renderDailyView() {
             if (!task.categoryId) return categoryFilter.includes(null);
             return categoryFilter.includes(task.categoryId);
         });
-
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
             occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
@@ -3518,42 +3523,11 @@ function renderDailyView() {
     }
 
     const lanes = accommodate(tasksForDay);
-
     lanes.forEach((lane, laneIndex) => {
         lane.forEach(({ task, occurrenceDate, dueDate }) => {
-            const startTime = new Date(occurrenceDate);
-            const endTime = new Date(dueDate);
-
-            const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
-            const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
-            const top = (startMinutes - (START_HOUR * 60)) * PIXELS_PER_MINUTE;
-            const height = Math.max(15, (endMinutes - startMinutes) * PIXELS_PER_MINUTE);
-
-            const totalLanes = lanes.length;
-            const width = 100 / totalLanes;
-            const left = laneIndex * width;
-
-            const taskElement = document.createElement('div');
-            taskElement.className = 'planner-task-item';
-            const iconHtml = task.icon ? `<i class="${task.icon} mr-1"></i>` : '';
-            taskElement.innerHTML = `${iconHtml}${task.name}`;
-
-            const category = categories.find(c => c.id === task.categoryId);
-            taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
-            const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
-            taskElement.style.color = textStyle.color;
-            taskElement.style.textShadow = textStyle.textShadow;
-
-            taskElement.dataset.taskId = task.id;
-            taskElement.dataset.dueDate = dueDate.toISOString();
-
-            taskElement.style.position = 'absolute';
-            taskElement.style.top = `${top}px`;
-            taskElement.style.height = `${height - 2}px`;
-            taskElement.style.left = `${left}%`;
-            taskElement.style.width = `calc(${width}% - 4px)`;
-
-            grid.appendChild(taskElement);
+            // Use the main renderTaskOnGrid function, but force dayIndex to 0 (for the single day column)
+            // and pass our new grid container.
+            renderTaskOnGrid(task, occurrenceDate, dueDate, 0, laneIndex, lanes.length, gridContainer);
         });
     });
 }

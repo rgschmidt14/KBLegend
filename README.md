@@ -47,6 +47,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### **✅ Recently Completed (Version 1.9.1) - 09/20/2025**
+
+This was a critical patch to fix major layout bugs in the planner views, making the application stable and usable again.
+
+*   **Planner Rendering Engine Fix:** Overhauled the planner's rendering logic to resolve critical visual bugs.
+    *   **Daily View Overhaul:** The Daily View, which was causing tasks to render over the main navigation controls, has been completely refactored. It now uses the same modern CSS Grid system as the Weekly View, ensuring a stable, predictable, and usable layout.
+    *   **Weekly View Fix:** Corrected a bug in the Weekly View where task items would overflow the horizontal boundaries of their day column. Tasks now correctly respect their container's width, especially when multiple tasks overlap.
+*   **Code Unification:** Both weekly and daily views now share the same underlying grid and rendering logic (`CSS Grid`), reducing code duplication and making future maintenance easier.
+
 ### **✅ Recently Completed (Version 1.9) - 09/20/2025**
 
 This update introduces a core architectural enhancement to the Key Performance Indicator (KPI) system, making it more powerful and automated.
@@ -94,7 +103,7 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Modernize Planner Views:**
     *   **Problem:** The current daily and weekly planners, while functional after the recent bug fixes, are built with custom code that can be complex to maintain. A more modern, library-based approach could offer more features and greater stability.
     *   **Objective:** Investigate and potentially implement a robust, pre-built calendar library like [FullCalendar.io](https://fullcalendar.io/) to replace the custom-built daily and weekly views. This would provide a more modern look and feel, better interactivity (like drag-and-drop), and reduce long-term maintenance.
-    *   **Note:** Adopting a library like FullCalendar.io is highly recommended. It would significantly simplify the codebase and improve the user experience by providing modern features like drag-and-drop.
+    *   **Note:** Now that the critical rendering bugs in the custom planner have been resolved, adopting a library like **FullCalendar.io is the next high-priority enhancement.** It would significantly simplify the codebase, reduce long-term maintenance, and improve the user experience by providing modern features like drag-and-drop scheduling.
 *   **Planner Layout Reorganization:**
     *   **Problem:** The overall layout of the planner feels disconnected. The main week navigation is at the top, separated from the planner grid by the KPI section. Navigation controls are inconsistent between views (Weekly vs. Daily vs. Monthly).
     *   **Objective:** Redesign the HTML structure to create a more intuitive and cohesive user experience. This includes co-locating navigation with its relevant view and ensuring consistent controls across all planner views.
