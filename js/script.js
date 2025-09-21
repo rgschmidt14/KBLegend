@@ -1,4 +1,5 @@
 import { getDurationMs, calculateStatus } from './task-logic.js';
+import { taskTemplate } from './templates.js';
 // =================================================================================
 // SCRIPT.JS - COMBINED AND CLEANED
 // =================================================================================
@@ -87,13 +88,6 @@ const appState = {
 function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
 const pad = (num, length = 2) => String(num).padStart(length, '0');
 
-function formatDateTime(date) {
-    if (!date || isNaN(date)) return 'N/A';
-    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
-    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !appSettings.use24HourFormat };
-    return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
-}
-
 function formatTime(date) {
     if (!date || isNaN(date)) return 'N/A';
     const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !appSettings.use24HourFormat };
@@ -126,19 +120,6 @@ function calculateFutureDate(amount, unit, baseDate) {
         }
         return date;
     } catch (e) { console.error("Error calculating future date:", e); return new Date(baseDate); }
-}
-function formatDuration(amount, unit) {
-    if (!amount || !unit || amount <= 0) return 'N/A';
-    return `${amount} ${unit}`;
-}
-function formatMsToTime(ms) {
-    if (isNaN(ms) || ms < 0) ms = 0;
-    const totalSeconds = Math.floor(ms / MS_PER_SECOND);
-    const seconds = totalSeconds % 60;
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const minutes = totalMinutes % 60;
-    const hours = Math.floor(totalMinutes / 60);
-    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 function parseTimeToMs(timeStr) {
     if (!timeStr || typeof timeStr !== 'string') return 0;
@@ -748,7 +729,6 @@ function renderTasks() {
     }
     const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
 
-    // 1. FIRST: Sort the tasks and create the final sorted array.
     const sortedTasks = filteredTasks.sort((a, b) => {
         const completedA = a.repetitionType === 'none' && a.completed;
         const completedB = b.repetitionType === 'none' && b.completed;
@@ -774,54 +754,75 @@ function renderTasks() {
         return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-    // 2. THEN: Now that the array is sorted, loop through it to render the tasks.
+    const renderTaskItem = (task, groupName) => {
+        const taskElement = document.createElement('div');
+        const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+
+        taskElement.className = `task-item p-2 rounded-lg shadow flex justify-between items-start`;
+        taskElement.dataset.taskId = task.id;
+        taskElement.dataset.status = task.status;
+        if (groupName) {
+            taskElement.dataset.group = groupName;
+        }
+        taskElement.dataset.confirming = !!task.confirmationState;
+
+        const statusColor = statusColors[task.status] || statusColors.green;
+        taskElement.style.backgroundColor = statusColor;
+        const category = categories.find(c => c.id === task.categoryId);
+        const categoryColor = category ? category.color : 'transparent';
+        taskElement.style.borderLeft = `5px solid ${categoryColor}`;
+        const textStyle = getContrastingTextColor(statusColor);
+        taskElement.style.color = textStyle.color;
+        taskElement.style.textShadow = textStyle.textShadow;
+
+        if (isCompletedNonRepeating) taskElement.classList.add('task-completed');
+        if (task.confirmationState === 'confirming_delete') taskElement.classList.add('task-confirming-delete');
+
+        taskElement.innerHTML = taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings });
+
+        taskListDiv.appendChild(taskElement);
+
+        const actionArea = taskElement.querySelector(`#action-area-${task.id}`);
+        const commonButtonsArea = taskElement.querySelector(`#common-buttons-${task.id}`);
+        if (actionArea) actionArea.innerHTML = generateActionHtml(task);
+        if (commonButtonsArea) commonButtonsArea.innerHTML = generateCommonButtonsHtml(task);
+    };
+
     if (sortBy === 'dueDate') {
         const groupedByDate = {};
         sortedTasks.forEach(task => {
             const group = getDueDateGroup(task.dueDate);
             if (!groupedByDate[group.index]) {
-                groupedByDate[group.index] = {
-                    name: group.name,
-                    tasks: []
-                };
+                groupedByDate[group.index] = { name: group.name, tasks: [] };
             }
             groupedByDate[group.index].tasks.push(task);
         });
 
         const groupOrder = Object.keys(groupedByDate).sort((a, b) => a - b);
-
-        if (sortDirection === 'desc') {
-            groupOrder.reverse();
-        }
+        if (sortDirection === 'desc') groupOrder.reverse();
 
         groupOrder.forEach((groupIndex, i) => {
             const group = groupedByDate[groupIndex];
             const header = document.createElement('div');
             header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-
             const percent = groupOrder.length <= 1 ? 0 : (sortDirection === 'asc' ? i / (groupOrder.length - 1) : (groupOrder.length - 1 - i) / (groupOrder.length - 1));
             const bgColor = interpolateFiveColors(percent);
             const textStyle = getContrastingTextColor(bgColor);
-
             header.style.backgroundColor = bgColor;
             header.style.color = textStyle.color;
             header.style.textShadow = textStyle.textShadow;
-
             header.innerHTML = `<h4 class="font-bold">${group.name}</h4><span class="transform transition-transform duration-200"> ▼ </span>`;
             header.dataset.group = group.name;
             taskListDiv.appendChild(header);
 
-            group.tasks.forEach(task => {
-                renderSingleTask(task, { groupName: group.name });
-            });
+            group.tasks.forEach(task => renderTaskItem(task, group.name));
         });
 
-    } else { // This block handles 'status' and 'category' sorting
+    } else { // Handles 'status' and 'category' sorting
         let lastGroup = null;
         sortedTasks.forEach(task => {
             let currentGroup = '';
             let groupColor = '#e5e7eb';
-            let textStyle = { color: '#000000', textShadow: 'none' };
 
             if (sortBy === 'status') {
                 currentGroup = statusNames[task.status] || task.status;
@@ -835,168 +836,22 @@ function renderTasks() {
             if (currentGroup !== lastGroup) {
                 const header = document.createElement('div');
                 header.className = 'collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4';
-
-                textStyle = getContrastingTextColor(groupColor);
+                const textStyle = getContrastingTextColor(groupColor);
                 header.style.backgroundColor = groupColor;
                 header.style.color = textStyle.color;
                 header.style.textShadow = textStyle.textShadow;
-
                 header.innerHTML = `<h4 class="font-bold">${currentGroup}</h4><span class="transform transition-transform duration-200"> ▼ </span>`;
                 header.dataset.group = currentGroup;
                 taskListDiv.appendChild(header);
                 lastGroup = currentGroup;
             }
-            renderSingleTask(task, { groupName: currentGroup });
+            renderTaskItem(task, currentGroup);
         });
     }
 
     startAllCountdownTimers();
 }
 
-function renderSingleTask(task, options = {}) {
-    try {
-        const taskElement = document.createElement('div');
-        const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-
-        taskElement.className = `task-item p-2 rounded-lg shadow flex justify-between items-start`;
-        taskElement.dataset.taskId = task.id;
-        taskElement.dataset.status = task.status;
-
-        const statusColor = statusColors[task.status] || statusColors.green;
-        taskElement.style.backgroundColor = statusColor;
-
-        const category = categories.find(c => c.id === task.categoryId);
-        const categoryColor = category ? category.color : 'transparent';
-        taskElement.style.borderLeft = `5px solid ${categoryColor}`;
-
-        const textStyle = getContrastingTextColor(statusColor);
-        taskElement.style.color = textStyle.color;
-        taskElement.style.textShadow = textStyle.textShadow;
-
-        if (options.groupName) {
-            taskElement.dataset.group = options.groupName;
-        }
-        taskElement.dataset.confirming = !!task.confirmationState;
-        if (isCompletedNonRepeating) {
-            taskElement.classList.add('task-completed');
-        }
-        if (task.confirmationState === 'confirming_delete') {
-            taskElement.classList.add('task-confirming-delete');
-        }
-
-        const categoryName = category ? category.name : 'Uncategorized';
-        let categoryHtml = '';
-        if (taskDisplaySettings.showCategory) {
-            const categoryColor = category ? category.color : '#808080'; // Default to gray
-            const categoryTextStyle = getContrastingTextColor(categoryColor);
-            categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor}; color: ${categoryTextStyle.color}; text-shadow: ${categoryTextStyle.textShadow};">${categoryName}</span>`;
-        }
-
-        const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate) : 'No due date';
-        const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
-
-        let repetitionStr = '';
-        if (task.repetitionType === 'relative') {
-            repetitionStr = `Repeats: Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
-        } else if (task.repetitionType === 'absolute') {
-            repetitionStr = `Repeats: ${getAbsoluteRepetitionString(task)}`;
-        }
-        const repetitionHtml = taskDisplaySettings.showRepetition && repetitionStr ? `<p class="text-sm opacity-70">${repetitionStr}</p>` : '';
-
-        const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
-        const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationStr}</p>` : '';
-
-        const countdownHtml = taskDisplaySettings.showCountdown ? `<p id="countdown-${task.id}" class="countdown-timer"></p>` : '';
-
-        let progressHtml = '';
-        if (taskDisplaySettings.showProgress && task.status !== 'blue' && !isCompletedNonRepeating && (task.completionType === 'count' || task.completionType === 'time')) {
-            progressHtml = `<div id="progress-container-${task.id}" class="mt-1 h-5">`;
-            let progressText = '';
-            if (task.completionType === 'count' && task.countTarget) {
-                progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
-            } else if (task.completionType === 'time' && task.timeTargetAmount) {
-                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-                progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
-            }
-            progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
-            if (!task.confirmationState && task.status !== 'blue') {
-                progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="edit-progress-button" title="Edit Progress" aria-label="Edit progress for ${task.name}">[Edit]</button>`;
-            }
-            progressHtml += `</div>`;
-        }
-
-        const missesHtml = (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses)
-            ? `<p class="misses-display mt-1">Misses: ${task.misses}/${task.maxMisses}</p>`
-            : '';
-        const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
-        const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="common-buttons-container"></div>`;
-        const iconHtml = task.icon ? `<i class="${task.icon} mr-2"></i>` : '';
-
-        taskElement.innerHTML = `<div class="flex-grow pr-4"><div class="flex justify-between items-baseline"><h3 class="text-lg font-semibold">${iconHtml}${task.name || 'Unnamed Task'}</h3>${categoryHtml}</div>${dueDateHtml}${repetitionHtml}${durationHtml}${countdownHtml}${progressHtml}</div><div class="flex flex-col space-y-1 items-end flex-shrink-0">${actionAreaContainer}${missesHtml}${commonButtonsContainer}</div>`;
-        taskListDiv.appendChild(taskElement);
-        const actionArea = taskElement.querySelector(`#action-area-${task.id}`);
-        const commonButtonsArea = taskElement.querySelector(`#common-buttons-${task.id}`);
-        if (actionArea) actionArea.innerHTML = generateActionHtml(task);
-        if (commonButtonsArea) commonButtonsArea.innerHTML = generateCommonButtonsHtml(task);
-    } catch (e) {
-        console.error("Error rendering task:", task?.id, e);
-    }
-}
-
-function getAbsoluteRepetitionString(task) {
-    if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const occurrences = { '1': 'First', '2': 'Second', '3': 'Third', '4': 'Fourth', 'last': 'Last' };
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const daySuffix = (day) => {
-        if (day === 'last') return 'Last';
-        if (day === 'second_last') return '2nd Last';
-        if (day === 'third_last') return '3rd Last';
-        const n = parseInt(day);
-        if (isNaN(n)) return '?';
-        if (n % 10 === 1 && n !== 11) return `${n}st`;
-        if (n % 10 === 2 && n !== 12) return `${n}nd`;
-        if (n % 10 === 3 && n !== 13) return `${n}rd`;
-        return `${n}th`;
-    };
-    try {
-        switch (task.repetitionAbsoluteFrequency) {
-            case 'weekly':
-                const selectedDaysW = (task.repetitionAbsoluteWeeklyDays || []).sort((a,b) => a-b).map(d => weekdays[d]).join(', ');
-                return `Weekly on ${selectedDaysW || '...'}`;
-            case 'monthly':
-                if (task.repetitionAbsoluteMonthlyMode === 'day_of_week') {
-                    const occArr = (task.repetitionAbsoluteNthWeekdayOccurrence || []);
-                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '...';
-                    const dayArr = (task.repetitionAbsoluteNthWeekdayDays || []);
-                    const dayStrM = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
-                    return `Monthly on the ${occStr} ${dayStrM}`;
-                } else {
-                    const dayArr = (task.repetitionAbsoluteDaysOfMonth || []);
-                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
-                    return `Monthly on day(s) ${dayStr}`;
-                }
-            case 'yearly':
-                const monthArr = (task.repetitionAbsoluteYearlyMonths || []);
-                const monthStr = monthArr.length > 0 ? monthArr.sort((a,b)=>a-b).map(m => months[m] || '?').join(', ') : '...';
-                if (task.repetitionAbsoluteYearlyMode === 'day_of_week') {
-                    const occArr = (task.repetitionAbsoluteYearlyNthWeekdayOccurrence || []);
-                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '?';
-                    const dayArr = (task.repetitionAbsoluteYearlyNthWeekdayDays || []);
-                    const dayStrY = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
-                    return `Yearly on the ${occStr} ${dayStrY} of ${monthStr}`;
-                } else {
-                    const dayArr = (task.repetitionAbsoluteYearlyDaysOfMonth || []);
-                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
-                    return `Yearly on ${monthStr} ${dayStr}`;
-                }
-            default: return `Repeats: ${task.repetitionAbsoluteFrequency}`;
-        }
-    } catch (e) {
-        console.error("Error generating absolute repetition string:", task.id, e);
-        return "Absolute Schedule (Error)";
-    }
-}
 function generateActionHtml(task) {
     const cycles = task.pendingCycles || 1;
     switch (task.confirmationState) {

@@ -14,7 +14,7 @@ function getDurationMs(amount, unit) {
         case 'days': ms = amount * MS_PER_DAY; break;
         case 'weeks': ms = amount * 7 * MS_PER_DAY; break;
         case 'months': ms = amount * 30 * MS_PER_DAY; break; // Approximation
-        default: console.warn("Unknown duration unit:", unit); ms = amount * MS_PER_MINUTE;
+        default: console.warn("Unknown duration unit:", unit); ms = 0;
     }
     return ms;
 }
@@ -33,6 +33,9 @@ function calculateStatus(task, nowMs, allTasks) {
             const dueDateMs = (task.dueDate && !isNaN(task.dueDate)) ? task.dueDate.getTime() : null;
             if (dueDateMs && dueDateMs <= nowMs) {
                 return { name: 'red', className: 'task-red' };
+            } else {
+                // If it's awaiting completion but not yet due, it should be considered green.
+                return { name: 'green', className: 'task-green' };
             }
         }
         const cycleEndMs = (task.cycleEndDate && !isNaN(task.cycleEndDate)) ? task.cycleEndDate.getTime() : null;

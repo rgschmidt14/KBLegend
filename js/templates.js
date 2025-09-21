@@ -1,0 +1,169 @@
+/**
+ * This file will contain template functions that generate HTML strings.
+ * This helps to separate the HTML structure from the JavaScript logic.
+ */
+
+function getAbsoluteRepetitionString(task) {
+    if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const occurrences = { '1': 'First', '2': 'Second', '3': 'Third', '4': 'Fourth', 'last': 'Last' };
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const daySuffix = (day) => {
+        if (day === 'last') return 'Last';
+        if (day === 'second_last') return '2nd Last';
+        if (day === 'third_last') return '3rd Last';
+        const n = parseInt(day);
+        if (isNaN(n)) return '?';
+        if (n % 10 === 1 && n !== 11) return `${n}st`;
+        if (n % 10 === 2 && n !== 12) return `${n}nd`;
+        if (n % 10 === 3 && n !== 13) return `${n}rd`;
+        return `${n}th`;
+    };
+    try {
+        switch (task.repetitionAbsoluteFrequency) {
+            case 'weekly':
+                const selectedDaysW = (task.repetitionAbsoluteWeeklyDays || []).sort((a,b) => a-b).map(d => weekdays[d]).join(', ');
+                return `Weekly on ${selectedDaysW || '...'}`;
+            case 'monthly':
+                if (task.repetitionAbsoluteMonthlyMode === 'day_of_week') {
+                    const occArr = (task.repetitionAbsoluteNthWeekdayOccurrence || []);
+                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '...';
+                    const dayArr = (task.repetitionAbsoluteNthWeekdayDays || []);
+                    const dayStrM = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
+                    return `Monthly on the ${occStr} ${dayStrM}`;
+                } else {
+                    const dayArr = (task.repetitionAbsoluteDaysOfMonth || []);
+                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
+                    return `Monthly on day(s) ${dayStr}`;
+                }
+            case 'yearly':
+                const monthArr = (task.repetitionAbsoluteYearlyMonths || []);
+                const monthStr = monthArr.length > 0 ? monthArr.sort((a,b)=>a-b).map(m => months[m] || '?').join(', ') : '...';
+                if (task.repetitionAbsoluteYearlyMode === 'day_of_week') {
+                    const occArr = (task.repetitionAbsoluteYearlyNthWeekdayOccurrence || []);
+                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '?';
+                    const dayArr = (task.repetitionAbsoluteYearlyNthWeekdayDays || []);
+                    const dayStrY = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
+                    return `Yearly on the ${occStr} ${dayStrY} of ${monthStr}`;
+                } else {
+                    const dayArr = (task.repetitionAbsoluteYearlyDaysOfMonth || []);
+                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
+                    return `Yearly on ${monthStr} ${dayStr}`;
+                }
+            default: return `Repeats: ${task.repetitionAbsoluteFrequency}`;
+        }
+    } catch (e) {
+        console.error("Error generating absolute repetition string:", task.id, e);
+        return "Absolute Schedule (Error)";
+    }
+}
+
+function formatDateTime(date, use24HourFormat) {
+    if (!date || isNaN(date)) return 'N/A';
+    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
+    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !use24HourFormat };
+    return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
+}
+
+function formatDuration(amount, unit) {
+    if (!amount || !unit || amount <= 0) return 'N/A';
+    return `${amount} ${unit}`;
+}
+
+function formatMsToTime(ms) {
+    if (isNaN(ms) || ms < 0) ms = 0;
+    const totalSeconds = Math.floor(ms / 1000);
+    const seconds = totalSeconds % 60;
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const minutes = totalMinutes % 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function getDurationMs(amount, unit) {
+    if (!amount || !unit || amount <= 0) return 0;
+    amount = parseInt(amount, 10);
+    let ms = 0;
+    switch (unit) {
+        case 'minutes': ms = amount * 60000; break;
+        case 'hours': ms = amount * 3600000; break;
+        case 'days': ms = amount * 86400000; break;
+        case 'weeks': ms = amount * 7 * 86400000; break;
+        case 'months': ms = amount * 30 * 86400000; break; // Approximation
+        default: ms = 0;
+    }
+    return ms;
+}
+
+
+export function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings }) {
+    const category = categories.find(c => c.id === task.categoryId);
+    const categoryName = category ? category.name : 'Uncategorized';
+
+    let categoryHtml = '';
+    if (taskDisplaySettings.showCategory) {
+        const categoryColor = category ? category.color : '#808080'; // Default to gray
+        const categoryTextStyle = getContrastingTextColor(categoryColor);
+        categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor}; color: ${categoryTextStyle.color}; text-shadow: ${categoryTextStyle.textShadow};">${categoryName}</span>`;
+    }
+
+    const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
+    const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
+
+    let repetitionStr = '';
+    if (task.repetitionType === 'relative') {
+        repetitionStr = `Repeats: Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
+    } else if (task.repetitionType === 'absolute') {
+        repetitionStr = `Repeats: ${getAbsoluteRepetitionString(task)}`;
+    }
+    const repetitionHtml = taskDisplaySettings.showRepetition && repetitionStr ? `<p class="text-sm opacity-70">${repetitionStr}</p>` : '';
+
+    const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationStr}</p>` : '';
+
+    const countdownHtml = taskDisplaySettings.showCountdown ? `<p id="countdown-${task.id}" class="countdown-timer"></p>` : '';
+
+    let progressHtml = '';
+    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+    if (taskDisplaySettings.showProgress && task.status !== 'blue' && !isCompletedNonRepeating && (task.completionType === 'count' || task.completionType === 'time')) {
+        progressHtml = `<div id="progress-container-${task.id}" class="mt-1 h-5">`;
+        let progressText = '';
+        if (task.completionType === 'count' && task.countTarget) {
+            progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
+        } else if (task.completionType === 'time' && task.timeTargetAmount) {
+            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+            progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
+        }
+        progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
+        if (!task.confirmationState && task.status !== 'blue') {
+            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="edit-progress-button" title="Edit Progress" aria-label="Edit progress for ${task.name}">[Edit]</button>`;
+        }
+        progressHtml += `</div>`;
+    }
+
+    const missesHtml = (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses)
+        ? `<p class="misses-display mt-1">Misses: ${task.misses}/${task.maxMisses}</p>`
+        : '';
+
+    const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
+    const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="common-buttons-container"></div>`;
+    const iconHtml = task.icon ? `<i class="${task.icon} mr-2"></i>` : '';
+
+    return `<div class="flex-grow pr-4">
+                <div class="flex justify-between items-baseline">
+                    <h3 class="text-lg font-semibold">${iconHtml}${task.name || 'Unnamed Task'}</h3>
+                    ${categoryHtml}
+                </div>
+                ${dueDateHtml}
+                ${repetitionHtml}
+                ${durationHtml}
+                ${countdownHtml}
+                ${progressHtml}
+            </div>
+            <div class="flex flex-col space-y-1 items-end flex-shrink-0">
+                ${actionAreaContainer}
+                ${missesHtml}
+                ${commonButtonsContainer}
+            </div>`;
+}

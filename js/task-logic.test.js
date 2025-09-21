@@ -1,5 +1,38 @@
 import { getDurationMs, calculateStatus } from './task-logic.js';
 
+describe('getDurationMs', () => {
+    it('should return the correct number of milliseconds for minutes', () => {
+        expect(getDurationMs(10, 'minutes')).toBe(600000);
+    });
+
+    it('should return the correct number of milliseconds for hours', () => {
+        expect(getDurationMs(2, 'hours')).toBe(7200000);
+    });
+
+    it('should return the correct number of milliseconds for days', () => {
+        expect(getDurationMs(1, 'days')).toBe(86400000);
+    });
+
+    it('should return the correct number of milliseconds for weeks', () => {
+        expect(getDurationMs(1, 'weeks')).toBe(604800000);
+    });
+
+    it('should return an approximation for months', () => {
+        // 30 days approximation
+        expect(getDurationMs(1, 'months')).toBe(2592000000);
+    });
+
+    it('should return 0 for invalid or zero amount', () => {
+        expect(getDurationMs(0, 'days')).toBe(0);
+        expect(getDurationMs(-5, 'hours')).toBe(0);
+        expect(getDurationMs(null, 'minutes')).toBe(0);
+    });
+
+    it('should return 0 for an unknown unit', () => {
+        expect(getDurationMs(10, 'years')).toBe(0);
+    });
+});
+
 describe('calculateStatus', () => {
     const now = new Date('2025-09-20T10:00:00Z').getTime();
     const allTasks = []; // Start with an empty list of other tasks
@@ -112,5 +145,195 @@ describe('calculateStatus', () => {
         };
         const status = calculateStatus(task, now, allTasks);
         expect(status.name).toBe('black');
+    });
+
+    describe('when tracking habit misses', () => {
+        const baseHabitTask = {
+            id: '10',
+            dueDate: new Date('2025-09-21T12:00:00Z'), // Due in the future, so it should be green
+            repetitionType: 'relative',
+            trackMisses: true,
+            maxMisses: 10,
+            misses: 0,
+            countsAsBusy: true,
+        };
+
+        it('should upgrade a "green" task to "yellow" when miss ratio is over 50%', () => {
+            const task = { ...baseHabitTask, misses: 6 }; // 6/10 = 60%
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('yellow');
+        });
+
+        it('should upgrade a "yellow" task to "red" when miss ratio is over 50%', () => {
+            // To make the original task yellow, we need to adjust its due date and create a sufficiently busy task.
+            const yellowTask = { ...baseHabitTask, id: '11', dueDate: new Date('2025-09-21T01:00:00Z') }; // Due in 15 hours
+            const busyTask = { id: 'busy1', dueDate: new Date('2025-09-20T23:00:00Z'), estimatedDurationAmount: 16, estimatedDurationUnit: 'hours', countsAsBusy: true, status: 'green' };
+            const initialStatus = calculateStatus(yellowTask, now, [busyTask]);
+            expect(initialStatus.name).toBe('yellow'); // First, confirm it's yellow
+
+            const taskWithMisses = { ...yellowTask, misses: 6 }; // Now add the misses
+            const finalStatus = calculateStatus(taskWithMisses, now, [busyTask]);
+            expect(finalStatus.name).toBe('red');
+        });
+
+        it('should upgrade a "red" task to "black" when miss ratio is over 50%', () => {
+            const pastDueTask = { ...baseHabitTask, dueDate: new Date('2025-09-20T09:00:00Z') }; // Make it overdue
+            const initialStatus = calculateStatus(pastDueTask, now, allTasks);
+            expect(initialStatus.name).toBe('red'); // First, confirm it's red
+
+            const task = { ...pastDueTask, misses: 6 }; // Now add the misses
+            const finalStatus = calculateStatus(task, now, allTasks);
+            expect(finalStatus.name).toBe('black');
+        });
+
+        it('should not change status if miss ratio is exactly 50%', () => {
+            const task = { ...baseHabitTask, misses: 5 }; // 5/10 = 50%
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('green');
+        });
+
+        it('should not change status if habit tracking is disabled', () => {
+            const task = { ...baseHabitTask, misses: 6, trackMisses: false };
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('green');
+        });
+    });
+
+    describe('with different completion types', () => {
+        const baseTask = {
+            id: '20',
+            dueDate: new Date('2025-09-20T20:00:00Z'), // Due in 10 hours
+            estimatedDurationAmount: 1,
+            estimatedDurationUnit: 'hours',
+            countsAsBusy: true,
+        };
+
+        it('should consider a "count-based" task as less busy when it is partially complete', () => {
+            // This busy task has a 12-hour estimate, but is 75% complete.
+            // So, it should only contribute 3 hours of "busyness".
+            const busyTask = {
+                id: '21',
+                dueDate: new Date('2025-09-20T22:00:00Z'),
+                countsAsBusy: true,
+                status: 'green',
+                estimatedDurationAmount: 12,
+                estimatedDurationUnit: 'hours',
+                completionType: 'count',
+                countTarget: 100,
+                currentProgress: 75,
+            };
+            // With the full 12 hours, baseTask would be yellow (10:00 + 12h > 20:00).
+            // With the remaining 3 hours, it should be green (10:00 + 3h < 20:00).
+            const status = calculateStatus(baseTask, now, [busyTask]);
+            expect(status.name).toBe('green');
+        });
+
+        it('should consider a "time-based" task as less busy when it is partially complete', () => {
+            // This busy task has a target of 12 hours, but 10 hours are already done.
+            // So, it should only contribute 2 hours of "busyness".
+            const busyTask = {
+                id: '22',
+                dueDate: new Date('2025-09-20T22:00:00Z'),
+                countsAsBusy: true,
+                status: 'green',
+                completionType: 'time',
+                timeTargetAmount: 12,
+                timeTargetUnit: 'hours',
+                currentProgress: getDurationMs(10, 'hours'), // 10 hours logged
+            };
+            // With the remaining 2 hours, baseTask should be green (10:00 + 2h < 20:00).
+            const status = calculateStatus(baseTask, now, [busyTask]);
+            expect(status.name).toBe('green');
+        });
+
+        it('should use the full estimate if a count-based task has no progress', () => {
+            // This busy task has a 12-hour estimate and is 0% complete.
+            // It should contribute the full 12 hours, making the baseTask yellow.
+            const busyTask = {
+                id: '23',
+                dueDate: new Date('2025-09-20T22:00:00Z'),
+                countsAsBusy: true,
+                status: 'green',
+                estimatedDurationAmount: 12,
+                estimatedDurationUnit: 'hours',
+                completionType: 'count',
+                countTarget: 100,
+                currentProgress: 0,
+            };
+            // With the full 12 hours, baseTask should be yellow (10:00 + 12h > 20:00).
+            const status = calculateStatus(baseTask, now, [busyTask]);
+            expect(status.name).toBe('yellow');
+        });
+    });
+
+    describe('with confirmation states', () => {
+        it('should return "red" if confirmationState is "awaiting_overdue_input"', () => {
+            const task = { id: '30', confirmationState: 'awaiting_overdue_input' };
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('red');
+        });
+
+        it('should return "black" if confirmationState is "awaiting_overdue_input" and miss ratio is high', () => {
+            const task = {
+                id: '31',
+                confirmationState: 'awaiting_overdue_input',
+                repetitionType: 'relative',
+                trackMisses: true,
+                maxMisses: 10,
+                misses: 6,
+            };
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('black');
+        });
+
+        it('should return "red" if confirmationState is "confirming_complete" and task is past due', () => {
+            const task = {
+                id: '32',
+                confirmationState: 'confirming_complete',
+                dueDate: new Date(now - 1000), // 1 second ago
+            };
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('red');
+        });
+
+        it('should return "green" if confirmationState is "confirming_complete" and task is not due yet', () => {
+            const task = {
+                id: '33',
+                confirmationState: 'confirming_complete',
+                dueDate: new Date(now + 100000), // In the future
+            };
+            const status = calculateStatus(task, now, allTasks);
+            expect(status.name).toBe('green');
+        });
+    });
+
+    describe('with cycle end dates', () => {
+        it('should keep a "blue" repeating task as "blue" if its cycle end date is in the future', () => {
+            const pausedTask = {
+                id: '40',
+                status: 'blue', // It's waiting for its next cycle
+                repetitionType: 'relative',
+                cycleEndDate: new Date(now + 100000), // The cycle is paused until the future
+            };
+            const status = calculateStatus(pausedTask, now, allTasks);
+            expect(status.name).toBe('blue');
+        });
+
+        it('should re-evaluate a "blue" repeating task if its cycle end date has passed', () => {
+            const unpausedTask = {
+                id: '41',
+                status: 'blue',
+                repetitionType: 'relative',
+                dueDate: new Date(now + 3600000), // Due in 1 hour
+                cycleEndDate: new Date(now - 1000), // The cycle pause has ended
+            };
+            // Since the pause is over, it should no longer be blue.
+            // timeUntilDue (1hr) is > estimate*2 (1hr is not > 1hr). Default estimate is 30 mins.
+            // So timeUntilDue (3600000) > taskEstimateMs * 2 (1800000 * 2 = 3600000) is false.
+            // It should be green. Let me recheck the logic.
+            // `timeUntilDue <= taskEstimateMs * 2` -> 3600000 <= 3600000 is true. So it should be yellow.
+            const status = calculateStatus(unpausedTask, now, allTasks);
+            expect(status.name).toBe('yellow');
+        });
     });
 });
