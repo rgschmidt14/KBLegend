@@ -491,7 +491,6 @@ legend {
   .auto-theme .view-btn.bg-blue-600 { background-color: #3B82F6; color: #FFFFFF; }
   .auto-theme input[type="text"], .auto-theme input[type="number"] { background-color: #FFFFFF; border-color: #D1D5DB; color: #1F2937; }
   .auto-theme .table-cell { border-color: #E5E7EB; }
-  .auto-theme .planner-task-item { color: #FFFFFF; }
   .auto-theme #taskManagerModal .text-gray-800 { color: #1F2937; }
   .auto-theme .modal-content, .auto-theme #advanced-options-modal .modal-content, .auto-theme #task-modal .modal-content { background-color: #FFFFFF; color: #111827; border-color: #e2e8f0; }
   .auto-theme .close-button { color: #9CA3AF; }
@@ -785,4 +784,19 @@ legend {
 .light-mode .kpi-indicator,
 .light-mode .kpi-indicator h4 {
     color: #1f2937;
+}
+
+/* Icon Picker Styles */
+.icon-grid {
+    background-color: #f3f4f6; /* gray-100 */
+    border-radius: 0 0 0.375rem 0.375rem; /* rounded-b-md */
+}
+
+.icon-grid .fa-2x {
+    color: #374151; /* gray-700 */
+}
+
+.icon-picker-category-header {
+    background-color: #e5e7eb; /* gray-200 */
+    color: #1f2937; /* gray-800 */
 }

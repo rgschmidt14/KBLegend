@@ -117,9 +117,12 @@
                  <input type="hidden" id="task-id">
                  <div class="mb-4"> <label for="task-name" class="form-label">Task Name:</label> <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
                  <div class="mb-4">
-                    <label for="task-icon" class="form-label">Task Icon (Font Awesome Class):</label>
-                    <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <p class="form-hint">Find icons on fontawesome.com. Example: "fa-solid fa-star".</p>
+                    <label for="task-icon" class="form-label">Task Icon:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <button type="button" id="open-icon-picker" class="control-button control-button-gray">Choose Icon</button>
+                    </div>
+                    <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
                  </div>
                  <div class="mb-4">
                      <label class="form-label">Time Input Type:</label>
@@ -334,20 +337,31 @@
                               </select>
                           </div>
                           <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
-                          <div class="mb-4">
-                                <label for="requires-full-attention" class="flex items-center">
-                                    <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                    <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
-                                </label>
-                                <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
-                            </div>
                       </div>
+                      <div class="mb-4">
+                            <label for="requires-full-attention" class="flex items-center">
+                                <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
+                            </label>
+                            <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
+                        </div>
                  </fieldset>
                  <div class="flex justify-end space-x-3 mt-8">
                     <button type="button" class="control-button control-button-gray"> Cancel </button>
                     <button type="submit" class="control-button control-button-green"> Save Task </button>
                 </div>
              </form>
+        </div>
+    </div>
+
+    <!-- Modal for choosing an icon -->
+    <div id="icon-picker-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-button" aria-label="Close Icon Picker">&times;</button>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Choose an Icon</h2>
+            <div id="icon-picker-content" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                <!-- Icon categories will be rendered here by JavaScript -->
+            </div>
         </div>
     </div>
 

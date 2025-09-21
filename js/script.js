@@ -33,6 +33,16 @@ let taskDisplaySettings = {
 const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
+const iconCategories = {
+    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun'],
+    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap'],
+    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users'],
+    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank'],
+    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope'],
+    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase'],
+    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice'],
+};
+
 const MS_PER_MINUTE = 60000;
 const MS_PER_HOUR = 3600000;
 const MS_PER_DAY = 86400000;
@@ -41,6 +51,7 @@ const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
 let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskIconInput,
+    iconPickerModal,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
     dueDateTypeSelect, relativeDueDateGroup,
     relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
@@ -1135,7 +1146,21 @@ function closeModal() {
 function toggleCompletionFields(type) {
     completionCountGroup.classList.toggle('hidden', type !== 'count');
     completionTimeGroup.classList.toggle('hidden', type !== 'time');
-    estimatedDurationGroup.classList.toggle('hidden', type === 'time');
+    const isTimeType = type === 'time';
+    estimatedDurationGroup.classList.toggle('hidden', isTimeType);
+
+    // If completion type is 'time', the duration is derived from the time target,
+    // so the separate estimated duration input is not needed and should not be required.
+    if (isTimeType) {
+        if (estimatedDurationAmountInput) {
+            estimatedDurationAmountInput.required = false;
+        }
+    } else {
+        // Otherwise, the requirement depends on the time input type (due vs start)
+        if (estimatedDurationAmountInput && timeInputTypeSelect) {
+             estimatedDurationAmountInput.required = (timeInputTypeSelect.value === 'start');
+        }
+    }
 }
 function toggleAbsoluteRepetitionFields(frequency) {
     absoluteWeeklyOptions.classList.toggle('hidden', frequency !== 'weekly');
@@ -1363,17 +1388,41 @@ function renderThemeControls() {
     if (themeControls) themeControls.classList.toggle('hidden', !theming.enabled);
 }
 
+function renderIconPicker() {
+    const content = document.getElementById('icon-picker-content');
+    if (!content) return;
+    content.innerHTML = '';
 
+    for (const category in iconCategories) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'icon-picker-category';
 
+        const header = document.createElement('div');
+        header.className = 'icon-picker-category-header p-2 bg-gray-200 text-gray-800 font-bold rounded cursor-pointer flex justify-between items-center';
+        header.textContent = category;
+        header.innerHTML += '<span class="transform transition-transform duration-200"> ▼ </span>';
 
+        const grid = document.createElement('div');
+        grid.className = 'icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2';
 
+        iconCategories[category].forEach(iconClass => {
+            const iconWrapper = document.createElement('div');
+            iconWrapper.className = 'p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer';
+            iconWrapper.dataset.icon = iconClass;
+            iconWrapper.innerHTML = `<i class="${iconClass} fa-2x text-gray-700"></i>`;
+            grid.appendChild(iconWrapper);
+        });
 
+        categoryDiv.appendChild(header);
+        categoryDiv.appendChild(grid);
+        content.appendChild(categoryDiv);
+    }
+}
 
-
-
-
-
-
+function openIconPicker() {
+    renderIconPicker();
+    activateModal(iconPickerModal);
+}
 
 
 // =================================================================================
@@ -2236,6 +2285,7 @@ function initializeDOMElements() {
     // Task Manager
     taskModal = document.getElementById('task-modal'); taskForm = document.getElementById('task-form'); taskListDiv = document.getElementById('task-list'); modalTitle = document.getElementById('modal-title'); taskIdInput = document.getElementById('task-id'); taskNameInput = document.getElementById('task-name');
     taskIconInput = document.getElementById('task-icon');
+    iconPickerModal = document.getElementById('icon-picker-modal');
     timeInputTypeSelect = document.getElementById('time-input-type');
     dueDateGroup = document.getElementById('due-date-group');
     taskDueDateInput = document.getElementById('task-due-date');
@@ -2344,7 +2394,7 @@ function promptToAdvanceWeeks(weekDiff) {
         cleanup();
     };
 
-    const cleanup = () => {
+    const cleanup = ()_> {
         confirmBtn.removeEventListener('click', onConfirm);
         cancelBtn.removeEventListener('click', onCancel);
     };
@@ -2399,6 +2449,41 @@ function setupEventListeners() {
     const cancelButton = taskModal.querySelector('button[type="button"]');
     if (closeButton) closeButton.addEventListener('click', closeModal);
     if (cancelButton) cancelButton.addEventListener('click', closeModal);
+
+    const openIconPickerBtn = document.getElementById('open-icon-picker');
+    if (openIconPickerBtn) {
+        openIconPickerBtn.addEventListener('click', openIconPicker);
+    }
+
+    if (iconPickerModal) {
+        const closeBtn = iconPickerModal.querySelector('.close-button');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => deactivateModal(iconPickerModal));
+        }
+
+        const content = document.getElementById('icon-picker-content');
+        content.addEventListener('click', (e) => {
+            // Handle category header clicks for accordion behavior
+            const header = e.target.closest('.icon-picker-category-header');
+            if (header) {
+                const grid = header.nextElementSibling;
+                const icon = header.querySelector('span');
+                grid.classList.toggle('hidden');
+                icon.style.transform = grid.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                return;
+            }
+
+            // Handle icon selection
+            const iconWrapper = e.target.closest('[data-icon]');
+            if (iconWrapper) {
+                const iconClass = iconWrapper.dataset.icon;
+                if (taskIconInput) {
+                    taskIconInput.value = iconClass;
+                }
+                deactivateModal(iconPickerModal);
+            }
+        });
+    }
 
     timeInputTypeSelect.addEventListener('change', (e) => {
         const isStart = e.target.value === 'start';

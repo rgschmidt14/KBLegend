@@ -156,6 +156,19 @@ A collection of great ideas suggested for future consideration.
 * **Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.
 * **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
 * **Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.
+* **Task Data Migration Tool:**
+  * **Problem:** As new features are added, the data structure for tasks (`task` objects) changes. Users with task data from older versions of the application may lose their data or experience bugs when the app tries to read an outdated format.
+  * **Objective:** Create a tool that can seamlessly migrate user tasks from an old format to the current one.
+  * **Detailed Vision:**
+    1.  **Detection:** When the application loads, it should inspect each task from `localStorage` to see if it conforms to the current data schema. This could be done by checking for missing or extra properties.
+    2.  **User Prompt:** If outdated tasks are found, the app should prompt the user, asking if they want to update their tasks to the new format. This process should be optional but recommended.
+    3.  **Migration UI:**
+        *   If the user agrees, the app will present a special migration view, processing one outdated task at a time.
+        *   For each task, the UI should display a two-column table.
+        *   The left column will show the names and values of any *unrecognized* properties from the old task object (e.g., `countsAsBusy: true`). This shows the user what data is being deprecated.
+        *   The right column will show a form for any *new* or *missing* properties that the new task format requires (e.g., `requiresFullAttention`).
+        *   The form should use the appropriate input type for each new property (e.g., a checkbox for a boolean, a text field for a string).
+    4.  **User Input & Confirmation:** The user can then provide values for the new properties and click a "Submit & Update Next" button. The application will then update the current task, save it, and load the next outdated task into the migration UI. This continues until all tasks are up-to-date.
 
 ## **Development**
 
