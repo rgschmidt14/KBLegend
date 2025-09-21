@@ -85,12 +85,16 @@ The following features and fixes have been prioritized for upcoming releases.
 *   **Modernize Planner Views:**
     *   **Problem:** The current daily and weekly planners, while functional after the recent bug fixes, are built with custom code that can be complex to maintain. A more modern, library-based approach could offer more features and greater stability.
     *   **Objective:** Investigate and potentially implement a robust, pre-built calendar library like [FullCalendar.io](https://fullcalendar.io/) to replace the custom-built daily and weekly views. This would provide a more modern look and feel, better interactivity (like drag-and-drop), and reduce long-term maintenance.
+    *   **Note:** Adopting a library like FullCalendar.io is highly recommended. It would significantly simplify the codebase and improve the user experience by providing modern features like drag-and-drop.
 *   **Planner Layout Reorganization:**
     *   **Problem:** The overall layout of the planner feels disconnected. The main week navigation is at the top, separated from the planner grid by the KPI section. Navigation controls are inconsistent between views (Weekly vs. Daily vs. Monthly).
     *   **Objective:** Redesign the HTML structure to create a more intuitive and cohesive user experience. This includes co-locating navigation with its relevant view and ensuring consistent controls across all planner views.
 *   **Clickable Week Navigator:**
     *   **Problem:** User cannot easily jump to a specific week in the past or future without clicking the navigation buttons multiple times.
     *   **Objective:** Make the week date range display (`#weekDateRange`) clickable, opening a calendar widget that allows the user to select and jump to any week.
+*   **Simple Mode for Task Creation:**
+    *   **Problem:** The task creation modal has many advanced features, which can be overwhelming for new users.
+    *   **Objective:** Implement a "Simple Mode" that hides advanced options (like complex repetition, completion tracking, etc.) by default. A toggle would allow power users to access the advanced features.
 *   **Advanced Options Accessibility:**
     *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
     *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
@@ -113,11 +117,17 @@ These are larger, more long-term goals for the project.
 * **Data Portability (Import/Export):** Implement features to import and export tasks and categories via JSON files.  
 * **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
+#### **🎉 Anniversary Update Ideas**
+* **Smart Suggestions Widget:** A dynamic area that proactively tells the user why a task's status has changed (e.g., "Heads up! You should start 'Task X' now because you have 3 other busy tasks due soon."). This makes the predictive engine more transparent and conversational.
+* **Habit Streak Visualization:** For repeating tasks, display a visual 'streak' counter (e.g., 'Streak: 14 days 🔥') to gamify habit formation and celebrate consistent success.
+* **Interactive Onboarding Tour:** A guided tour for new users that highlights the app's most powerful and unique features, such as the predictive engine and deep customization options, to improve discoverability and user empowerment.
+
 ### **💡 Community Suggestions**
 
 A collection of great ideas suggested for future consideration.
 
-* **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.  
+* **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.
+* **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript, following the pattern established in the new `js/templates.js` file. The goal is to make the code more modular and maintainable.
 * **Drag-and-drop:** Allowing you to drag and drop tasks to reschedule them on the planner would make it feel much more interactive and intuitive.  
 * **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
 
