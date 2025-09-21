@@ -3327,34 +3327,37 @@ function accommodate(tasksForDay) {
         return [];
     }
 
-    const sortedTasks = tasksForDay.sort((a, b) => {
+    // Create a shallow copy before sorting to avoid modifying the original array.
+    const sortedTasks = tasksForDay.slice().sort((a, b) => {
         const startDiff = a.occurrenceDate.getTime() - b.occurrenceDate.getTime();
         if (startDiff !== 0) return startDiff;
         const durationA = a.dueDate.getTime() - a.occurrenceDate.getTime();
         const durationB = b.dueDate.getTime() - b.occurrenceDate.getTime();
-        return durationB - durationA;
+        return durationB - durationA; // Sort by duration descending as a tie-breaker
     });
 
     const lanes = [];
 
     for (const task of sortedTasks) {
-        let placed = false;
+        let placedInLane = false;
+        // Find the first lane where this task can fit without overlapping.
         for (const lane of lanes) {
-            let hasOverlap = false;
-            for (const existingTask of lane) {
-                if (task.occurrenceDate.getTime() < existingTask.dueDate.getTime() &&
-                    task.dueDate.getTime() > existingTask.occurrenceDate.getTime()) {
-                    hasOverlap = true;
-                    break;
-                }
-            }
+            // Check if the current task overlaps with ANY existing task in the lane.
+            const hasOverlap = lane.some(
+                existingTask =>
+                    task.occurrenceDate.getTime() < existingTask.dueDate.getTime() &&
+                    task.dueDate.getTime() > existingTask.occurrenceDate.getTime()
+            );
+
             if (!hasOverlap) {
                 lane.push(task);
-                placed = true;
-                break;
+                placedInLane = true;
+                break; // Task placed, move to the next task.
             }
         }
-        if (!placed) {
+
+        // If it didn't fit in any existing lane, create a new one for it.
+        if (!placedInLane) {
             lanes.push([task]);
         }
     }
@@ -3379,6 +3382,7 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
     const category = categories.find(c => c.id === task.categoryId);
     taskElement.style.backgroundColor = category ? category.color : (statusColors[task.status] || '#374151');
 
+    // Explicitly set text color for contrast, as this was missed before.
     const textStyle = getContrastingTextColor(taskElement.style.backgroundColor);
     taskElement.style.color = textStyle.color;
     taskElement.style.textShadow = textStyle.textShadow;
@@ -3389,16 +3393,24 @@ function renderTaskOnGrid(task, occurrenceStartDate, occurrenceDueDate, dayIndex
     const width = 100 / totalLanes;
     const left = laneIndex * width;
 
-    // Use grid-column to place in the correct day, and grid-row for time
-    taskElement.style.gridColumn = `${dayIndex + 2}`;
-    taskElement.style.gridRow = `${startRow} / span ${rowSpan}`;
-    // Use relative positioning within the grid cell for lanes
-    taskElement.style.position = 'absolute';
-    taskElement.style.width = `calc(${width}% - 4px)`;
-    taskElement.style.left = `${left}%`;
-    taskElement.style.height = '100%'; // The grid-row span handles the height
+    // --- Wrapper Div Fix ---
+    // Create a wrapper to serve as the positioning context in the correct grid area.
+    const wrapper = document.createElement('div');
+    wrapper.style.gridColumn = `${dayIndex + 2}`;
+    wrapper.style.gridRow = `${startRow} / span ${rowSpan}`;
+    // The wrapper itself is part of the grid flow, but creates a positioning context.
+    wrapper.style.position = 'relative';
 
-    container.appendChild(taskElement);
+    // The task element is now positioned absolutely *within the wrapper*.
+    // This makes its percentage-based width and left properties behave as expected.
+    taskElement.style.position = 'absolute';
+    taskElement.style.left = `${left}%`;
+    taskElement.style.width = `calc(${width}% - 4px)`;
+    taskElement.style.top = '0';
+    taskElement.style.height = '100%';
+
+    wrapper.appendChild(taskElement);
+    container.appendChild(wrapper);
 }
 
 
@@ -3551,7 +3563,10 @@ function renderDailyView() {
         filteredTasks.forEach(task => {
             const occurrences = getTaskOccurrences(task, dayStart, dayEnd);
             occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
-                tasksForDay.push({ task, occurrenceDate: occurrenceStartDate, dueDate: occurrenceDueDate });
+                // Clamp the start and end times to the current day's boundaries to correctly render tasks that span across midnight.
+                const chunkStartDate = new Date(Math.max(occurrenceStartDate.getTime(), dayStart.getTime()));
+                const chunkEndDate = new Date(Math.min(occurrenceDueDate.getTime(), dayEnd.getTime()));
+                tasksForDay.push({ task, occurrenceDate: chunkStartDate, dueDate: chunkEndDate });
             });
         });
     }

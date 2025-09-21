@@ -333,7 +333,7 @@ legend {
 
 .planner-slot {
     position: relative;
-    min-height: 50px; /* Ensure space for tasks */
+    /* min-height: 50px; */ /* This was forcing grid rows to be too tall. The row height is now correctly managed by the parent grid definition. */
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -372,40 +372,17 @@ legend {
 }
 
 /* --- Daily View Timeline Styles --- */
-#daily-planner-grid {
-    position: relative;
-    /* Height is now determined by the grid-template-rows of .planner-grid */
-    margin-left: 60px; /* Space for time labels */
+#dailyViewContainer {
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
-.daily-view-time-slot {
-    position: relative;
-    border-top: 1px solid #374151; /* Gray-700 */
-    height: 60px; /* 1 hour slot */
-    box-sizing: border-box;
-}
-
-.daily-view-time-label {
-    position: absolute;
-    top: -10px;
-    left: -60px;
-    width: 50px;
-    text-align: right;
-    font-size: 0.75rem;
-    color: #9CA3AF; /* Gray-400 */
-}
-
-.light-mode #daily-planner-grid {
-    /* No change needed unless borders/etc are different */
-}
-
-.light-mode .daily-view-time-slot {
-    border-top-color: #E5E7EB; /* Gray-200 */
-}
-
-.light-mode .daily-view-time-label {
-    color: #6B7280; /* Gray-500 */
-}
+/*
+   The styles for #daily-planner-grid, .daily-view-time-slot, and .daily-view-time-label
+   have been removed as they were part of a legacy layout system. The daily view now uses
+   the same modern CSS grid structure as the weekly view, making these rules obsolete and
+   fixing the time indentation issue.
+*/
 
 /* --- Month View Styles --- */
 #monthViewContainer {
@@ -577,7 +554,8 @@ legend {
 }
 
 .light-mode .planner-task-item {
-    color: #FFFFFF; /* Keep text white on colored backgrounds */
+    /* The explicit color property is removed. The text color will now be dynamically set
+       by JavaScript to ensure readability on any background. */
 }
 
 .light-mode #taskManagerModal .text-gray-800 {
