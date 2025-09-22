@@ -800,3 +800,120 @@ legend {
     background-color: #e5e7eb; /* gray-200 */
     color: #1f2937; /* gray-800 */
 }
+
+/* FullCalendar Customizations */
+#calendar {
+    min-height: 70vh;
+    color: #F3F4F6; /* Light Gray text for readability on dark background */
+}
+
+/* --- Toolbar Buttons --- */
+.fc .fc-button {
+    background-color: #4B5563; /* Gray-600 */
+    color: #F3F4F6;
+    border: 1px solid #374151; /* Gray-700 */
+    transition: background-color 0.2s;
+    text-transform: capitalize; /* Cleaner look */
+}
+
+.fc .fc-button:hover {
+    background-color: #6B7280; /* Gray-500 */
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+    background-color: #3B82F6; /* Blue-500 */
+    border-color: #2563EB; /* Blue-600 */
+}
+
+/* --- Header Title --- */
+.fc .fc-toolbar-title {
+    color: #FFFFFF;
+}
+
+/* --- Calendar Views --- */
+.fc .fc-view {
+    background-color: #1F2937; /* Gray-800 */
+}
+
+/* --- Day/Timegrid Headers --- */
+.fc .fc-col-header-cell {
+    background-color: #111827; /* Gray-900 */
+    border-color: #374151; /* Gray-700 */
+}
+
+.fc .fc-daygrid-day-number,
+.fc .fc-col-header-cell-cushion {
+    color: #D1D5DB; /* Gray-300 */
+}
+
+/* --- Borders --- */
+.fc .fc-daygrid-day,
+.fc .fc-timegrid-slot,
+.fc .fc-timegrid-col,
+.fc .fc-timegrid-axis {
+    border-color: #374151; /* Gray-700 */
+}
+
+/* --- Today's Date Highlighting --- */
+.fc .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.15); /* Blue-500 with opacity */
+}
+
+/* --- Event Styling --- */
+.fc-event {
+    cursor: pointer;
+    padding: 2px 4px;
+    font-weight: 500;
+}
+
+/* Light Mode Overrides for FullCalendar */
+.light-mode #calendar {
+    color: #1F2937; /* Dark Gray text */
+}
+
+.light-mode .fc .fc-button {
+    background-color: #E5E7EB; /* Gray-200 */
+    color: #1F2937;
+    border-color: #D1D5DB; /* Gray-300 */
+}
+
+.light-mode .fc .fc-button:hover {
+    background-color: #D1D5DB;
+}
+
+.light-mode .fc .fc-button-primary:not(:disabled).fc-button-active,
+.light-mode .fc .fc-button-primary:not(:disabled):active {
+    background-color: #2563EB; /* Blue-600 */
+    border-color: #1D4ED8; /* Blue-700 */
+    color: #FFFFFF;
+}
+
+.light-mode .fc .fc-toolbar-title {
+    color: #111827; /* Nearly black */
+}
+
+.light-mode .fc .fc-view {
+    background-color: #FFFFFF; /* White */
+}
+
+.light-mode .fc .fc-col-header-cell {
+    background-color: #F9FAFB; /* Gray-50 */
+    border-color: #E5E7EB; /* Gray-200 */
+}
+
+.light-mode .fc .fc-daygrid-day-number,
+.light-mode .fc .fc-col-header-cell-cushion {
+    color: #374151; /* Gray-700 */
+}
+
+.light-mode .fc .fc-daygrid-day,
+.light-mode .fc .fc-timegrid-slot,
+.light-mode .fc .fc-timegrid-col,
+.light-mode .fc .fc-timegrid-axis {
+    border-color: #E5E7EB; /* Gray-200 */
+}
+
+.light-mode .fc .fc-day-today {
+    background-color: #DBEAFE; /* Blue-100 */
+}
