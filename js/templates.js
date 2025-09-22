@@ -228,6 +228,22 @@ export function taskViewTemplate(task, { categories, appSettings }) {
     `;
 }
 
+export function taskStatsTemplate(task, stats, historyHtml) {
+    return `
+        <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
+        <div class="space-y-2">
+            <p><strong>Completion Rate:</strong> ${stats.completionRate}% (${stats.completions} / ${stats.total})</p>
+            <p><strong>Total Completions:</strong> ${stats.completions}</p>
+            <p><strong>Total Misses:</strong> ${stats.misses}</p>
+        </div>
+        <h4 class="text-lg font-semibold mt-4 mb-2">History</h4>
+        <ul class="list-disc list-inside max-h-48 overflow-y-auto">
+            ${historyHtml}
+        </ul>
+        <button data-action="backToTaskView" class="control-button control-button-gray mt-4">Back to Details</button>
+    `;
+}
+
 export function notificationManagerTemplate(notificationSettings, categories) {
     const categoryItems = categories.map(cat => {
         // Default to true if not set
