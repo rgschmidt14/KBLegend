@@ -228,7 +228,11 @@ export function taskViewTemplate(task, { categories, appSettings }) {
     `;
 }
 
-export function taskStatsTemplate(task, stats, historyHtml) {
+export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
+    const chartHtml = hasChartData
+        ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>`
+        : '<p class="text-gray-500 italic mt-4">Not enough history to display a chart.</p>';
+
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
@@ -236,11 +240,193 @@ export function taskStatsTemplate(task, stats, historyHtml) {
             <p><strong>Total Completions:</strong> ${stats.completions}</p>
             <p><strong>Total Misses:</strong> ${stats.misses}</p>
         </div>
-        <h4 class="text-lg font-semibold mt-4 mb-2">History</h4>
-        <ul class="list-disc list-inside max-h-48 overflow-y-auto">
+
+        <h4 class="text-lg font-semibold mt-6 mb-2">Performance Over Time</h4>
+        ${chartHtml}
+
+        <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
+        <ul class="list-disc list-inside max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
             ${historyHtml}
         </ul>
-        <button data-action="backToTaskView" class="control-button control-button-gray mt-4">Back to Details</button>
+
+        <button data-action="backToTaskView" class="control-button control-button-gray mt-6">Back to Details</button>
+    `;
+}
+
+export function actionAreaTemplate(task) {
+    const cycles = task.pendingCycles || 1;
+    switch (task.confirmationState) {
+        case 'confirming_complete':
+            const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
+        case 'awaiting_overdue_input':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red">Missed</button></div>`;
+        case 'confirming_miss':
+            const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red">No</button></div>`;
+        case 'confirming_delete':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray">Cancel</button></div>`;
+        case 'confirming_undo':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray">Cancel</button></div>`;
+    }
+    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+    if (isCompletedNonRepeating) {
+        return '<span class="text-xs text-gray-500 italic">Done</span>';
+    }
+    if (task.status === 'blue') {
+        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="control-button control-button-gray" title="Undo Completion / Reactivate Early">Undo</button>`;
+    }
+    switch (task.completionType) {
+        case 'count':
+            const target = task.countTarget || Infinity;
+            return (task.currentProgress < target)
+                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue w-6 h-6 flex items-center justify-center">+</button> </div>`
+                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+        case 'time':
+            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+            if (task.currentProgress >= targetMs) {
+                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+            }
+            const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
+            const btnClass = task.isTimerRunning ? 'control-button-yellow' : 'control-button-green';
+            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="control-button ${btnClass}">${btnText}</button>`;
+        default:
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+    }
+}
+
+export function commonButtonsTemplate(task) {
+    if (task.confirmationState) return '';
+    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+
+    if (isCompletedNonRepeating) {
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>`;
+    }
+    return `
+        <div class="flex space-x-1">
+            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>
+        </div>
+    `;
+}
+
+export function statusManagerTemplate(statusNames, statusColors, defaultStatusNames) {
+    const statusItems = Object.keys(defaultStatusNames).map(statusKey => {
+        const displayName = statusNames[statusKey] || defaultStatusNames[statusKey];
+        const color = statusColors[statusKey] || '#ccc';
+        return `
+            <div class="flex items-center justify-between p-2 border-b" id="status-item-${statusKey}">
+                <div id="status-display-${statusKey}" class="flex-grow flex items-center space-x-3">
+                    <div class="w-4 h-4 rounded-full" style="background-color: ${color};"></div>
+                    <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${displayName}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="color" value="${color}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded">
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return statusItems;
+}
+
+export function categoryFilterTemplate(categories, categoryFilter) {
+    if (categories.length === 0) {
+        return '<p class="text-gray-500 italic">No categories to filter.</p>';
+    }
+
+    const allLabel = `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}>
+            <span>Show All</span>
+        </label>
+    `;
+
+    const uncategorizedLabel = `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}>
+            <span>Uncategorized</span>
+        </label>
+    `;
+
+    const categoryLabels = categories.map(cat => `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}>
+            <span>${cat.name}</span>
+        </label>
+    `).join('');
+
+    return allLabel + uncategorizedLabel + categoryLabels;
+}
+
+export function iconPickerTemplate(iconCategories) {
+    let contentHtml = '';
+    for (const category in iconCategories) {
+        const iconsHtml = iconCategories[category].map(iconClass => `
+            <div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}">
+                <i class="${iconClass} fa-2x text-gray-700"></i>
+            </div>
+        `).join('');
+
+        contentHtml += `
+            <div class="icon-picker-category">
+                <div class="icon-picker-category-header p-2 bg-gray-200 text-gray-800 font-bold rounded cursor-pointer flex justify-between items-center">
+                    ${category}
+                    <span class="transform transition-transform duration-200"> ▼ </span>
+                </div>
+                <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                    ${iconsHtml}
+                </div>
+            </div>
+        `;
+    }
+    return contentHtml;
+}
+
+export function editProgressTemplate(taskId, currentValue, max) {
+    return `
+        <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
+        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1">Save</button>
+        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+    `;
+}
+
+export function editCategoryTemplate(categoryId, currentName) {
+    return `
+        <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
+        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1">Save</button>
+        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+    `;
+}
+
+export function editStatusNameTemplate(statusKey, currentName) {
+    return `
+        <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
+        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1">Save</button>
+        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+    `;
+}
+
+export function restoreDefaultsConfirmationTemplate() {
+    return `
+        <div class="flex flex-col items-center gap-2 text-center">
+            <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
+            <div class="flex gap-2 mt-2">
+                <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes, Reset</button>
+                <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No, Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
+    return `
+        <div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
+             data-group="${groupName}"
+             style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
+            <h4 class="font-bold">${groupName}</h4>
+            <span class="transform transition-transform duration-200"> ▼ </span>
+        </div>
     `;
 }
 

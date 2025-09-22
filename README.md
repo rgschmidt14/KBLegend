@@ -50,6 +50,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.8) - 09/22/2025
+
+This update focused on code quality and analytics, continuing the project's cleanup and feature enhancement goals.
+
+*   **Comprehensive HTML Refactoring:** Continued the major initiative to separate application logic from presentation by moving all remaining HTML generation out of `js/script.js` and into dedicated functions in `js/templates.js`. This makes the code significantly cleaner, more maintainable, and easier to test.
+*   **Enhanced Task Statistics:** The dedicated Task Statistics page has been upgraded to provide deeper insights into user performance. It now features a bar chart that visualizes completions and misses on a weekly basis, allowing users to track their performance trends over time. This was implemented using Chart.js.
+
 ### ✅ Recently Completed (Version 2.7) - 09/22/2025
 
 This update improves data management safety, enhances data portability, and continues the ongoing code refactoring initiative.
@@ -174,8 +181,6 @@ This update focused on improving the long-term stability and maintainability of 
 
 This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
 
-*   **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js`, and several components (`renderCategoryManager`, `renderNotificationManager`, `renderTaskStats`) have been successfully refactored. The goal is to move all remaining HTML generation to the `templates.js` file.
-*   **Enhance Task Statistics:** Improve the dedicated Task Statistics page by adding more advanced analytics and visualizations, such as graphs for completion rates over time, to provide deeper insights into user performance.
 *   **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
 *   **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
 *   **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
