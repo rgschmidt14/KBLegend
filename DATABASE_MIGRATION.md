@@ -79,6 +79,23 @@ I will provide you with a SQL script to create the necessary tables in your Host
 *   **`groups` table:** `id`, `name`, `owner_id`.
 *   **`group_members` table:** `group_id`, `user_id`, `role`.
 
+### **A Note on Security: The Backend as a Gatekeeper**
+
+A common question is whether having all users' tasks in a single `tasks` table is secure. It is a very secure and standard industry practice, known as "multi-tenancy," when implemented correctly.
+
+**The Key Concept:** The frontend application (the user's browser) will **never** talk directly to the database. It is not possible for a user to "see the entire database." Instead, the frontend only talks to our **backend API**.
+
+The backend API acts as a strict, intelligent **gatekeeper**.
+
+1.  **Authentication:** When a user logs in, the backend gives them a secure token (like a temporary keycard).
+2.  **Authorization:** For every single request the frontend makes (e.g., "get tasks"), it must present this token.
+3.  **Data Filtering:** The backend code will first verify the token. It will then get the `user_id` associated with that token. Finally, it will construct the database query *on the server*, adding a critical `WHERE` clause.
+
+For example, when a user requests their tasks, the backend will run a query like:
+`SELECT * FROM tasks WHERE user_id = [ID from user's token];`
+
+This way, the database only ever returns the rows that belong to the logged-in user. It is impossible for a user to request data that doesn't belong to them, because the backend server enforces these rules on every single request. Creating separate tables per user is less efficient, harder to maintain, and does not provide additional security compared to this standard gatekeeper model.
+
 ### **Step 4: Frontend Refactoring**
 
 This is where we replace `localStorage` with API calls. I will go through the `js/script.js` and `js/task-logic.js` files and perform the following changes:
