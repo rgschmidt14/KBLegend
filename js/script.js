@@ -83,7 +83,7 @@ let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, newIndicatorFrequenc
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn,
     weekStatusEl, weekDateRangeEl,
-    showCalendarBtn, showDashboardBtn, calendarView, dashboardView,
+    showTaskManagerBtn, showCalendarBtn, showDashboardBtn, taskManagerView, calendarView, dashboardView,
     taskViewModal, taskViewContent, taskStatsContent;
 
 // FullCalendar instance
@@ -713,7 +713,10 @@ function applyTheme() {
         });
     }
     renderTasks();
-    if (calendar) calendar.refetchEvents();
+    if (calendar) {
+        calendar.refetchEvents();
+        calendar.updateSize(); // Force calendar to re-render its container
+    }
 }
 
 
@@ -2502,8 +2505,10 @@ function initializeDOMElements() {
     weekDateRangeEl = document.getElementById('weekDateRange');
 
     // View-switching elements
+    showTaskManagerBtn = document.getElementById('show-task-manager-btn');
     showCalendarBtn = document.getElementById('show-calendar-btn');
     showDashboardBtn = document.getElementById('show-dashboard-btn');
+    taskManagerView = document.getElementById('task-manager-view');
     calendarView = document.getElementById('calendar-view');
     dashboardView = document.getElementById('dashboard-view');
 }
@@ -2561,25 +2566,6 @@ function promptToAdvanceWeeks(weekDiff) {
 
 function setupEventListeners() {
     // Task Manager
-    if (toggleTaskManagerBtn) {
-        toggleTaskManagerBtn.addEventListener('click', () => {
-            const isHidden = taskManagerModal.classList.toggle('hidden');
-            if (isHidden) {
-                document.body.classList.remove('modal-open');
-            } else {
-                document.body.classList.add('modal-open');
-            }
-        });
-    }
-
-    const closeTaskManagerBtn = document.getElementById('closeTaskManagerBtn');
-    if (closeTaskManagerBtn) {
-        closeTaskManagerBtn.addEventListener('click', () => {
-            taskManagerModal.classList.add('hidden');
-            document.body.classList.remove('modal-open');
-        });
-    }
-
     const addTaskBtn = document.getElementById('add-task-btn');
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', () => openModal());
@@ -2995,22 +2981,31 @@ function setupEventListeners() {
     }
 
     // Main View Toggles
-    if (showCalendarBtn && showDashboardBtn && calendarView && dashboardView) {
-        showCalendarBtn.addEventListener('click', () => {
-            calendarView.classList.remove('hidden');
-            dashboardView.classList.add('hidden');
-            showCalendarBtn.classList.add('active-view-btn');
-            showDashboardBtn.classList.remove('active-view-btn');
-            if (calendar) {
-                calendar.updateSize();
-            }
-        });
+    const mainViewNav = document.getElementById('main-view-nav');
+    if (mainViewNav) {
+        mainViewNav.addEventListener('click', (event) => {
+            const target = event.target.closest('.view-toggle-btn');
+            if (!target) return;
 
-        showDashboardBtn.addEventListener('click', () => {
-            calendarView.classList.add('hidden');
-            dashboardView.classList.remove('hidden');
-            showCalendarBtn.classList.remove('active-view-btn');
-            showDashboardBtn.classList.add('active-view-btn');
+            const views = [
+                { btn: showTaskManagerBtn, view: taskManagerView },
+                { btn: showCalendarBtn, view: calendarView },
+                { btn: showDashboardBtn, view: dashboardView }
+            ];
+
+            views.forEach(item => {
+                if (item.btn === target) {
+                    item.view.classList.remove('hidden');
+                    item.btn.classList.add('active-view-btn');
+                    // If switching to calendar view, ensure it resizes correctly
+                    if (item.view === calendarView && calendar) {
+                        calendar.updateSize();
+                    }
+                } else {
+                    item.view.classList.add('hidden');
+                    item.btn.classList.remove('active-view-btn');
+                }
+            });
         });
     }
 
@@ -3111,8 +3106,8 @@ function loadData() {
         try {
             const parsedTheming = JSON.parse(storedTheming);
             theming = { ...theming, ...parsedTheming };
-            if (theming.mode !== 'day' && theming.mode !== 'night') {
-                theming.mode = 'night';
+            if (theming.mode !== 'light' && theming.mode !== 'night' && theming.mode !== 'auto') {
+                theming.mode = 'night'; // Default to night if stored value is invalid
             }
         } catch (e) {
             console.error("Error parsing theming settings:", e);

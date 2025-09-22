@@ -18,22 +18,22 @@
         <header class="mb-6 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-white">Task & Mission Planner</h1>
             <p class="text-gray-400 mt-1">Organize your tasks, plan your week, and track your progress.</p>
-            <div class="mt-4 space-x-2">
-                <button id="toggleTaskManagerBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Task Manager</button>
-                <button id="advancedOptionsBtnMain" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Advanced Options</button>
-            </div>
         </header>
 
         <!-- Main View Navigation -->
-        <div id="main-view-nav" class="mb-6 text-center">
-            <div class="inline-flex rounded-md shadow-sm" role="group">
-                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn">
+        <div id="main-view-nav" class="mb-6 flex justify-between items-center">
+            <div class="flex space-x-2">
+                <button id="show-task-manager-btn" type="button" class="view-toggle-btn py-2 px-4 font-semibold rounded-lg shadow-md">
+                    <i class="fa-solid fa-tasks mr-2"></i>Task Manager
+                </button>
+                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-dashboard-btn" type="button" class="view-toggle-btn">
+                <button id="show-dashboard-btn" type="button" class="view-toggle-btn py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
             </div>
+            <button id="advancedOptionsBtnMain" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Advanced Options</button>
         </div>
 
         <!-- Main Content Area -->
@@ -50,9 +50,9 @@
                     <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
                         <div class="flex items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Day</button>
-                            <button data-view="weekly" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Week</button>
-                            <button data-view="month" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
+                            <button data-view="daily" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Day</button>
+                            <button data-view="weekly" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Week</button>
+                            <button data-view="month" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
                         </div>
                         <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Add New Task</button>
                     </div>
@@ -74,7 +74,7 @@
                         <div id="indicatorList" class="mb-3 space-y-2"></div>
                         <div class="flex space-x-2">
                             <input type="text" id="newIndicatorInput" placeholder="New KPI (e.g., Landings)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                            <select id="newIndicatorFrequency" class="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
+                            <select id="newIndicatorFrequency" class="rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="weekly">Weekly</option>
                                 <option value="daily">Daily</option>
                             </select>
@@ -86,6 +86,22 @@
                 <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
                     <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
                     <div id="progressTrackerContainer" class="space-y-6"></div>
+                </div>
+            </div>
+
+            <!-- Task Manager View -->
+            <div id="task-manager-view" class="hidden">
+                <div class="text-center mb-6 space-x-2">
+                    <button id="add-task-btn" class="control-button bg-blue-600 hover:bg-blue-700 text-white">
+                        Add New Task
+                    </button>
+                    <button id="advanced-options-btn" class="control-button bg-gray-700 hover:bg-gray-800 text-white">
+                        Advanced Options
+                    </button>
+                </div>
+                <!-- This div will be populated with tasks by JavaScript -->
+                <div id="task-list" class="space-y-2">
+                    <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
                 </div>
             </div>
         </div>
@@ -102,27 +118,6 @@
         </div>
     </div>
 
-    <!-- Task Manager Modal -->
-    <div id="taskManagerModal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-4xl w-full mx-auto p-6 mt-8">
-            <div class="flex justify-between items-center">
-                <h1 class="text-3xl font-bold mb-6 text-center">Task Manager</h1>
-                <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl" aria-label="Close Task Manager">&times;</button>
-            </div>
-        <div class="text-center mb-6 space-x-2">
-            <button id="add-task-btn" class="control-button bg-blue-600 hover:bg-blue-700 text-white">
-                Add New Task
-            </button>
-            <button id="advanced-options-btn" class="control-button bg-gray-700 hover:bg-gray-800 text-white">
-                Advanced Options
-            </button>
-        </div>
-        <!-- This div will be populated with tasks by JavaScript -->
-        <div id="task-list" class="space-y-2">
-            <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
-        </div>
-        </div>
-    </div>
 
     <!-- Modal for adding and editing tasks -->
     <div id="task-modal" class="modal">
