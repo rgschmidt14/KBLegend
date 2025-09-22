@@ -193,3 +193,32 @@ export function categoryManagerTemplate(categories) {
 
     return categoryItems + addButton;
 }
+
+export function taskViewTemplate(task, { categories, appSettings }) {
+    const category = categories.find(c => c.id === task.categoryId);
+    const categoryName = category ? category.name : 'Uncategorized';
+    const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
+    const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
+    let repetitionStr = 'Non-Repeating';
+    if (task.repetitionType === 'relative') {
+        repetitionStr = `Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
+    } else if (task.repetitionType === 'absolute') {
+        repetitionStr = getAbsoluteRepetitionString(task);
+    }
+
+    return `
+        <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
+        <div class="space-y-3 text-gray-700">
+            <p><strong>Status:</strong> <span class="font-semibold">${task.status.charAt(0).toUpperCase() + task.status.slice(1)}</span></p>
+            <p><strong>Category:</strong> ${categoryName}</p>
+            <p><strong>Due Date:</strong> ${dueDateStr}</p>
+            <p><strong>Estimated Duration:</strong> ${durationStr}</p>
+            <p><strong>Repetition:</strong> ${repetitionStr}</p>
+        </div>
+        <div class="mt-6 flex justify-end space-x-3">
+            <button data-action="viewTaskStats" class="control-button control-button-blue">View Statistics</button>
+            <button data-action="editTaskFromView" class="control-button control-button-yellow">Edit Task</button>
+        </div>
+    `;
+}

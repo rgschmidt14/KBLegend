@@ -577,9 +577,45 @@
                         </label>
                     </div>
                 </fieldset>
+                <fieldset>
+                    <legend>Data Management</legend>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="form-label">Export Data:</label>
+                            <div class="flex flex-wrap gap-2" id="export-options-container">
+                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue">Export All</button>
+                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray">Tasks Only</button>
+                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray">Categories Only</button>
+                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray">History Only</button>
+                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray">Settings Only</button>
+                            </div>
+                            <p class="form-hint">Export your application data to a JSON file.</p>
+                        </div>
+                        <div>
+                            <label class="form-label">Import Data:</label>
+                            <button data-action="importData" class="control-button control-button-green">Import from File</button>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json">
+                            <p class="form-hint">Import data from a previously exported JSON file. This will overwrite existing data.</p>
+                        </div>
+                    </div>
+                </fieldset>
             </div>
         </div>
     </div>
+
+    <!-- Modal for viewing task details and stats -->
+    <div id="task-view-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-button" aria-label="Close Task View">&times;</button>
+            <div id="task-view-content">
+                <!-- Task details will be rendered here by JavaScript -->
+            </div>
+            <div id="task-stats-content" class="hidden">
+                <!-- Task statistics will be rendered here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/script.js"></script>
 </body>
 </html>

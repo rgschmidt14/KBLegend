@@ -50,6 +50,17 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.6) - 09/22/2025
+
+This update introduces critical data management features and lays the groundwork for task analytics, improving data portability and user insight.
+
+*   **Data Portability (Import/Export):**
+    *   **Flexible Backups:** From the "Advanced Options" menu, users can now export their application data to a JSON file. This feature provides flexible backup options, allowing users to export all data or specific parts like tasks, categories, history, or settings.
+    *   **Data Recovery:** Users can import data from a backup file, which will overwrite the current data and reload the application. This is crucial for data safety and recovery.
+*   **Task Statistics Page:**
+    *   **New Task View:** Clicking a task in the planner now opens a "Task View" modal, which provides a quick overview of the task's details.
+    *   **Dedicated Stats:** From the "Task View," users can navigate to a dedicated statistics page that shows the task's completion rate, total completions vs. misses, and a detailed history of its activity. This provides users with valuable insights into their performance on individual tasks.
+
 ### ✅ Recently Completed (Version 2.5) - 09/22/2025
 
 This update improves accessibility and continues the ongoing effort to refactor the codebase for better maintainability.
@@ -155,8 +166,7 @@ This update focused on improving the long-term stability and maintainability of 
 
 The following features and fixes have been prioritized for upcoming releases.
 
-*   **Data Portability (Import/Export):**
-    *   **Objective:** Implement features to import and export all critical application data (tasks, categories, settings) via JSON files. This is a crucial step for data backup and for enabling future migrations to a database backend.
+*   **(No high-priority items currently planned. See Future Roadmap and Community Suggestions.)**
 
 ### **🚀 Future Roadmap**
 
@@ -179,7 +189,9 @@ A collection of great ideas suggested for future consideration.
 
 * ~~**Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.~~ (Done. The `taskTemplate` in `js/templates.js` establishes the pattern for this.)
 * **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js` and the `taskTemplate`, but many components (like modals and managers) are still built with strings in `js/script.js`. The goal is to move all HTML generation to the `templates.js` file.
-* **Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.
+* ~~**Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.~~ (Done in v2.6).
+* **Enhance Task Statistics:** Improve the dedicated Task Statistics page by adding more advanced analytics and visualizations, such as graphs for completion rates over time, to provide deeper insights into user performance.
+* **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
 * **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
 * ~~**Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.~~ (Done in v2.3 as the "Dual-View Layout").
 * **Task Data Migration Tool:**
