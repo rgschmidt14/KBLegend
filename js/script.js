@@ -85,7 +85,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
 let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, newIndicatorFrequency, addIndicatorBtn,
     calendarEl, // New element for FullCalendar
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
-    cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn,
+    cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
     weekStatusEl, weekDateRangeEl,
     showTaskManagerBtn, showCalendarBtn, showDashboardBtn, taskManagerView, calendarView, dashboardView,
     taskViewModal, taskViewContent, taskStatsContent;
@@ -2147,53 +2147,99 @@ function handleFileImport(event) {
                 return;
             }
 
-            if (!confirm('This will overwrite existing data. Are you sure you want to continue?')) {
-                return;
+            const importMode = prompt("Choose import mode: 'overwrite' to replace all existing data, or 'merge' to add new tasks and categories.", "merge");
+
+            if (!importMode) {
+                event.target.value = '';
+                return; // User cancelled the prompt
             }
 
-            const importContent = importedData.data;
+            if (importMode.toLowerCase() === 'overwrite') {
+                if (!confirm('This will overwrite existing data. Are you sure you want to continue?')) {
+                    event.target.value = '';
+                    return;
+                }
+                 const importContent = importedData.data;
 
-            if (importedData.dataType === 'all') {
-                if(importContent.tasks) localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
-                if(importContent.categories) localStorage.setItem('categories', JSON.stringify(importContent.categories));
-                if(importContent.appState) localStorage.setItem(DATA_KEY, JSON.stringify(importContent.appState));
-                if(importContent.settings) {
-                    Object.keys(importContent.settings).forEach(key => {
+                if (importedData.dataType === 'all') {
+                    if(importContent.tasks) localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
+                    if(importContent.categories) localStorage.setItem('categories', JSON.stringify(importContent.categories));
+                    if(importContent.appState) localStorage.setItem(DATA_KEY, JSON.stringify(importContent.appState));
+                    if(importContent.settings) {
+                        Object.keys(importContent.settings).forEach(key => {
+                            localStorage.setItem(key, JSON.stringify(importContent.settings[key]));
+                        });
+                    }
+                } else if (importedData.dataType === 'tasks' && importContent.tasks) {
+                    let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
+                    if (importContent.categories && Array.isArray(importContent.categories)) {
+                        importContent.categories.forEach(importedCat => {
+                            const existingIndex = existingCategories.findIndex(c => c.id === importedCat.id);
+                            if (existingIndex > -1) {
+                                existingCategories[existingIndex] = importedCat;
+                            } else {
+                                existingCategories.push(importedCat);
+                            }
+                        });
+                    }
+                    localStorage.setItem('categories', JSON.stringify(existingCategories));
+                    localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
+                } else if (importedData.dataType === 'categories' && importContent.categories) {
+                     localStorage.setItem('categories', JSON.stringify(importContent.categories));
+                } else if (importedData.dataType === 'history' && importContent.appState) {
+                    const existingPlannerData = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
+                    existingPlannerData.historicalTasks = importContent.appState.historicalTasks;
+                    localStorage.setItem(DATA_KEY, JSON.stringify(existingPlannerData));
+                } else if (importedData.dataType === 'settings' && importContent.settings) {
+                     Object.keys(importContent.settings).forEach(key => {
                         localStorage.setItem(key, JSON.stringify(importContent.settings[key]));
                     });
+                } else {
+                    alert('Error: The data type in the file is not recognized or data is missing.');
+                    return;
                 }
-            } else if (importedData.dataType === 'tasks' && importContent.tasks) {
-                let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
-                if (importContent.categories && Array.isArray(importContent.categories)) {
-                    importContent.categories.forEach(importedCat => {
-                        const existingIndex = existingCategories.findIndex(c => c.id === importedCat.id);
-                        if (existingIndex > -1) {
-                            existingCategories[existingIndex] = importedCat;
-                        } else {
-                            existingCategories.push(importedCat);
+            } else if (importMode.toLowerCase() === 'merge') {
+                const importContent = importedData.data;
+
+                const merge = (existing, incoming, idKey) => {
+                    const existingIds = new Set(existing.map(item => item[idKey]));
+                    incoming.forEach(item => {
+                        if (!existingIds.has(item[idKey])) {
+                            existing.push(item);
                         }
                     });
+                    return existing;
+                };
+
+                if (importedData.dataType === 'all') {
+                    if (importContent.tasks) {
+                        let existingTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                        localStorage.setItem('tasks', JSON.stringify(merge(existingTasks, importContent.tasks, 'id')));
+                    }
+                    if (importContent.categories) {
+                        let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
+                        localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
+                    }
+                } else if (importedData.dataType === 'tasks' && importContent.tasks) {
+                     if (importContent.categories) {
+                        let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
+                        localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
+                    }
+                    let existingTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                    localStorage.setItem('tasks', JSON.stringify(merge(existingTasks, importContent.tasks, 'id')));
+                } else if (importedData.dataType === 'categories' && importContent.categories) {
+                    let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
+                    localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
                 }
-                localStorage.setItem('categories', JSON.stringify(existingCategories));
-                localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
-            } else if (importedData.dataType === 'categories' && importContent.categories) {
-                 localStorage.setItem('categories', JSON.stringify(importContent.categories));
-            } else if (importedData.dataType === 'history' && importContent.appState) {
-                const existingPlannerData = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
-                existingPlannerData.historicalTasks = importContent.appState.historicalTasks;
-                localStorage.setItem(DATA_KEY, JSON.stringify(existingPlannerData));
-            } else if (importedData.dataType === 'settings' && importContent.settings) {
-                 Object.keys(importContent.settings).forEach(key => {
-                    localStorage.setItem(key, JSON.stringify(importContent.settings[key]));
-                });
+
+                alert('Merge successful! The application will now reload.');
+                location.reload();
+
             } else {
-                alert('Error: The data type in the file is not recognized or data is missing.');
+                alert("Invalid import mode. Please choose 'overwrite' or 'merge'.");
+                event.target.value = '';
                 return;
             }
-
-
-            alert('Import successful! The application will now reload.');
-            location.reload();
 
         } catch (error) {
             console.error('Error importing data:', error);
@@ -2434,6 +2480,7 @@ function initializeDOMElements() {
     confirmNewWeekBtn = document.getElementById('confirmNewWeek');
     prevWeekBtn = document.getElementById('prevWeekBtn');
     nextWeekBtn = document.getElementById('nextWeekBtn');
+    todayBtn = document.getElementById('todayBtn');
     weekStatusEl = document.getElementById('weekStatus');
     weekDateRangeEl = document.getElementById('weekDateRange');
 
@@ -2623,13 +2670,13 @@ function setupEventListeners() {
         }
     });
     taskListDiv.addEventListener('click', (event) => {
-        if (event.target.closest('.collapsible-header')) {
-            const header = event.target.closest('.collapsible-header');
-            const group = header.dataset.group;
+        const collapsibleHeader = event.target.closest('.collapsible-header');
+        if (collapsibleHeader) {
+            const group = collapsibleHeader.dataset.group;
             const tasksToToggle = taskListDiv.querySelectorAll(`.task-item[data-group="${group}"]`);
-            const icon = header.querySelector('span');
-            header.classList.toggle('collapsed');
-            if (header.classList.contains('collapsed')) {
+            const icon = collapsibleHeader.querySelector('span');
+            collapsibleHeader.classList.toggle('collapsed');
+            if (collapsibleHeader.classList.contains('collapsed')) {
                 icon.style.transform = 'rotate(-90deg)';
                 tasksToToggle.forEach(t => t.style.display = 'none');
             } else {
@@ -2638,67 +2685,72 @@ function setupEventListeners() {
             }
             return;
         }
+
+        const taskItem = event.target.closest('.task-item');
+        if (!taskItem) return;
+
         const actionTarget = event.target.closest('[data-action]');
-        if (!actionTarget) return;
+        const taskId = taskItem.dataset.taskId;
 
-        const action = actionTarget.dataset.action;
-        const taskId = actionTarget.dataset.taskId;
-
-        // If the action is to view the task, but the user actually clicked on an interactive element
-        // inside the task card, we ignore the 'viewTask' action and let the more specific action handle it.
-        if (action === 'viewTask' && event.target.closest('button, a, input, .edit-progress-button')) {
-            return;
+        if (!actionTarget || actionTarget.dataset.action === 'viewTask') {
+            // If the click is on the task item itself but not on a button, or it's explicitly the view action
+             if (!event.target.closest('button, a, input, .edit-progress-button')) {
+                openTaskView(taskId);
+                return;
+            }
         }
 
-        switch (action) {
-            case 'viewTask':
-                openTaskView(taskId);
-                break;
-            case 'edit':
-                editTask(taskId);
-                break;
-            case 'triggerDelete':
-                triggerDelete(taskId);
-                break;
-            case 'triggerCompletion':
-                triggerCompletion(taskId);
-                break;
-            case 'confirmCompletion':
-                confirmCompletionAction(taskId, actionTarget.dataset.confirmed === 'true');
-                break;
-            case 'handleOverdue':
-                handleOverdueChoice(taskId, actionTarget.dataset.choice);
-                break;
-            case 'confirmMiss':
-                confirmMissAction(taskId, actionTarget.dataset.confirmed === 'true');
-                break;
-            case 'confirmDelete':
-                confirmDeleteAction(taskId, actionTarget.dataset.confirmed === 'true');
-                break;
-            case 'triggerUndo':
-                triggerUndoConfirmation(taskId);
-                break;
-            case 'confirmUndo':
-                confirmUndoAction(taskId, actionTarget.dataset.confirmed === 'true');
-                break;
-            case 'incrementCount':
-                incrementCount(taskId);
-                break;
-            case 'decrementCount':
-                decrementCount(taskId);
-                break;
-            case 'toggleTimer':
-                toggleTimer(taskId);
-                break;
-            case 'editProgress':
-                editProgress(taskId);
-                break;
-            case 'saveProgress':
-                saveProgressEdit(taskId);
-                break;
-            case 'cancelProgress':
-                cancelProgressEdit(taskId);
-                break;
+        // If an action button was clicked, handle it
+        if (actionTarget) {
+            const action = actionTarget.dataset.action;
+            const taskIdForAction = actionTarget.dataset.taskId; // Use the taskId from the button
+            switch (action) {
+                case 'edit':
+                    editTask(taskIdForAction);
+                    break;
+                case 'triggerDelete':
+                    triggerDelete(taskIdForAction);
+                    break;
+                case 'triggerCompletion':
+                    triggerCompletion(taskIdForAction);
+                    break;
+                case 'confirmCompletion':
+                    confirmCompletionAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                    break;
+                case 'handleOverdue':
+                    handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice);
+                    break;
+                case 'confirmMiss':
+                    confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                    break;
+                case 'confirmDelete':
+                    confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                    break;
+                case 'triggerUndo':
+                    triggerUndoConfirmation(taskIdForAction);
+                    break;
+                case 'confirmUndo':
+                    confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                    break;
+                case 'incrementCount':
+                    incrementCount(taskIdForAction);
+                    break;
+                case 'decrementCount':
+                    decrementCount(taskIdForAction);
+                    break;
+                case 'toggleTimer':
+                    toggleTimer(taskIdForAction);
+                    break;
+                case 'editProgress':
+                    editProgress(taskIdForAction);
+                    break;
+                case 'saveProgress':
+                    saveProgressEdit(taskIdForAction);
+                    break;
+                case 'cancelProgress':
+                    cancelProgressEdit(taskIdForAction);
+                    break;
+            }
         }
     });
     const advancedOptionsContent = document.getElementById('advanced-options-content');
@@ -2858,6 +2910,11 @@ function setupEventListeners() {
     if (nextWeekBtn) {
         nextWeekBtn.addEventListener('click', () => {
             if (calendar) calendar.next();
+        });
+    }
+    if (todayBtn) {
+        todayBtn.addEventListener('click', () => {
+            if (calendar) calendar.today();
         });
     }
     if (viewBtns) {

@@ -50,6 +50,14 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.9) - 09/22/2025
+
+This update focused on improving the user experience by implementing several features from the backlog.
+
+*   **Re-integrated "Today" Button:** The "Today" button has been re-integrated into the main calendar header, providing quick navigation back to the current day.
+*   **Incremental Data Import:** The import functionality has been enhanced to allow users to merge imported tasks and categories with their existing data, in addition to the previous overwrite functionality.
+*   **Unified Task Click Behavior:** Ensured that clicking on a task in the main Task Manager list opens the "Task View" modal, providing a consistent user experience with the calendar view.
+
 ### ✅ Recently Completed (Version 2.8) - 09/22/2025
 
 This update focused on code quality and analytics, continuing the project's cleanup and feature enhancement goals.
@@ -181,13 +189,10 @@ This update focused on improving the long-term stability and maintainability of 
 
 This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
 
-*   **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
 *   **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
-*   **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
 *   **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
 *   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
 *   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
-*   **Re-integrate "Today" Button:** The main calendar controls were simplified to a `Prev`/`Next` layout. A "Today" button, which was part of the default FullCalendar UI, should be re-integrated into the new custom header to provide quick navigation back to the current day.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
