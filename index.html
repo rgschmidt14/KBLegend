@@ -159,18 +159,104 @@
                         </div>
                         <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Time Input Type:</label>
-                        <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                            <option value="due">Due Time</option>
-                            <option value="start">Start Time</option>
-                        </select>
-                    </div>
 
-                    <div id="start-date-group" class="mb-4 hidden"> <label for="task-start-date" class="form-label">Start Date & Time:</label> <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"> </div>
+                    <fieldset>
+                       <legend>Category</legend>
+                       <div class="mb-4">
+                           <label for="task-category" class="form-label">Category:</label>
+                           <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                               <option value="">None</option>
+                               <option value="new_category">-- Add New Category --</option>
+                               <!-- Existing categories will be populated here by JavaScript -->
+                           </select>
+                       </div>
+                       <div id="new-category-group" class="mb-4 hidden">
+                           <label for="new-category-name" class="form-label">New Category Name:</label>
+                           <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                       </div>
+                    </fieldset>
 
-                    <div class="mb-4"> <label class="form-label">Due Date Type:</label> <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"> <option value="absolute">Absolute Date & Time</option> <option value="relative">Relative Time</option> </select> </div>
-                    <div id="relative-due-date-group" class="mb-4 hidden"> <label class="form-label">Due In:</label> <div class="flex space-x-2 items-center"> <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Due relative to the time the task is saved.</p> </div>
+                    <fieldset>
+                        <legend>Time & Scheduling</legend>
+                        <div class="mb-4">
+                            <label class="form-label">Time Input Type:</label>
+                            <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="due">Due Time</option>
+                                <option value="start">Start Time</option>
+                            </select>
+                        </div>
+                        <div id="start-date-group" class="mb-4 hidden">
+                            <label for="task-start-date" class="form-label">Start Date & Time:</label>
+                            <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Due Date Type:</label>
+                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="absolute">Absolute Date & Time</option>
+                                <option value="relative">Relative Time</option>
+                            </select>
+                        </div>
+                        <div id="relative-due-date-group" class="mb-4 hidden">
+                            <label class="form-label">Due In:</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                    <option value="days">Day(s)</option>
+                                    <option value="weeks">Week(s)</option>
+                                    <option value="months">Month(s)</option>
+                                </select>
+                            </div>
+                            <p class="form-hint">Due relative to the time the task is saved.</p>
+                        </div>
+                         <div id="estimated-duration-group" class="mb-4">
+                             <label class="form-label">Estimated Duration:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
+                         </div>
+                         <div class="mb-4">
+                               <label for="requires-full-attention" class="flex items-center">
+                                   <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                   <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
+                               </label>
+                               <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
+                           </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Completion</legend>
+                        <div class="mb-4">
+                            <label class="form-label">Completion Type:</label>
+                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="simple">Simple (Mark Done)</option>
+                                <option value="count">Count</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div id="completion-count-group" class="mb-4 hidden">
+                             <label for="count-target" class="form-label">Target Count:</label>
+                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <p class="form-hint">The total count needed to complete the task.</p>
+                        </div>
+                        <div id="completion-time-group" class="mb-4 hidden">
+                             <label class="form-label">Target Time:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">The total time needed to complete the task.</p>
+                         </div>
+                    </fieldset>
 
                     <fieldset>
                        <legend>Repetition</legend>
@@ -319,66 +405,6 @@
                                </div>
                             </fieldset>
                         </div>
-                    </fieldset>
-                    <fieldset>
-                       <legend>Category</legend>
-                       <div class="mb-4">
-                           <label for="task-category" class="form-label">Category:</label>
-                           <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                               <option value="">None</option>
-                               <option value="new_category">-- Add New Category --</option>
-                               <!-- Existing categories will be populated here by JavaScript -->
-                           </select>
-                       </div>
-                       <div id="new-category-group" class="mb-4 hidden">
-                           <label for="new-category-name" class="form-label">New Category Name:</label>
-                           <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                       </div>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Completion</legend>
-                        <div class="mb-4">
-                            <label class="form-label">Completion Type:</label>
-                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                <option value="simple">Simple (Mark Done)</option>
-                                <option value="count">Count</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div id="completion-count-group" class="mb-4 hidden">
-                             <label for="count-target" class="form-label">Target Count:</label>
-                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                             <p class="form-hint">The total count needed to complete the task.</p>
-                        </div>
-                        <div id="completion-time-group" class="mb-4 hidden">
-                             <label class="form-label">Target Time:</label>
-                             <div class="flex space-x-2 items-center">
-                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                    <option value="minutes">Minute(s)</option>
-                                    <option value="hours">Hour(s)</option>
-                                 </select>
-                             </div>
-                             <p class="form-hint">The total time needed to complete the task.</p>
-                         </div>
-                         <div id="estimated-duration-group" class="mb-4">
-                             <label class="form-label">Estimated Duration:</label>
-                             <div class="flex space-x-2 items-center">
-                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                    <option value="minutes">Minute(s)</option>
-                                    <option value="hours">Hour(s)</option>
-                                 </select>
-                             </div>
-                             <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
-                         </div>
-                         <div class="mb-4">
-                               <label for="requires-full-attention" class="flex items-center">
-                                   <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                   <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
-                               </label>
-                               <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
-                           </div>
                     </fieldset>
                 </div>
                 <div class="flex justify-end space-x-3 mt-8">

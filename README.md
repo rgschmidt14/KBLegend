@@ -50,6 +50,16 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.4) - 09/21/2025
+
+This update improves the user experience of the task creation form by making it more intuitive and logical.
+
+*   **Task Form Reorganization:** The fields within the "Advanced" section of the task modal have been restructured and grouped into logical categories:
+    *   **Time & Scheduling:** All fields related to dates, duration, and scheduling are now grouped together.
+    *   **Completion:** Contains options for defining what it means to complete a task (e.g., simple check-off, count, or time tracking).
+    *   **Repetition:** All settings for recurring tasks, including the failure tracking options, are now consolidated in one place.
+*   **Improved Cohesion:** This change makes the form less cluttered and easier to navigate, especially when creating complex, recurring tasks.
+
 ### ✅ Recently Completed (Version 2.3) - 09/21/2025
 
 This update refactors the main user interface to improve organization and pave the way for a dedicated dashboard.
