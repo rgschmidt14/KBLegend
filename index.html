@@ -21,52 +21,73 @@
             <button id="toggleTaskManagerBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-4">Toggle Task Manager</button>
         </header>
 
-        <div id="mainPlannerSection">
-            <div class="flex justify-between items-center mb-4">
-                <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">&lt; Prev Week</button>
-                <div class="text-center">
-                    <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
-                    <p id="weekDateRange" class="text-sm text-gray-400"></p>
-                </div>
-                <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">Next Week &gt;</button>
+        <!-- Main View Navigation -->
+        <div id="main-view-nav" class="mb-6 text-center">
+            <div class="inline-flex rounded-md shadow-sm" role="group">
+                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn">
+                    <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
+                </button>
+                <button id="show-dashboard-btn" type="button" class="view-toggle-btn">
+                    <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
+                </button>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
-                    <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
-                    <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
-                </div>
-
-                <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
-                    <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators (KPIs)</h2>
-                    <div id="indicatorList" class="mb-3 space-y-2"></div>
-                    <div class="flex space-x-2">
-                        <input type="text" id="newIndicatorInput" placeholder="New KPI (e.g., Landings)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                        <select id="newIndicatorFrequency" class="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                            <option value="weekly">Weekly</option>
-                            <option value="daily">Daily</option>
-                        </select>
-                        <button id="addIndicatorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Add</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
-                <div class="flex items-center space-x-2">
-                    <span class="font-semibold mr-2">View:</span>
-                    <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Daily</button>
-                    <button data-view="weekly" class="view-btn bg-blue-600 text-white font-semibold py-1 px-3 rounded-md transition-colors">Weekly</button>
-                    <button data-view="month" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
-                </div>
-                <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Add New Task</button>
-            </div>
-
-            <div id="calendar" class="bg-gray-900 rounded-b-lg shadow-lg p-4 text-white"></div>
         </div>
 
-        <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
-            <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
-            <div id="progressTrackerContainer" class="space-y-6"></div>
+        <!-- Main Content Area -->
+        <div id="main-content">
+            <!-- Calendar View -->
+            <div id="calendar-view">
+                <div id="mainPlannerSection">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">&lt; Prev Week</button>
+                        <div class="text-center">
+                            <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
+                            <p id="weekDateRange" class="text-sm text-gray-400"></p>
+                        </div>
+                        <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">Next Week &gt;</button>
+                    </div>
+
+                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold mr-2">View:</span>
+                            <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Daily</button>
+                            <button data-view="weekly" class="view-btn bg-blue-600 text-white font-semibold py-1 px-3 rounded-md transition-colors">Weekly</button>
+                            <button data-view="month" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
+                        </div>
+                        <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Add New Task</button>
+                    </div>
+
+                    <div id="calendar" class="bg-gray-900 rounded-b-lg shadow-lg p-4 text-white"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
+                        <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
+                        <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    </div>
+
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
+                        <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators (KPIs)</h2>
+                        <div id="indicatorList" class="mb-3 space-y-2"></div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="newIndicatorInput" placeholder="New KPI (e.g., Landings)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
+                            <select id="newIndicatorFrequency" class="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
+                                <option value="weekly">Weekly</option>
+                                <option value="daily">Daily</option>
+                            </select>
+                            <button id="addIndicatorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
+                    <div id="progressTrackerContainer" class="space-y-6"></div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -50,6 +50,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.3) - 09/21/2025
+
+This update refactors the main user interface to improve organization and pave the way for a dedicated dashboard.
+
+*   **Dual-View Layout:** The main planner interface has been split into two distinct views:
+    *   **Calendar View:** A focused view that contains the FullCalendar instance and all related time-management controls.
+    *   **Dashboard View:** A new dedicated home for non-timed planning elements, including the "Mission Goals" and "Key Performance Indicators (KPIs)".
+*   **Improved UI Navigation:** Clear "Calendar" and "Dashboard" toggle buttons have been added to the main header, allowing users to seamlessly switch between the two views. This declutters the primary interface and creates a more intuitive user experience.
+
 ### **✅ Recently Completed (Version 2.2) - 09/21/2025**
 
 This update is a major architectural enhancement that replaces the custom-built planner with the industry-standard **FullCalendar.io** library. This provides a more robust, feature-rich, and maintainable foundation for all future planner development.

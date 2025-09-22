@@ -82,7 +82,8 @@ let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, newIndicatorFrequenc
     calendarEl, // New element for FullCalendar
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn,
-    weekStatusEl, weekDateRangeEl;
+    weekStatusEl, weekDateRangeEl,
+    showCalendarBtn, showDashboardBtn, calendarView, dashboardView;
 
 // FullCalendar instance
 let calendar;
@@ -2328,6 +2329,12 @@ function initializeDOMElements() {
     nextWeekBtn = document.getElementById('nextWeekBtn');
     weekStatusEl = document.getElementById('weekStatus');
     weekDateRangeEl = document.getElementById('weekDateRange');
+
+    // View-switching elements
+    showCalendarBtn = document.getElementById('show-calendar-btn');
+    showDashboardBtn = document.getElementById('show-dashboard-btn');
+    calendarView = document.getElementById('calendar-view');
+    dashboardView = document.getElementById('dashboard-view');
 }
 function promptToAdvanceWeeks(weekDiff) {
     const modalTitle = confirmModal.querySelector('h3');
@@ -2748,6 +2755,26 @@ function setupEventListeners() {
     const addNewTaskBtnPlanner = document.getElementById('addNewTaskBtnPlanner');
     if (addNewTaskBtnPlanner) {
         addNewTaskBtnPlanner.addEventListener('click', () => openModal());
+    }
+
+    // Main View Toggles
+    if (showCalendarBtn && showDashboardBtn && calendarView && dashboardView) {
+        showCalendarBtn.addEventListener('click', () => {
+            calendarView.classList.remove('hidden');
+            dashboardView.classList.add('hidden');
+            showCalendarBtn.classList.add('active-view-btn');
+            showDashboardBtn.classList.remove('active-view-btn');
+            if (calendar) {
+                calendar.updateSize();
+            }
+        });
+
+        showDashboardBtn.addEventListener('click', () => {
+            calendarView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+            showCalendarBtn.classList.remove('active-view-btn');
+            showDashboardBtn.classList.add('active-view-btn');
+        });
     }
 
     // Add the listener for page visibility changes.
