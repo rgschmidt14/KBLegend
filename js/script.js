@@ -2048,30 +2048,6 @@ function saveCategoryEdit(categoryId) {
     }
 }
 
-function deleteActiveCategoryTasks(categoryId) {
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return;
-
-    const tasksToDelete = tasks.filter(task =>
-        task.categoryId === categoryId &&
-        task.status !== 'blue'
-    );
-
-    if (tasksToDelete.length === 0) {
-        alert(`No active tasks to delete in the "${category.name}" category.`);
-        return;
-    }
-
-    if (confirm(`Are you sure you want to delete ${tasksToDelete.length} active task(s) in the "${category.name}" category? This is irreversible. Your history for these tasks will be preserved.`)) {
-        const idsToDelete = tasksToDelete.map(t => t.id);
-        tasks = tasks.filter(task => !idsToDelete.includes(task.id));
-        saveData();
-        renderTasks();
-        if (calendar) calendar.refetchEvents();
-        alert('Active tasks deleted.');
-    }
-}
-
 function deleteCategoryTasks(categoryId) {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
@@ -2812,7 +2788,6 @@ function setupEventListeners() {
 
             switch(action) {
                 case 'deleteCategory': deleteCategory(categoryId); break;
-                case 'deleteActiveCategoryTasks': deleteActiveCategoryTasks(categoryId); break;
                 case 'deleteCategoryTasks': deleteCategoryTasks(categoryId); break;
                 case 'addCategory': addCategoryFromManager(); break;
                 case 'triggerCategoryEdit': triggerCategoryEdit(categoryId); break;
