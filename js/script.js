@@ -788,6 +788,7 @@ function renderTasks() {
 
         taskElement.className = `task-item p-2 rounded-lg shadow flex justify-between items-start`;
         taskElement.dataset.taskId = task.id;
+        taskElement.dataset.action = 'viewTask'; // Make the whole card clickable
         taskElement.dataset.status = task.status;
         if (groupName) {
             taskElement.dataset.group = groupName;
@@ -2040,6 +2041,52 @@ function saveCategoryEdit(categoryId) {
     }
 }
 
+function clearCategoryTasks(categoryId) {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const tasksToClear = tasks.filter(task =>
+        task.categoryId === categoryId &&
+        task.repetitionType === 'none' &&
+        !task.completed
+    );
+
+    if (tasksToClear.length === 0) {
+        alert(`No active, non-repeating tasks to clear in the "${category.name}" category.`);
+        return;
+    }
+
+    if (confirm(`Are you sure you want to clear ${tasksToClear.length} active task(s) from the "${category.name}" category? This will only remove non-repeating tasks that have not been completed. This action cannot be undone.`)) {
+        const idsToClear = tasksToClear.map(t => t.id);
+        tasks = tasks.filter(task => !idsToClear.includes(task.id));
+        saveData();
+        renderTasks();
+        if (calendar) calendar.refetchEvents();
+        alert('Active tasks cleared.');
+    }
+}
+
+function deleteCategoryTasks(categoryId) {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const tasksToDelete = tasks.filter(task => task.categoryId === categoryId);
+
+    if (tasksToDelete.length === 0) {
+        alert(`There are no tasks in the "${category.name}" category to delete.`);
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete all ${tasksToDelete.length} task(s) in the "${category.name}" category? This action cannot be undone.`)) {
+        const idsToDelete = tasksToDelete.map(t => t.id);
+        tasks = tasks.filter(task => !idsToDelete.includes(task.id));
+        saveData();
+        renderTasks();
+        if (calendar) calendar.refetchEvents();
+        alert('All tasks in the category have been deleted.');
+    }
+}
+
 function cancelCategoryEdit(categoryId) {
     renderCategoryManager();
 }
@@ -2685,27 +2732,67 @@ function setupEventListeners() {
             }
             return;
         }
-        const target = event.target.closest('[data-action]');
-        if (!target) return;
-        const action = target.dataset.action;
-        const taskId = target.dataset.taskId;
+        const actionTarget = event.target.closest('[data-action]');
+        if (!actionTarget) return;
+
+        const action = actionTarget.dataset.action;
+        const taskId = actionTarget.dataset.taskId;
+
+        // If the action is to view the task, but the user actually clicked on an interactive element
+        // inside the task card, we ignore the 'viewTask' action and let the more specific action handle it.
+        if (action === 'viewTask' && event.target.closest('button, a, input, .edit-progress-button')) {
+            return;
+        }
 
         switch (action) {
-            case 'edit': editTask(taskId); break;
-            case 'triggerDelete': triggerDelete(taskId); break;
-            case 'triggerCompletion': triggerCompletion(taskId); break;
-            case 'confirmCompletion': confirmCompletionAction(taskId, target.dataset.confirmed === 'true'); break;
-            case 'handleOverdue': handleOverdueChoice(taskId, target.dataset.choice); break;
-            case 'confirmMiss': confirmMissAction(taskId, target.dataset.confirmed === 'true'); break;
-            case 'confirmDelete': confirmDeleteAction(taskId, target.dataset.confirmed === 'true'); break;
-            case 'triggerUndo': triggerUndoConfirmation(taskId); break;
-            case 'confirmUndo': confirmUndoAction(taskId, target.dataset.confirmed === 'true'); break;
-            case 'incrementCount': incrementCount(taskId); break;
-            case 'decrementCount': decrementCount(taskId); break;
-            case 'toggleTimer': toggleTimer(taskId); break;
-            case 'editProgress': editProgress(taskId); break;
-            case 'saveProgress': saveProgressEdit(taskId); break;
-            case 'cancelProgress': cancelProgressEdit(taskId); break;
+            case 'viewTask':
+                openTaskView(taskId);
+                break;
+            case 'edit':
+                editTask(taskId);
+                break;
+            case 'triggerDelete':
+                triggerDelete(taskId);
+                break;
+            case 'triggerCompletion':
+                triggerCompletion(taskId);
+                break;
+            case 'confirmCompletion':
+                confirmCompletionAction(taskId, actionTarget.dataset.confirmed === 'true');
+                break;
+            case 'handleOverdue':
+                handleOverdueChoice(taskId, actionTarget.dataset.choice);
+                break;
+            case 'confirmMiss':
+                confirmMissAction(taskId, actionTarget.dataset.confirmed === 'true');
+                break;
+            case 'confirmDelete':
+                confirmDeleteAction(taskId, actionTarget.dataset.confirmed === 'true');
+                break;
+            case 'triggerUndo':
+                triggerUndoConfirmation(taskId);
+                break;
+            case 'confirmUndo':
+                confirmUndoAction(taskId, actionTarget.dataset.confirmed === 'true');
+                break;
+            case 'incrementCount':
+                incrementCount(taskId);
+                break;
+            case 'decrementCount':
+                decrementCount(taskId);
+                break;
+            case 'toggleTimer':
+                toggleTimer(taskId);
+                break;
+            case 'editProgress':
+                editProgress(taskId);
+                break;
+            case 'saveProgress':
+                saveProgressEdit(taskId);
+                break;
+            case 'cancelProgress':
+                cancelProgressEdit(taskId);
+                break;
         }
     });
     const advancedOptionsContent = document.getElementById('advanced-options-content');
@@ -2719,6 +2806,8 @@ function setupEventListeners() {
 
             switch(action) {
                 case 'deleteCategory': deleteCategory(categoryId); break;
+                case 'clearCategoryTasks': clearCategoryTasks(categoryId); break;
+                case 'deleteCategoryTasks': deleteCategoryTasks(categoryId); break;
                 case 'addCategory': addCategoryFromManager(); break;
                 case 'triggerCategoryEdit': triggerCategoryEdit(categoryId); break;
                 case 'saveCategoryEdit': saveCategoryEdit(categoryId); break;

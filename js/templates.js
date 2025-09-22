@@ -174,13 +174,19 @@ export function categoryManagerTemplate(categories) {
     }
 
     const categoryItems = categories.map(cat => `
-        <div class="flex items-center justify-between p-2 border-b" id="category-item-${cat.id}">
-            <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
-                <span class="font-medium cursor-pointer">${cat.name}</span>
+        <div class="p-2 border-b" id="category-item-${cat.id}">
+            <div class="flex items-center justify-between">
+                <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
+                    <span class="font-medium cursor-pointer">${cat.name}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
+                    <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
+                </div>
             </div>
-            <div class="flex items-center space-x-2">
-                <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
-                <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
+            <div class="mt-2 flex justify-end space-x-2">
+                <button data-action="clearCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs">Clear Active</button>
+                <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs">Delete All</button>
             </div>
         </div>
     `).join('');
