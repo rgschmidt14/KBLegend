@@ -167,3 +167,29 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
                 ${commonButtonsContainer}
             </div>`;
 }
+
+export function categoryManagerTemplate(categories) {
+    if (categories.length === 0) {
+        return '<p class="text-gray-500 italic">No categories created yet.</p>';
+    }
+
+    const categoryItems = categories.map(cat => `
+        <div class="flex items-center justify-between p-2 border-b" id="category-item-${cat.id}">
+            <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
+                <span class="font-medium cursor-pointer">${cat.name}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
+                <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
+            </div>
+        </div>
+    `).join('');
+
+    const addButton = `
+        <button class="control-button control-button-blue mt-4" data-action="addCategory">
+            Add New Category
+        </button>
+    `;
+
+    return categoryItems + addButton;
+}

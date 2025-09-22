@@ -50,6 +50,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 2.5) - 09/22/2025
+
+This update improves accessibility and continues the ongoing effort to refactor the codebase for better maintainability.
+
+*   **Advanced Options Button:** The "Advanced Options" panel, previously only accessible from within the Task Manager, can now be opened directly from the main application header. This provides users with quicker access to powerful customization features.
+*   **Code Refactoring:** The `renderCategoryManager` function was refactored to use a dedicated template file (`js/templates.js`), separating its HTML structure from the core application logic. This makes the code cleaner and easier to maintain.
+
 ### ✅ Recently Completed (Version 2.4) - 09/21/2025
 
 This update improves the user experience of the task creation form by making it more intuitive and logical.
@@ -148,9 +155,8 @@ This update focused on improving the long-term stability and maintainability of 
 
 The following features and fixes have been prioritized for upcoming releases.
 
-*   **Advanced Options Accessibility:**
-    *   **Problem:** The "Advanced Options" panel is only accessible from within the Task Manager modal.
-    *   **Objective:** Add a button or link to the main planner interface to open the Advanced Options directly.
+*   **Data Portability (Import/Export):**
+    *   **Objective:** Implement features to import and export all critical application data (tasks, categories, settings) via JSON files. This is a crucial step for data backup and for enabling future migrations to a database backend.
 
 ### **🚀 Future Roadmap**
 
@@ -160,7 +166,6 @@ These are larger, more long-term goals for the project.
 * **Database Integration:** Transition from localStorage to a persistent database like Firebase Firestore.  
 * **User Authentication:** Implement user accounts.  
 * **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices.  
-* **Data Portability (Import/Export):** Implement features to import and export tasks and categories via JSON files.  
 * **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
 #### **🎉 Anniversary Update Ideas**
@@ -172,13 +177,11 @@ These are larger, more long-term goals for the project.
 
 A collection of great ideas suggested for future consideration.
 
-* **Drag-and-Drop Scheduling:** Now that the planner is powered by FullCalendar.io, implementing drag-and-drop rescheduling is a high-priority and achievable next step.
-* **Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.
-* **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript, following the pattern established in the new `js/templates.js` file. The goal is to make the code more modular and maintainable.
-* **Keyboard shortcuts:** Adding shortcuts for common actions (like creating a new task) could make the app faster to use.
+* ~~**Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.~~ (Done. The `taskTemplate` in `js/templates.js` establishes the pattern for this.)
+* **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js` and the `taskTemplate`, but many components (like modals and managers) are still built with strings in `js/script.js`. The goal is to move all HTML generation to the `templates.js` file.
 * **Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.
 * **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
-* **Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.
+* ~~**Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.~~ (Done in v2.3 as the "Dual-View Layout").
 * **Task Data Migration Tool:**
   * **Problem:** As new features are added, the data structure for tasks (`task` objects) changes. Users with task data from older versions of the application may lose their data or experience bugs when the app tries to read an outdated format.
   * **Objective:** Create a tool that can seamlessly migrate user tasks from an old format to the current one.
@@ -192,6 +195,13 @@ A collection of great ideas suggested for future consideration.
         *   The right column will show a form for any *new* or *missing* properties that the new task format requires (e.g., `requiresFullAttention`).
         *   The form should use the appropriate input type for each new property (e.g., a checkbox for a boolean, a text field for a string).
     4.  **User Input & Confirmation:** The user can then provide values for the new properties and click a "Submit & Update Next" button. The application will then update the current task, save it, and load the next outdated task into the migration UI. This continues until all tasks are up-to-date.
+
+### **🔩 Ongoing Development**
+
+To ensure the long-term health and stability of the application, the following principles should be followed during development.
+
+*   **Continuous Refactoring:** As new features are added, prioritize clean code. If a component's HTML is generated in `js/script.js`, take the time to move it into a dedicated function in `js/templates.js`.
+*   **Test-Driven Development (TDD):** For any new logical function (especially in `task-logic.js`), write tests *before* writing the function itself. This ensures correctness and prevents future regressions. The project is set up with Jest for this purpose.
 
 ## **Development**
 
