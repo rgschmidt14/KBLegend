@@ -2548,7 +2548,7 @@ function promptToAdvanceWeeks(weekDiff) {
         cleanup();
     };
 
-    const cleanup = ()_> {
+    const cleanup = () => {
         confirmBtn.removeEventListener('click', onConfirm);
         cancelBtn.removeEventListener('click', onCancel);
     };
@@ -2561,8 +2561,6 @@ function promptToAdvanceWeeks(weekDiff) {
 
 function setupEventListeners() {
     // Task Manager
-    const taskManagerModal = document.getElementById('taskManagerModal');
-    const toggleTaskManagerBtn = document.getElementById('toggleTaskManagerBtn');
     if (toggleTaskManagerBtn) {
         toggleTaskManagerBtn.addEventListener('click', () => {
             const isHidden = taskManagerModal.classList.toggle('hidden');
@@ -2573,6 +2571,7 @@ function setupEventListeners() {
             }
         });
     }
+
     const closeTaskManagerBtn = document.getElementById('closeTaskManagerBtn');
     if (closeTaskManagerBtn) {
         closeTaskManagerBtn.addEventListener('click', () => {
