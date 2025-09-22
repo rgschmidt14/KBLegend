@@ -43,18 +43,15 @@
                 <div id="mainPlannerSection">
                     <div class="flex justify-between items-center mb-4">
                         <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">&lt; Prev Week</button>
-                        <div class="text-center">
-                            <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
-                            <p id="weekDateRange" class="text-sm text-gray-400"></p>
-                        </div>
+                        <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
                         <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">Next Week &gt;</button>
                     </div>
 
                     <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
                         <div class="flex items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Daily</button>
-                            <button data-view="weekly" class="view-btn bg-blue-600 text-white font-semibold py-1 px-3 rounded-md transition-colors">Weekly</button>
+                            <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Day</button>
+                            <button data-view="weekly" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Week</button>
                             <button data-view="month" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
                         </div>
                         <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Add New Task</button>

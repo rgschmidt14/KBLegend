@@ -3443,11 +3443,7 @@ function initializeCalendar() {
     calendar = new Calendar(calendarEl, {
         plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
         initialView: 'timeGridWeek',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
+        headerToolbar: false,
         editable: true,
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
@@ -3486,6 +3482,45 @@ function initializeCalendar() {
                 console.error("Error fetching events for FullCalendar:", e);
                 failureCallback(e);
             }
+        },
+        datesSet: (info) => {
+            // Update the custom header title
+            if (weekStatusEl) {
+                weekStatusEl.textContent = info.view.title;
+            }
+
+            // Update prev/next button labels and view button highlights
+            const viewType = info.view.type;
+            let prevText = '&lt; Prev';
+            let nextText = 'Next &gt;';
+            let activeView = 'weekly'; // default
+
+            if (viewType === 'dayGridMonth') {
+                prevText = '&lt; Prev Month';
+                nextText = 'Next Month &gt;';
+                activeView = 'month';
+            } else if (viewType === 'timeGridWeek') {
+                prevText = '&lt; Prev Week';
+                nextText = 'Next Week &gt;';
+                activeView = 'weekly';
+            } else if (viewType === 'timeGridDay') {
+                prevText = '&lt; Prev Day';
+                nextText = 'Next Day &gt;';
+                activeView = 'daily';
+            }
+
+            if (prevWeekBtn) prevWeekBtn.innerHTML = prevText;
+            if (nextWeekBtn) nextWeekBtn.innerHTML = nextText;
+
+            // Update active state on view buttons
+            viewBtns.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-700', 'hover:bg-blue-600');
+                if (btn.dataset.view === activeView) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-gray-700', 'hover:bg-blue-600');
+                }
+            });
         },
         eventClick: (info) => {
             const taskId = info.event.extendedProps.taskId;

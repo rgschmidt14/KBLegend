@@ -182,6 +182,7 @@ This section outlines the next set of features and improvements planned before t
 *   **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
 *   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
 *   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
+*   **Re-integrate "Today" Button:** The main calendar controls were simplified to a `Prev`/`Next` layout. A "Today" button, which was part of the default FullCalendar UI, should be re-integrated into the new custom header to provide quick navigation back to the current day.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
