@@ -185,7 +185,7 @@ export function categoryManagerTemplate(categories) {
                 </div>
             </div>
             <div class="mt-2 flex justify-end space-x-2">
-                <button data-action="clearCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs">Clear Active</button>
+                <button data-action="deleteActiveCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs">Delete Active</button>
                 <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs">Delete All</button>
             </div>
         </div>

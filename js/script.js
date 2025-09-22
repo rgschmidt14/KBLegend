@@ -1783,6 +1783,13 @@ function confirmUndoAction(taskId, confirmed) {
     if (!task) return;
     if (confirmed) {
         if (task.status !== 'blue' || task.repetitionType === 'none') return;
+
+        // Find and remove the last completed instance from history
+        const lastCompletedIndex = appState.historicalTasks.map(t => t.originalTaskId).lastIndexOf(taskId);
+        if (lastCompletedIndex > -1 && appState.historicalTasks[lastCompletedIndex].status === 'completed') {
+            appState.historicalTasks.splice(lastCompletedIndex, 1);
+        }
+
         task.dueDate = task.cycleEndDate ? new Date(task.cycleEndDate) : new Date();
         task.cycleEndDate = null;
         if (task.completionReducedMisses && task.trackMisses && task.maxMisses > 0) {
@@ -2041,28 +2048,27 @@ function saveCategoryEdit(categoryId) {
     }
 }
 
-function clearCategoryTasks(categoryId) {
+function deleteActiveCategoryTasks(categoryId) {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    const tasksToClear = tasks.filter(task =>
+    const tasksToDelete = tasks.filter(task =>
         task.categoryId === categoryId &&
-        task.repetitionType === 'none' &&
-        !task.completed
+        task.status !== 'blue'
     );
 
-    if (tasksToClear.length === 0) {
-        alert(`No active, non-repeating tasks to clear in the "${category.name}" category.`);
+    if (tasksToDelete.length === 0) {
+        alert(`No active tasks to delete in the "${category.name}" category.`);
         return;
     }
 
-    if (confirm(`Are you sure you want to clear ${tasksToClear.length} active task(s) from the "${category.name}" category? This will only remove non-repeating tasks that have not been completed. This action cannot be undone.`)) {
-        const idsToClear = tasksToClear.map(t => t.id);
-        tasks = tasks.filter(task => !idsToClear.includes(task.id));
+    if (confirm(`Are you sure you want to delete ${tasksToDelete.length} active task(s) in the "${category.name}" category? This is irreversible. Your history for these tasks will be preserved.`)) {
+        const idsToDelete = tasksToDelete.map(t => t.id);
+        tasks = tasks.filter(task => !idsToDelete.includes(task.id));
         saveData();
         renderTasks();
         if (calendar) calendar.refetchEvents();
-        alert('Active tasks cleared.');
+        alert('Active tasks deleted.');
     }
 }
 
@@ -2806,7 +2812,7 @@ function setupEventListeners() {
 
             switch(action) {
                 case 'deleteCategory': deleteCategory(categoryId); break;
-                case 'clearCategoryTasks': clearCategoryTasks(categoryId); break;
+                case 'deleteActiveCategoryTasks': deleteActiveCategoryTasks(categoryId); break;
                 case 'deleteCategoryTasks': deleteCategoryTasks(categoryId); break;
                 case 'addCategory': addCategoryFromManager(); break;
                 case 'triggerCategoryEdit': triggerCategoryEdit(categoryId); break;
