@@ -235,6 +235,14 @@ legend {
 /* Toggle Switch Styles */
 .toggle-checkbox {
     position: relative;
+    width: 3.5rem; /* w-14 */
+    height: 2rem; /* h-8 */
+    padding: 0.25rem; /* p-1 */
+    background-color: #e5e7eb; /* gray-200 */
+    border-radius: 9999px; /* rounded-full */
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
 }
 
 .toggle-checkbox::before {

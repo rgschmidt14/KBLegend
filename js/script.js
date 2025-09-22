@@ -2595,7 +2595,7 @@ function setupEventListeners() {
     }
 
     const closeButton = taskModal.querySelector('.close-button');
-    const cancelButton = taskModal.querySelector('button[type="button"]');
+    const cancelButton = taskModal.querySelector('.cancel-task-button');
     if (closeButton) closeButton.addEventListener('click', closeModal);
     if (cancelButton) cancelButton.addEventListener('click', closeModal);
 
