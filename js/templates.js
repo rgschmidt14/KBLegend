@@ -222,3 +222,46 @@ export function taskViewTemplate(task, { categories, appSettings }) {
         </div>
     `;
 }
+
+export function notificationManagerTemplate(notificationSettings, categories) {
+    const categoryItems = categories.map(cat => {
+        // Default to true if not set
+        const isEnabled = notificationSettings.categories[cat.id] !== false;
+        return `
+            <div class="flex items-center justify-between p-2 border rounded-md">
+                <span class="font-medium">${cat.name}</span>
+                <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isEnabled ? 'checked' : ''}>
+            </div>
+        `;
+    }).join('');
+
+    const categoryListHtml = categories.length > 0
+        ? categoryItems
+        : '<p class="text-gray-500 italic text-sm">No categories to configure.</p>';
+
+    return `
+        <div class="flex items-center justify-between">
+            <label for="master-notification-toggle" class="form-label mb-0">Enable All Notifications:</label>
+            <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer ${notificationSettings.enabled ? 'bg-green-500' : ''}" ${notificationSettings.enabled ? 'checked' : ''}>
+        </div>
+        <div id="notification-details" class="${notificationSettings.enabled ? '' : 'hidden'} space-y-4">
+            <div>
+                <label class="form-label">Notify no more than once per:</label>
+                <div class="flex space-x-2 items-center">
+                    <input type="number" id="notification-rate-amount" value="${notificationSettings.rateLimit.amount}" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                    <select id="notification-rate-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                        <option value="minutes" ${notificationSettings.rateLimit.unit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                        <option value="hours" ${notificationSettings.rateLimit.unit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                        <option value="days" ${notificationSettings.rateLimit.unit === 'days' ? 'selected' : ''}>Day(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Notify for categories:</label>
+                <div id="notification-category-list" class="space-y-2">
+                    ${categoryListHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}

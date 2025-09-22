@@ -162,54 +162,31 @@ This update focused on improving the long-term stability and maintainability of 
 *   **Planner View Rendering Overhaul:** Fixed a major visual bug in the **Weekly and Daily** planner views where concurrent tasks would overlap and become unreadable. The rendering logic was re-architected to use a modern **CSS Grid layout**. This replaces the old, brittle positioning logic with a robust system that correctly and automatically handles laying out tasks, ensuring the planner is stable and legible.
 *   **Code Stability:** Refined the JavaScript rendering functions (`renderDailyView`, `renderWeeklyView`) to be simpler and more maintainable, directly supporting the new CSS Grid system.
 
-### **🔜 Up Next: Future Updates**
+### **🔜 Up Next: Pre-Database Features**
 
-The following features and fixes have been prioritized for upcoming releases.
+This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
 
-*   **(No high-priority items currently planned. See Future Roadmap and Community Suggestions.)**
+*   **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js` and the `taskTemplate`, but many components (like modals and managers) are still built with strings in `js/script.js`. The goal is to move all HTML generation to the `templates.js` file. *(In progress: `renderNotificationManager` was successfully refactored).*
+*   **Habit Streak Visualization:** For repeating tasks, display a visual 'streak' counter (e.g., 'Streak: 14 days 🔥') to gamify habit formation and celebrate consistent success.
+*   **Smart Suggestions Widget:** A dynamic area that proactively tells the user why a task's status has changed (e.g., "Heads up! You should start 'Task X' now because you have 3 other busy tasks due soon."). This makes the predictive engine more transparent and conversational.
+*   **Interactive Onboarding Tour:** A guided tour for new users that highlights the app's most powerful and unique features, such as the predictive engine and deep customization options, to improve discoverability and user empowerment.
+*   **Enhance Task Statistics:** Improve the dedicated Task Statistics page by adding more advanced analytics and visualizations, such as graphs for completion rates over time, to provide deeper insights into user performance.
+*   **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
+*   **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
+*   **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
+*   **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
+*   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
+*   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
-### **🚀 Future Roadmap**
+### **🚀 Future Roadmap: Database & Collaboration**
 
-These are larger, more long-term goals for the project.
+These are larger, long-term goals for the project that are dependent on migrating the application's backend from `localStorage` to a persistent, server-side database. For a detailed guide on the migration process itself, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
 
-* **Task History & Analytics:** Build a dashboard to visualize historical data on task completion and misses, providing insights into productivity trends.  
-* **Database Integration:** Transition from `localStorage` to a persistent, server-side database. This is essential for multi-user features and data synchronization. For a detailed guide on this process, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
-* **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list. This feature is dependent on the Database Integration.
-* **User Authentication:** Implement user accounts, which is a prerequisite for database integration and groups.
-* **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
-* **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
-
-#### **🎉 Anniversary Update Ideas**
-* **Smart Suggestions Widget:** A dynamic area that proactively tells the user why a task's status has changed (e.g., "Heads up! You should start 'Task X' now because you have 3 other busy tasks due soon."). This makes the predictive engine more transparent and conversational.
-* **Habit Streak Visualization:** For repeating tasks, display a visual 'streak' counter (e.g., 'Streak: 14 days 🔥') to gamify habit formation and celebrate consistent success.
-* **Interactive Onboarding Tour:** A guided tour for new users that highlights the app's most powerful and unique features, such as the predictive engine and deep customization options, to improve discoverability and user empowerment.
-
-### **💡 Community Suggestions**
-
-A collection of great ideas suggested for future consideration.
-
-* ~~**Separate HTML templates:** The HTML for things like the task items is currently created inside the JavaScript. Moving this into separate template files would make the code cleaner and more organized.~~ (Done. The `taskTemplate` in `js/templates.js` establishes the pattern for this.)
-* **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js` and the `taskTemplate`, but many components (like modals and managers) are still built with strings in `js/script.js`. The goal is to move all HTML generation to the `templates.js` file.
-* ~~**Dedicated Task Stats Page:** Create a new view where a user can select a single task and see its history and statistics over time. This could include charts for completion rates, average time to complete, and other metrics to help users understand their own performance.~~ (Done in v2.6).
-* **Enhance Task Statistics:** Improve the dedicated Task Statistics page by adding more advanced analytics and visualizations, such as graphs for completion rates over time, to provide deeper insights into user performance.
-* **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
-* **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
-* ~~**Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.~~ (Done in v2.3 as the "Dual-View Layout").
-* **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
-* **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
-* **Task Data Migration Tool:**
-  * **Problem:** As new features are added, the data structure for tasks (`task` objects) changes. Users with task data from older versions of the application may lose their data or experience bugs when the app tries to read an outdated format.
-  * **Objective:** Create a tool that can seamlessly migrate user tasks from an old format to the current one.
-  * **Detailed Vision:**
-    1.  **Detection:** When the application loads, it should inspect each task from `localStorage` to see if it conforms to the current data schema. This could be done by checking for missing or extra properties.
-    2.  **User Prompt:** If outdated tasks are found, the app should prompt the user, asking if they want to update their tasks to the new format. This process should be optional but recommended.
-    3.  **Migration UI:**
-        *   If the user agrees, the app will present a special migration view, processing one outdated task at a time.
-        *   For each task, the UI should display a two-column table.
-        *   The left column will show the names and values of any *unrecognized* properties from the old task object (e.g., `countsAsBusy: true`). This shows the user what data is being deprecated.
-        *   The right column will show a form for any *new* or *missing* properties that the new task format requires (e.g., `requiresFullAttention`).
-        *   The form should use the appropriate input type for each new property (e.g., a checkbox for a boolean, a text field for a string).
-    4.  **User Input & Confirmation:** The user can then provide values for the new properties and click a "Submit & Update Next" button. The application will then update the current task, save it, and load the next outdated task into the migration UI. This continues until all tasks are up-to-date.
+*   **Database Integration:** Transition from `localStorage` to a persistent, server-side database. This is the foundational step for all other items in this section.
+*   **User Authentication:** Implement user accounts, a prerequisite for database integration and multi-user features.
+*   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
+*   **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list.
+*   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, providing deep insights into productivity trends over time.
 
 ### **🔩 Ongoing Development**
 
