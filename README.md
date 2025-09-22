@@ -173,9 +173,10 @@ The following features and fixes have been prioritized for upcoming releases.
 These are larger, more long-term goals for the project.
 
 * **Task History & Analytics:** Build a dashboard to visualize historical data on task completion and misses, providing insights into productivity trends.  
-* **Database Integration:** Transition from localStorage to a persistent database like Firebase Firestore.  
-* **User Authentication:** Implement user accounts.  
-* **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices.  
+* **Database Integration:** Transition from `localStorage` to a persistent, server-side database. This is essential for multi-user features and data synchronization. For a detailed guide on this process, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
+* **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list. This feature is dependent on the Database Integration.
+* **User Authentication:** Implement user accounts, which is a prerequisite for database integration and groups.
+* **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
 * **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 
 #### **🎉 Anniversary Update Ideas**
@@ -194,6 +195,7 @@ A collection of great ideas suggested for future consideration.
 * **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
 * **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
 * ~~**Dual Planner View:** To prevent the main planner page from becoming too cluttered, consider splitting it into two distinct views. One view would be the traditional time-based grid (daily/weekly/monthly), while a separate view would house non-timed items like weekly goals and Key Performance Indicators (KPIs). This would create a cleaner, more focused user experience for both time management and goal tracking.~~ (Done in v2.3 as the "Dual-View Layout").
+* **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
 * **Task Data Migration Tool:**
   * **Problem:** As new features are added, the data structure for tasks (`task` objects) changes. Users with task data from older versions of the application may lose their data or experience bugs when the app tries to read an outdated format.
   * **Objective:** Create a tool that can seamlessly migrate user tasks from an old format to the current one.
