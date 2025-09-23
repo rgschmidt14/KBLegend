@@ -50,6 +50,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.0) - 09/22/2025
+
+This is a major feature update that adds powerful new ways to manage tasks and customize the application's look and feel, while also fixing key bugs.
+
+*   **Bulk-Edit by Category:** In the "Advanced Options" menu, each category now has a "Bulk Edit" button. This opens a form that allows a user to apply changes (like setting a new duration or completion type) to all tasks within that category at once. The form remembers the last-used settings to speed up repetitive edits across multiple categories.
+*   **Themeable Buttons:** The theming engine has been expanded to all buttons throughout the application. When a user picks a base color for their theme, all buttons will now adopt a complementary primary, secondary, or tertiary color, creating a more cohesive and personalized user experience.
+*   **Status Color Picker Fix:** Fixed a critical bug where the color pickers for the five task statuses (Locked, Ready, Start Soon, etc.) would not display the currently saved color, always defaulting to black. They now correctly show the user's chosen color.
+*   **Partial Miss Tracking:** For tasks that use a timer or a counter, the miss tracking system has been enhanced to support partial completion. If a task is only 50% complete when it becomes overdue, it is now recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
+
 ### ✅ Recently Completed (Version 2.9) - 09/22/2025
 
 This update focused on improving the user experience by implementing several features from the backlog.
@@ -189,8 +198,6 @@ This update focused on improving the long-term stability and maintainability of 
 
 This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
 
-*   **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
-*   **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
 *   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
 *   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
 

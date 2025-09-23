@@ -181,17 +181,19 @@ export function categoryManagerTemplate(categories) {
                 </div>
                 <div class="flex items-center space-x-2">
                     <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
-                    <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
+                    <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg themed-button-tertiary" aria-label="Delete category ${cat.name}">&times;</button>
                 </div>
             </div>
             <div class="mt-2 flex justify-end space-x-2">
-                <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs">Delete All Tasks</button>
+                <button data-action="bulkEdit" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs themed-button-secondary">Bulk Edit</button>
+                <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs themed-button-tertiary">Delete All Tasks</button>
             </div>
+            <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
         </div>
     `).join('');
 
     const addButton = `
-        <button class="control-button control-button-blue mt-4" data-action="addCategory">
+        <button class="control-button control-button-blue mt-4 themed-button-primary" data-action="addCategory">
             Add New Category
         </button>
     `;
@@ -222,8 +224,53 @@ export function taskViewTemplate(task, { categories, appSettings }) {
             <p><strong>Repetition:</strong> ${repetitionStr}</p>
         </div>
         <div class="mt-6 flex justify-end space-x-3">
-            <button data-action="viewTaskStats" class="control-button control-button-blue">View Statistics</button>
-            <button data-action="editTaskFromView" class="control-button control-button-yellow">Edit Task</button>
+            <button data-action="viewTaskStats" class="control-button control-button-blue themed-button-secondary">View Statistics</button>
+            <button data-action="editTaskFromView" class="control-button control-button-yellow themed-button-secondary">Edit Task</button>
+        </div>
+    `;
+}
+
+export function bulkEditFormTemplate(categoryId, settings) {
+    const {
+        durationAmount = '',
+        durationUnit = 'minutes',
+        completionType = '',
+    } = settings;
+
+    return `
+        <div class="p-4 rounded-md" style="background-color: #374151; border: 1px solid #4b5563;">
+            <h4 class="font-bold mb-3" style="color: #d1d5db;">Bulk Edit Tasks in this Category</h4>
+            <form id="bulk-edit-form-${categoryId}" class="space-y-4">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label" style="color: #d1d5db;">Set Duration:</label>
+                        <div class="flex space-x-2 items-center">
+                            <input type="number" name="durationAmount" value="${durationAmount}" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 duration-input" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                            <select name="durationUnit" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 flex-grow" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                                <option value="minutes" ${durationUnit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                                <option value="hours" ${durationUnit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                            </select>
+                        </div>
+                        <p class="form-hint" style="color: #9ca3af;">Leave blank to ignore.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" style="color: #d1d5db;">Set Completion Type:</label>
+                        <select name="completionType" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                            <option value="">-- No Change --</option>
+                            <option value="simple" ${completionType === 'simple' ? 'selected' : ''}>Simple (Mark Done)</option>
+                            <option value="count" ${completionType === 'count' ? 'selected' : ''}>Count</option>
+                            <option value="time" ${completionType === 'time' ? 'selected' : ''}>Time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end items-center space-x-3 pt-4 border-t" style="border-color: #4b5563;">
+                    <button type="button" data-action="deleteAllInCategory" data-category-id="${categoryId}" class="control-button text-xs themed-button-tertiary">Delete All In Category</button>
+                    <button type="submit" class="control-button text-white themed-button-primary" style="background-color: #10B981; hover:background-color: #059669;">Apply Changes to All</button>
+                </div>
+
+            </form>
         </div>
     `;
 }
@@ -249,7 +296,7 @@ export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
             ${historyHtml}
         </ul>
 
-        <button data-action="backToTaskView" class="control-button control-button-gray mt-6">Back to Details</button>
+        <button data-action="backToTaskView" class="control-button control-button-gray mt-6 themed-button-secondary">Back to Details</button>
     `;
 }
 
@@ -258,40 +305,40 @@ export function actionAreaTemplate(task) {
     switch (task.confirmationState) {
         case 'confirming_complete':
             const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-primary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-tertiary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
         case 'awaiting_overdue_input':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red">Missed</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green themed-button-primary">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red themed-button-tertiary">Missed</button></div>`;
         case 'confirming_miss':
             const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green themed-button-primary">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red themed-button-tertiary">No</button></div>`;
         case 'confirming_delete':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
         case 'confirming_undo':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow themed-button-primary">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
     }
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
         return '<span class="text-xs text-gray-500 italic">Done</span>';
     }
     if (task.status === 'blue') {
-        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="control-button control-button-gray" title="Undo Completion / Reactivate Early">Undo</button>`;
+        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="control-button control-button-gray themed-button-secondary" title="Undo Completion / Reactivate Early">Undo</button>`;
     }
     switch (task.completionType) {
         case 'count':
             const target = task.countTarget || Infinity;
             return (task.currentProgress < target)
-                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue w-6 h-6 flex items-center justify-center">+</button> </div>`
-                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray themed-button-secondary w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue themed-button-primary w-6 h-6 flex items-center justify-center">+</button> </div>`
+                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
         case 'time':
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
             if (task.currentProgress >= targetMs) {
-                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
             }
             const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            const btnClass = task.isTimerRunning ? 'control-button-yellow' : 'control-button-green';
+            const btnClass = task.isTimerRunning ? 'control-button-yellow themed-button-secondary' : 'control-button-green themed-button-primary';
             return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="control-button ${btnClass}">${btnText}</button>`;
         default:
-            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green">Complete</button>`;
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
     }
 }
 
@@ -300,12 +347,12 @@ export function commonButtonsTemplate(task) {
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
 
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>`;
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>`;
     }
     return `
         <div class="flex space-x-1">
-            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow" title="Edit Task">Edit</button>
-            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red" title="Delete Task">Delete</button>
+            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow themed-button-secondary" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>
         </div>
     `;
 }
@@ -386,24 +433,24 @@ export function iconPickerTemplate(iconCategories) {
 export function editProgressTemplate(taskId, currentValue, max) {
     return `
         <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
-        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1">Save</button>
-        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
+        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
     `;
 }
 
 export function editCategoryTemplate(categoryId, currentName) {
     return `
         <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1">Save</button>
-        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
+        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
     `;
 }
 
 export function editStatusNameTemplate(statusKey, currentName) {
     return `
         <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1">Save</button>
-        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1">Cancel</button>
+        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
+        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
     `;
 }
 
@@ -412,8 +459,8 @@ export function restoreDefaultsConfirmationTemplate() {
         <div class="flex flex-col items-center gap-2 text-center">
             <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
             <div class="flex gap-2 mt-2">
-                <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red">Yes, Reset</button>
-                <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray">No, Cancel</button>
+                <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes, Reset</button>
+                <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">No, Cancel</button>
             </div>
         </div>
     `;
