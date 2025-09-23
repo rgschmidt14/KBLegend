@@ -1,5 +1,5 @@
 import { getDurationMs, calculateStatus, calculateScheduledTimes } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, kpiListItemTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -30,6 +30,8 @@ let lastBulkEditSettings = {};
 let oldTasksData = [];
 let editingTaskId = null;
 let editingCategoryIdForIcon = null;
+let kpiChart = null; // For single chart view
+let kpiCharts = []; // For stacked chart view
 // isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
 let mainUpdateInterval = null;
@@ -45,6 +47,8 @@ let taskDisplaySettings = {
 let uiSettings = {
     isSimpleMode: true,
     activeView: 'calendar-view', // Default view
+    kpiChartMode: 'single', // 'single' or 'stacked'
+    kpiChartDateRange: '8d', // '8d', '30d', etc.
 };
 let sensitivitySettings = { sValue: 0.5, isAdaptive: true };
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -1548,11 +1552,225 @@ function renderKpiTaskSelect() {
 }
 
 function renderKpiList() {
-    if (!indicatorListEl) return;
+    const kpiControls = document.getElementById('kpi-controls');
+    const kpiChartContainer = document.getElementById('kpi-chart-container');
+
+    if (!kpiControls || !kpiChartContainer) return;
+
+    // 1. Clear previous content and destroy old charts
+    kpiControls.innerHTML = '';
+    kpiChartContainer.innerHTML = '';
+    if (kpiChart) {
+        kpiChart.destroy();
+        kpiChart = null;
+    }
+    if (kpiCharts.length > 0) {
+        kpiCharts.forEach(chart => chart.destroy());
+        kpiCharts = [];
+    }
+
+    // 2. Render Controls
+    const controlsHtml = `
+        <div class="flex items-center space-x-2">
+            <label for="kpi-range-select" class="text-sm font-medium text-gray-300">Range:</label>
+            <select id="kpi-range-select" class="bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-sm text-white focus:ring-blue-500 focus:border-blue-500">
+                <option value="8d" ${uiSettings.kpiChartDateRange === '8d' ? 'selected' : ''}>Last 8 Days</option>
+                <option value="30d" ${uiSettings.kpiChartDateRange === '30d' ? 'selected' : ''}>Last 30 Days</option>
+                <option value="90d" ${uiSettings.kpiChartDateRange === '90d' ? 'selected' : ''}>Last 90 Days</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium text-gray-300">View:</label>
+            <div class="flex rounded-md bg-gray-700 p-0.5">
+                <button data-mode="single" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md ${uiSettings.kpiChartMode === 'single' ? 'bg-blue-600 text-white' : 'text-gray-300'}">Combined</button>
+                <button data-mode="stacked" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md ${uiSettings.kpiChartMode === 'stacked' ? 'bg-blue-600 text-white' : 'text-gray-300'}">Stacked</button>
+            </div>
+        </div>
+    `;
+    kpiControls.innerHTML = controlsHtml;
+
+    // 3. Add Event Listeners to Controls
+    document.getElementById('kpi-range-select').addEventListener('change', (e) => {
+        uiSettings.kpiChartDateRange = e.target.value;
+        saveData();
+        renderKpiList();
+    });
+
+    kpiControls.querySelectorAll('.kpi-view-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            uiSettings.kpiChartMode = e.target.dataset.mode;
+            saveData();
+            renderKpiList();
+        });
+    });
+
+    // 4. Data Fetching and Processing
     const kpiTasks = tasks.filter(task => task.isKpi);
-    indicatorListEl.innerHTML = kpiTasks.length > 0
-        ? kpiTasks.map(task => kpiListItemTemplate(task)).join('')
-        : '<p class="text-gray-500 italic">No KPIs set. Add a new task and mark it as a KPI, or set an existing task as a KPI.</p>';
+    if (kpiTasks.length === 0) {
+        kpiChartContainer.innerHTML = '<p class="text-gray-500 italic text-center mt-4">No KPIs set. Add a task and mark it as a KPI to see progress here.</p>';
+        // Hide controls if there are no KPIs
+        kpiControls.classList.add('hidden');
+        return;
+    }
+     kpiControls.classList.remove('hidden');
+
+
+    const now = new Date();
+    now.setHours(23, 59, 59, 999); // End of today
+    const days = parseInt(uiSettings.kpiChartDateRange.replace('d', ''));
+    const startDate = new Date(now.getTime() - (days - 1) * MS_PER_DAY);
+    startDate.setHours(0, 0, 0, 0);
+
+    const dateLabels = [];
+    for (let i = 0; i < days; i++) {
+        const date = new Date(startDate.getTime() + i * MS_PER_DAY);
+        dateLabels.push(date.toLocaleDateString('en-CA')); // YYYY-MM-DD format
+    }
+
+    const datasets = kpiTasks.map(task => {
+        const history = appState.historicalTasks.filter(h =>
+            h.originalTaskId === task.id &&
+            new Date(h.completionDate) >= startDate &&
+            new Date(h.completionDate) <= now
+        );
+
+        const dailyData = new Map();
+        history.forEach(h => {
+            const dateKey = new Date(h.completionDate).toLocaleDateString('en-CA');
+            if (!dailyData.has(dateKey)) {
+                dailyData.set(dateKey, { completions: 0, misses: 0 });
+            }
+            if (h.status === 'completed') {
+                dailyData.get(dateKey).completions++;
+            } else if (h.status === 'missed') {
+                dailyData.get(dateKey).misses++;
+            }
+        });
+
+        const accuracyData = dateLabels.map(label => {
+            if (dailyData.has(label)) {
+                const { completions, misses } = dailyData.get(label);
+                const total = completions + misses;
+                return total > 0 ? (completions / total) * 100 : 0;
+            }
+            return 0; // No data for this day
+        });
+
+        const category = categories.find(c => c.id === task.categoryId);
+        const color = category ? category.color : '#808080';
+
+        return {
+            label: task.name,
+            data: accuracyData,
+            borderColor: color,
+            backgroundColor: `${color}33`, // Add alpha for fill
+            fill: false,
+            tension: 0.1
+        };
+    });
+
+    // 5. Chart Rendering
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: value => `${value}%`,
+                    color: '#9ca3af'
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                title: {
+                    display: true,
+                    text: 'Completion Accuracy',
+                    color: '#d1d5db'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#9ca3af',
+                    maxRotation: 45,
+                    minRotation: 45
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#d1d5db'
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += `${context.parsed.y.toFixed(1)}%`;
+                        }
+                        return label;
+                    }
+                }
+            }
+        }
+    };
+
+    if (uiSettings.kpiChartMode === 'single') {
+        kpiChartContainer.innerHTML = '<canvas id="kpi-main-chart"></canvas>';
+        const ctx = document.getElementById('kpi-main-chart').getContext('2d');
+        kpiChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})),
+                datasets: datasets
+            },
+            options: chartOptions
+        });
+    } else { // stacked
+        kpiChartContainer.classList.add('space-y-4', 'overflow-y-auto');
+        datasets.forEach((dataset, index) => {
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'h-64'; // Set a fixed height for each small chart
+            const canvas = document.createElement('canvas');
+            canvas.id = `kpi-chart-${index}`;
+            chartWrapper.appendChild(canvas);
+            kpiChartContainer.appendChild(chartWrapper);
+
+            const ctx = canvas.getContext('2d');
+            const singleChartOptions = JSON.parse(JSON.stringify(chartOptions)); // Deep clone
+            singleChartOptions.plugins.legend.display = false; // Hide legend for individual charts
+            singleChartOptions.plugins.title = {
+                display: true,
+                text: dataset.label,
+                color: '#d1d5db',
+                font: {
+                    size: 16
+                }
+            };
+
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})),
+                    datasets: [dataset]
+                },
+                options: singleChartOptions
+            });
+            kpiCharts.push(chart);
+        });
+    }
 }
 
 function renderIconPicker() {

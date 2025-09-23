@@ -505,15 +505,6 @@ export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
     `;
 }
 
-export function kpiListItemTemplate(task) {
-    return `
-        <div class="flex items-center justify-between p-2 rounded-md bg-gray-900">
-            <span class="text-white">${task.name}</span>
-            <button data-action="removeKpi" data-task-id="${task.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Remove KPI status from ${task.name}">&times;</button>
-        </div>
-    `;
-}
-
 export function sensitivityControlsTemplate(settings) {
     const { sValue, isAdaptive } = settings;
     const sliderDisabled = isAdaptive ? 'disabled' : '';

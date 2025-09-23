@@ -64,36 +64,23 @@
 
             <!-- Dashboard View -->
             <div id="dashboard-view" class="hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
                         <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
                         <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
                     </div>
 
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
-                        <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators (KPIs)</h2>
-                        <div id="indicatorList" class="mb-3 space-y-2"></div>
-                        <div class="flex space-x-2">
-                            <div class="flex-grow">
-                                <select id="kpi-task-select" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                                    <!-- Options will be populated by JS -->
-                                </select>
-                                <p class="form-hint text-xs mt-1">Select an existing task to set as a KPI.</p>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+                            <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
+                            <div id="kpi-controls" class="flex items-center space-x-4">
+                                <!-- KPI Controls will be rendered here by JS -->
                             </div>
-                            <button id="set-kpi-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-primary">Set as KPI</button>
                         </div>
-                        <div class="mt-4 text-center">
-                            <span class="text-gray-400 text-sm">OR</span>
-                        </div>
-                        <div class="mt-4 flex justify-center">
-                            <button id="add-new-kpi-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-primary">Add New KPI</button>
+                        <div id="kpi-chart-container" class="relative" style="height: 400px;">
+                            <!-- KPI Chart(s) will be rendered here by JS -->
                         </div>
                     </div>
-                </div>
-
-                <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
-                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
-                    <div id="progressTrackerContainer" class="space-y-6"></div>
                 </div>
             </div>
 
