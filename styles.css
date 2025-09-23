@@ -507,8 +507,8 @@ legend {
     background-color: #2D3748; /* gray-800 */
 }
 .active-view-btn {
-    background-color: #4299E1 !important; /* blue-400 */
-    color: white !important;
+    background-color: #4299E1; /* blue-400 */
+    color: white;
 }
 
 .light-mode .view-toggle-btn {
@@ -519,8 +519,8 @@ legend {
     background-color: #CBD5E0; /* gray-300 */
 }
 .light-mode .active-view-btn {
-    background-color: #3B82F6 !important; /* blue-500 */
-    color: white !important;
+    background-color: #3B82F6; /* blue-500 */
+    color: white;
 }
 
 /* Light Mode Styles */

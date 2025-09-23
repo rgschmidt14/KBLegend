@@ -780,8 +780,18 @@ function generateComplementaryPalette(baseColor) {
     const accent2 = HSLToHex((baseHSL.h + 180) % 360, baseHSL.s - 10, isDarkMode ? 65 : 35);
     const accent3 = HSLToHex((baseHSL.h + 300) % 360, baseHSL.s, isDarkMode ? 55 : 45);
 
+    // 4. Selected/Active Gradient for Main Buttons
+    const secondarySelectedLightness = isDarkMode ? secondaryLightness + 10 : secondaryLightness - 10;
+    const secondary_highlight = HSLToHex(baseHSL.h, baseHSL.s, Math.max(0, Math.min(100, secondarySelectedLightness)));
+    const secondary_selected = `linear-gradient(to bottom, ${secondary}, ${secondary_highlight})`;
 
-    return { main, secondary, tertiary, accent1, accent2, accent3 };
+    // 5. Gradient for Modal Backgrounds
+    const mainGradientLightness2 = isDarkMode ? mainBgLightness + 5 : mainBgLightness - 5;
+    const main_gradient_color2 = HSLToHex(baseHSL.h, baseHSL.s * 0.8, Math.max(0, Math.min(100, mainGradientLightness2)));
+    const main_gradient = `linear-gradient(180deg, ${main}, ${main_gradient_color2})`;
+
+
+    return { main, secondary, tertiary, accent1, accent2, accent3, secondary_selected, main_gradient };
 }
 
 function applyThemeMode() {
@@ -810,15 +820,27 @@ function setAppTitle(newTitle) {
 function applyTheme() {
     applyThemeMode(); // Apply day/night/auto mode first
 
-    const styleButton = (btn, bgColor) => {
-        const textStyle = getContrastingTextColor(bgColor);
-        btn.style.backgroundColor = bgColor;
+    const styleButton = (btn, bg) => {
+        let baseColorForText;
+        if (typeof bg === 'string' && bg.includes('gradient')) {
+            btn.style.background = bg;
+            // Extract the first color from the gradient to determine text contrast
+            const match = bg.match(/#([a-fA-F0-9]{6})/);
+            baseColorForText = match ? match[0] : '#ffffff'; // default to white bg if parse fails
+        } else {
+            btn.style.backgroundColor = bg;
+            btn.style.background = ''; // clear any gradient
+            baseColorForText = bg;
+        }
+
+        const textStyle = getContrastingTextColor(baseColorForText);
         btn.style.color = textStyle.color;
         btn.style.textShadow = textStyle.textShadow;
         btn.style.borderColor = 'transparent'; // Remove default borders that might clash
     };
 
     const unstyleButton = (btn) => {
+        btn.style.background = '';
         btn.style.backgroundColor = '';
         btn.style.color = '';
         btn.style.textShadow = '';
@@ -834,7 +856,7 @@ function applyTheme() {
         }
 
         const buttonPalette = generateComplementaryPalette(theming.baseColor);
-        const { main, secondary, tertiary } = buttonPalette;
+        const { main, secondary, tertiary, secondary_selected } = buttonPalette;
 
         // Apply main background color
         document.body.style.backgroundColor = main;
@@ -844,11 +866,20 @@ function applyTheme() {
         document.documentElement.style.setProperty('--calendar-background', calendarGradient);
 
         // Theme buttons based on their functional color class
-        document.querySelectorAll('.themed-button-primary').forEach(btn => styleButton(btn, secondary));
+        document.querySelectorAll('.themed-button-primary').forEach(btn => {
+            if (btn.classList.contains('active-view-btn')) {
+                styleButton(btn, secondary_selected);
+            } else {
+                styleButton(btn, secondary);
+            }
+        });
         document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, tertiary));
         document.querySelectorAll('.themed-button-tertiary').forEach(btn => styleButton(btn, tertiary));
 
         // Theme other elements
+        document.querySelectorAll('.themed-modal-primary').forEach(modal => {
+            modal.style.background = main_gradient;
+        });
         document.querySelectorAll('.themed-modal-tertiary').forEach(modal => {
             modal.style.backgroundColor = tertiary;
         });
@@ -863,7 +894,8 @@ function applyTheme() {
         document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
             unstyleButton(btn);
         });
-        document.querySelectorAll('.themed-modal-tertiary').forEach(modal => {
+        document.querySelectorAll('.themed-modal-primary, .themed-modal-tertiary').forEach(modal => {
+            modal.style.background = '';
             modal.style.backgroundColor = '';
         });
     }
