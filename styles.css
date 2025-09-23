@@ -869,6 +869,7 @@ select {
 #calendar {
     min-height: 70vh;
     color: #F3F4F6; /* Light Gray text for readability on dark background */
+    background: var(--calendar-background, #1F2937); /* Default to Gray-800 */
 }
 
 /* --- Toolbar Buttons --- */

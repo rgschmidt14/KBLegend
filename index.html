@@ -23,13 +23,13 @@
         <!-- Main View Navigation -->
         <div id="main-view-nav" class="mb-6 flex flex-wrap justify-between items-center gap-2">
             <div class="flex flex-wrap space-x-2">
-                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-secondary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-tasks mr-2"></i>Task Manager
                 </button>
                 <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-dashboard-btn" type="button" class="view-toggle-btn themed-button-secondary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-dashboard-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
             </div>
@@ -55,7 +55,7 @@
                             <button data-view="weekly" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Week</button>
                             <button data-view="month" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Month</button>
                         </div>
-                        <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-primary">Add New Task</button>
+                        <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Add New Task</button>
                     </div>
 
                     <div id="calendar" class="bg-gray-900 rounded-b-lg shadow-lg p-4 text-white"></div>
@@ -87,7 +87,7 @@
             <!-- Task Manager View -->
             <div id="task-manager-view" class="hidden">
                 <div class="text-center mb-6">
-                    <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-primary">
+                    <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">
                         Add New Task
                     </button>
                 </div>
@@ -399,8 +399,8 @@
                     </fieldset>
                 </div>
                 <div class="flex justify-end space-x-3 mt-8">
-                   <button type="button" class="control-button control-button-gray cancel-task-button themed-button-secondary"> Cancel </button>
-                   <button type="submit" class="control-button control-button-green themed-button-primary"> Save Task </button>
+                   <button type="button" class="control-button control-button-gray cancel-task-button themed-button-tertiary"> Cancel </button>
+                   <button type="submit" class="control-button control-button-green themed-button-secondary"> Save Task </button>
                </div>
              </form>
         </div>
@@ -418,7 +418,7 @@
     </div>
 
     <div id="advanced-options-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content themed-modal-tertiary">
             <button class="close-button" aria-label="Close Advanced Options">&times;</button>
             <h2 class="text-2xl font-semibold mb-6 text-gray-700">Advanced Options</h2>
             <div id="advanced-options-content" class="space-y-6">
@@ -484,7 +484,7 @@
                                 <label for="theme-base-color" class="form-label mb-0">Theme Base Color:</label>
                                 <input type="color" id="theme-base-color" data-action="setThemeColor" class="h-8 w-12 border-none cursor-pointer rounded">
                             </div>
-                            <button data-action="randomizeTheme" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded themed-button-secondary">Randomize Theme</button>
+                            <button data-action="randomizeTheme" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Randomize Theme</button>
                         </div>
                     </div>
                 </fieldset>
@@ -558,19 +558,19 @@
                         <div>
                             <label class="form-label">Export Data:</label>
                             <div class="flex flex-wrap gap-2" id="export-options-container">
-                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue themed-button-primary">Export All</button>
-                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray themed-button-secondary">Tasks Only</button>
-                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray themed-button-secondary">Categories Only</button>
-                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray themed-button-secondary">History Only</button>
-                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray themed-button-secondary">Settings Only</button>
+                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue themed-button-secondary">Export All</button>
+                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray themed-button-tertiary">Tasks Only</button>
+                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray themed-button-tertiary">Categories Only</button>
+                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray themed-button-tertiary">History Only</button>
+                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray themed-button-tertiary">Settings Only</button>
                             </div>
                             <p class="form-hint">Export your application data to a JSON file.</p>
                         </div>
                         <div>
                             <label class="form-label">Import Data:</label>
                             <div class="flex flex-wrap gap-2">
-                                <button data-action="importData" class="control-button control-button-green themed-button-primary">Import from File</button>
-                                <button data-action="openMigrationTool" class="control-button control-button-yellow themed-button-secondary">Migration Tool</button>
+                                <button data-action="importData" class="control-button control-button-green themed-button-secondary">Import from File</button>
+                                <button data-action="openMigrationTool" class="control-button control-button-yellow themed-button-tertiary">Migration Tool</button>
                             </div>
                             <input type="file" id="import-file-input" class="hidden" accept=".json">
                             <p class="form-hint">Import from a backup, or use the Migration Tool for old data formats.</p>

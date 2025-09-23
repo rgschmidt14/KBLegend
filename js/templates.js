@@ -197,7 +197,7 @@ export function categoryManagerTemplate(categories) {
 
     content += `
         <div class="mt-4">
-            <button class="control-button control-button-blue w-full themed-button-primary" data-action="addCategory">
+            <button class="control-button control-button-blue w-full themed-button-secondary" data-action="addCategory">
                 Add New Category
             </button>
         </div>
@@ -250,8 +250,8 @@ export function dataMigrationModalTemplate() {
                     <!-- Mapping UI will be generated here -->
                 </div>
                 <div class="mt-4 flex justify-end space-x-2">
-                    <button id="cancel-migration-btn" class="control-button control-button-gray themed-button-secondary">Cancel</button>
-                    <button id="run-migration-btn" class="control-button control-button-blue themed-button-primary">Run Migration</button>
+                    <button id="cancel-migration-btn" class="control-button control-button-gray themed-button-tertiary">Cancel</button>
+                    <button id="run-migration-btn" class="control-button control-button-blue themed-button-secondary">Run Migration</button>
                 </div>
             </div>
         </div>
@@ -295,7 +295,7 @@ export function bulkEditFormTemplate(categoryId, settings) {
 
                 <div class="flex justify-end items-center space-x-3 pt-4 border-t" style="border-color: #4b5563;">
                     <button type="button" data-action="deleteAllInCategory" data-category-id="${categoryId}" class="control-button text-xs themed-button-tertiary">Delete All In Category</button>
-                    <button type="submit" class="control-button text-white themed-button-primary" style="background-color: #10B981; hover:background-color: #059669;">Apply Changes to All</button>
+                    <button type="submit" class="control-button text-white themed-button-secondary" style="background-color: #10B981; hover:background-color: #059669;">Apply Changes to All</button>
                 </div>
 
             </form>
@@ -333,16 +333,16 @@ export function actionAreaTemplate(task) {
     switch (task.confirmationState) {
         case 'confirming_complete':
             const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-primary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-tertiary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-secondary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-tertiary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
         case 'awaiting_overdue_input':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green themed-button-primary">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red themed-button-tertiary">Missed</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green themed-button-secondary">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red themed-button-tertiary">Missed</button></div>`;
         case 'confirming_miss':
             const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green themed-button-primary">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red themed-button-tertiary">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green themed-button-secondary">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red themed-button-tertiary">No</button></div>`;
         case 'confirming_delete':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
         case 'confirming_undo':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow themed-button-primary">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow themed-button-secondary">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-tertiary">Cancel</button></div>`;
     }
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
@@ -355,18 +355,18 @@ export function actionAreaTemplate(task) {
         case 'count':
             const target = task.countTarget || Infinity;
             return (task.currentProgress < target)
-                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray themed-button-secondary w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue themed-button-primary w-6 h-6 flex items-center justify-center">+</button> </div>`
-                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
+                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray themed-button-tertiary w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue themed-button-secondary w-6 h-6 flex items-center justify-center">+</button> </div>`
+                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
         case 'time':
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
             if (task.currentProgress >= targetMs) {
-                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
+                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
             }
             const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            const btnClass = task.isTimerRunning ? 'control-button-yellow themed-button-secondary' : 'control-button-green themed-button-primary';
+            const btnClass = task.isTimerRunning ? 'control-button-yellow themed-button-tertiary' : 'control-button-green themed-button-secondary';
             return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="control-button ${btnClass}">${btnText}</button>`;
         default:
-            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-primary">Complete</button>`;
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
     }
 }
 
@@ -385,7 +385,14 @@ export function commonButtonsTemplate(task) {
     `;
 }
 
-export function statusManagerTemplate(statusNames, statusColors, defaultStatusNames) {
+export function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
+    const toggleHtml = `
+        <div class="flex items-center justify-between mb-4 p-2 border-b">
+            <label for="status-theme-toggle" class="form-label mb-0">Use Theme Gradient for Statuses:</label>
+            <input type="checkbox" id="status-theme-toggle" data-action="toggleStatusTheme" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${theming.useThemeForStatus ? 'checked' : ''}>
+        </div>
+    `;
+
     const statusItems = Object.keys(defaultStatusNames).map(statusKey => {
         const displayName = statusNames[statusKey] || defaultStatusNames[statusKey];
         const color = statusColors[statusKey] || '#ccc';
@@ -396,13 +403,13 @@ export function statusManagerTemplate(statusNames, statusColors, defaultStatusNa
                     <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${displayName}</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <input type="color" value="${color}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded">
+                    <input type="color" value="${color}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded" ${theming.useThemeForStatus ? 'disabled' : ''}>
                 </div>
             </div>
         `;
     }).join('');
 
-    return statusItems;
+    return toggleHtml + statusItems;
 }
 
 export function categoryFilterTemplate(categories, categoryFilter) {
@@ -461,24 +468,24 @@ export function iconPickerTemplate(iconCategories) {
 export function editProgressTemplate(taskId, currentValue, max) {
     return `
         <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
-        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
-        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
+        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
     `;
 }
 
 export function editCategoryTemplate(categoryId, currentName) {
     return `
         <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
-        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
+        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
     `;
 }
 
 export function editStatusNameTemplate(statusKey, currentName) {
     return `
         <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-primary">Save</button>
-        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1 themed-button-secondary">Cancel</button>
+        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
     `;
 }
 

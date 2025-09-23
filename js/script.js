@@ -23,7 +23,7 @@ let statusColors = { ...defaultStatusColors };
 let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
-let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto' };
+let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true };
 let appSettings = { title: "Task & Mission Planner", use24HourFormat: false };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
 let lastBulkEditSettings = {};
@@ -722,36 +722,66 @@ function HSLToHex(h, s, l) {
 
 function generateGradientPalette(baseColor) {
     const baseHSL = hexToHSL(baseColor);
-    const isDarkMode = theming.mode === 'night';
-    const minLightness = isDarkMode ? 45 : 0; // Ensure minimum brightness in dark mode
+    const isDarkMode = theming.mode !== 'light'; // Night or Auto are considered dark
+
+    // Define the gradient stops from dark to light
+    const stops = [
+        { l: -45, s: 0 },   // Black
+        { l: -30, s: 25 },  // Red
+        { l: -15, s: 15 },  // Yellow
+        { l: 0, s: 0 },     // Green (base)
+        { l: 15, s: 10 }    // Blue
+    ];
+
+    // If in light mode, reverse the stops to go from light to dark
+    if (!isDarkMode) {
+        stops.reverse();
+    }
 
     const palette = {
-        blue:   HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 10), Math.max(minLightness, baseHSL.l + 15)),
-        green:  HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l)),
-        yellow: HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 15), Math.max(minLightness, baseHSL.l - 15)),
-        red:    HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + 25), Math.max(minLightness, baseHSL.l - 30)),
-        black:  HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l - 45))
+        black:  HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[0].s), Math.max(0, Math.min(100, baseHSL.l + stops[0].l))),
+        red:    HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[1].s), Math.max(0, Math.min(100, baseHSL.l + stops[1].l))),
+        yellow: HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[2].s), Math.max(0, Math.min(100, baseHSL.l + stops[2].l))),
+        green:  HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[3].s), Math.max(0, Math.min(100, baseHSL.l + stops[3].l))),
+        blue:   HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[4].s), Math.max(0, Math.min(100, baseHSL.l + stops[4].l))),
     };
+
     return palette;
 }
 
 function generateComplementaryPalette(baseColor) {
     const baseHSL = hexToHSL(baseColor);
-    const isDarkMode = theming.mode === 'night';
-    const minLightness = isDarkMode ? 50 : 0;
+    const isDarkMode = theming.mode !== 'light';
 
-    // Triadic color scheme for primary, secondary, tertiary buttons
-    const primary = HSLToHex(baseHSL.h, baseHSL.s, Math.max(minLightness, baseHSL.l));
-    const secondary = HSLToHex((baseHSL.h + 120) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
-    const tertiary = HSLToHex((baseHSL.h + 240) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
+    // 1. Main Background Color
+    // Adjust lightness based on the base color's lightness and the theme mode
+    let mainBgLightness = baseHSL.l;
+    if (isDarkMode) {
+        // For dark mode, if the color is light, make it much darker. If it's already dark, make it slightly darker.
+        mainBgLightness = baseHSL.l > 50 ? 20 : Math.max(10, baseHSL.l - 5);
+    } else {
+        // For light mode, if the color is dark, make it much lighter. If it's already light, make it slightly lighter.
+        mainBgLightness = baseHSL.l < 50 ? 95 : Math.min(100, baseHSL.l + 5);
+    }
+    const main = HSLToHex(baseHSL.h, baseHSL.s * 0.8, mainBgLightness); // Desaturate slightly for background
+
+    // 2. Secondary Color (Main Buttons) - This is now the role of the original 'primary'
+    const secondaryLightness = isDarkMode ? Math.max(40, baseHSL.l) : Math.min(60, baseHSL.l);
+    const secondary = HSLToHex(baseHSL.h, baseHSL.s, secondaryLightness);
+
+    // 3. Tertiary Color (Accent Buttons)
+    // A complementary or triadic color for high contrast
+    const tertiaryHue = (baseHSL.h + 150) % 360; // Use a shifted complementary
+    const tertiaryLightness = isDarkMode ? Math.max(50, baseHSL.l) : Math.min(55, baseHSL.l);
+    const tertiary = HSLToHex(tertiaryHue, Math.min(100, baseHSL.s * 1.1), tertiaryLightness);
 
     // Accent colors for other things, like new categories
-    const complementaryHue = (baseHSL.h + 180) % 360;
-    const accent1 = HSLToHex(complementaryHue, baseHSL.s - 10, Math.max(minLightness, baseHSL.l + 10));
-    const accent2 = HSLToHex((complementaryHue + 45) % 360, baseHSL.s - 10, Math.max(minLightness, baseHSL.l + 5));
-    const accent3 = HSLToHex((complementaryHue - 45 + 360) % 360, baseHSL.s, Math.max(minLightness, baseHSL.l));
+    const accent1 = HSLToHex((baseHSL.h + 60) % 360, baseHSL.s - 10, isDarkMode ? 60 : 40);
+    const accent2 = HSLToHex((baseHSL.h + 180) % 360, baseHSL.s - 10, isDarkMode ? 65 : 35);
+    const accent3 = HSLToHex((baseHSL.h + 300) % 360, baseHSL.s, isDarkMode ? 55 : 45);
 
-    return { primary, secondary, tertiary, accent1, accent2, accent3 };
+
+    return { main, secondary, tertiary, accent1, accent2, accent3 };
 }
 
 function applyThemeMode() {
@@ -796,24 +826,45 @@ function applyTheme() {
     };
 
     if (theming.enabled) {
-        const gradientPalette = generateGradientPalette(theming.baseColor);
-        statusColors = gradientPalette;
+        if (theming.useThemeForStatus) {
+            const gradientPalette = generateGradientPalette(theming.baseColor);
+            statusColors = gradientPalette;
+        } else {
+            statusColors = { ...defaultStatusColors };
+        }
 
         const buttonPalette = generateComplementaryPalette(theming.baseColor);
-        const { primary, secondary, tertiary } = buttonPalette;
+        const { main, secondary, tertiary } = buttonPalette;
+
+        // Apply main background color
+        document.body.style.backgroundColor = main;
+
+        // Apply gradient to calendar background
+        const calendarGradient = `linear-gradient(to bottom, ${statusColors.blue}, ${statusColors.green}, ${statusColors.yellow}, ${statusColors.red}, ${statusColors.black})`;
+        document.documentElement.style.setProperty('--calendar-background', calendarGradient);
 
         // Theme buttons based on their functional color class
-        document.querySelectorAll('.themed-button-primary').forEach(btn => styleButton(btn, primary));
-        document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, secondary));
+        document.querySelectorAll('.themed-button-primary').forEach(btn => styleButton(btn, secondary));
+        document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, tertiary));
         document.querySelectorAll('.themed-button-tertiary').forEach(btn => styleButton(btn, tertiary));
+
+        // Theme other elements
+        document.querySelectorAll('.themed-modal-tertiary').forEach(modal => {
+            modal.style.backgroundColor = tertiary;
+        });
 
     } else {
         // Revert to default colors
+        document.documentElement.style.removeProperty('--calendar-background');
+        document.body.style.backgroundColor = '';
         statusColors = { ...defaultStatusColors };
 
         // Remove inline styles from all themed buttons to revert to CSS
         document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
             unstyleButton(btn);
+        });
+        document.querySelectorAll('.themed-modal-tertiary').forEach(modal => {
+            modal.style.backgroundColor = '';
         });
     }
     renderTasks();
@@ -1478,7 +1529,7 @@ function renderCategoryFilters() {
 function renderStatusManager() {
     const manager = document.getElementById('status-color-manager');
     if (!manager) return;
-    manager.innerHTML = statusManagerTemplate(statusNames, statusColors, defaultStatusNames);
+    manager.innerHTML = statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming);
 }
 
 function renderNotificationManager() {
@@ -3316,6 +3367,12 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'toggleStatusTheme':
+                    theming.useThemeForStatus = !theming.useThemeForStatus;
+                    applyTheme();
+                    renderStatusManager(); // Re-render to update disabled state
+                    saveData();
+                    break;
                 case 'setCategoryIcon':
                     editingCategoryIdForIcon = categoryId;
                     openIconPicker();
