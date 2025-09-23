@@ -3555,8 +3555,10 @@ function loadData() {
     }
     if (storedTasks) {
         try {
+            let wasUpgraded = false;
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
+                const originalTaskJSON = JSON.stringify(task);
                 let tempTask = { ...task };
                 tempTask.dueDate = task.dueDate ? new Date(task.dueDate) : null;
                 tempTask.createdAt = task.createdAt ? new Date(task.createdAt) : new Date();
@@ -3567,8 +3569,20 @@ function loadData() {
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
 
-                return sanitizeAndUpgradeTask(tempTask);
+                const sanitizedTask = sanitizeAndUpgradeTask(tempTask);
+                if (JSON.stringify(sanitizedTask) !== originalTaskJSON) {
+                    wasUpgraded = true;
+                }
+                return sanitizedTask;
             });
+
+            const lastCheck = localStorage.getItem('lastMigrationCheck');
+            const today = new Date().toDateString();
+            if (wasUpgraded && lastCheck !== today) {
+                openDataMigrationModal();
+                localStorage.setItem('lastMigrationCheck', today);
+            }
+
 
             tasks.forEach(task => {
                 if (task.isTimerRunning && task.timerLastStarted) {
