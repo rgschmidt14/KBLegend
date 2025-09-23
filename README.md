@@ -13,7 +13,14 @@ This application is built as a comprehensive tool for managing complex schedules
 
 The core of the application is a dynamic and intelligent task management system.
 
-* **Intelligent Task Status:** Tasks automatically change color and status (Ready, Start Soon, Do Right Now, Overdue) based on a predictive algorithm. This system doesn't just look at the due date; it considers the estimated duration of all your other high-priority tasks to warn you about potential time crunches before they happen.  
+* **Intelligent Task Status:** Tasks automatically change color and status (Ready, Start Soon, Do Right Now, Overdue) based on a predictive algorithm. This system doesn't just look at the due date; it considers the estimated duration of all your other high-priority tasks to warn you about potential time crunches before they happen.
+*   **How `calculateStatus` Works:** The `calculateStatus` function is the predictive engine that drives the application's intelligent warnings. It's triggered whenever tasks are loaded, modified, or periodically in the background. Here’s a breakdown of its logic:
+    1.  **Immediate Overdue Check:** The first thing it does is check if a task's due date is in the past. If so, it's immediately marked `red` (or `black` if the miss ratio is high).
+    2.  **Time-to-Due Buffers:** It checks if the time remaining is less than the task's estimated duration (making it `red`) or less than twice the estimated duration (making it `yellow`). This provides a simple, direct warning if you're cutting it close.
+    3.  **Predictive Workload Analysis:** This is the core of the intelligent system. It calculates the sum of the remaining estimated durations of all other *active, high-priority* tasks.
+        *   It first checks if the current time plus the sum of all other `red` and `yellow` tasks would push you past the due date of the task being calculated. If so, this task becomes `red`.
+        *   It then performs a wider check, summing the estimates of all `red`, `yellow`, and *soon-to-be-yellow* tasks (those due within the next 16 hours). If that total workload pushes you past the due date, the task becomes `yellow`.
+    4.  **Miss Ratio Escalation:** For repeating tasks, the system checks the current `misses` against the `maxMisses`. If the ratio exceeds 50%, the status is escalated to the next level of urgency (e.g., `green` becomes `yellow`, `yellow` becomes `red`). If the ratio reaches 100%, the task is marked `black` (failed).
 * **Flexible Time Input:** Choose to define a task by its due date and time, or by its start time and estimated duration. The application will handle the calculations for you.  
 * **Advanced Repetition Engine:** Create tasks that repeat on almost any schedule imaginable.  
   * **Relative Repetition:** Set tasks to repeat at an interval after their due date (e.g., "every 3 days").  
@@ -49,6 +56,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
+
+### ✅ Recently Completed (Version 3.1) - 09/22/2025
+
+This update focused on improving data management and providing deeper insight into the application's core logic.
+
+*   **Task Data Migration Tool:** A new tool has been added to the "Advanced Options" menu that allows users to migrate tasks from an older, unstructured JSON format. The tool intelligently detects fields from the uploaded file and prompts the user to map them to the current task properties, ensuring a smooth transition from legacy data formats.
+*   **Partial Miss Logic Refinement:** The logic for confirming multiple overdue cycles has been clarified. The system now correctly applies only one partial miss (based on progress) for the most recent cycle and full, whole-number misses for any older cycles being confirmed at the same time. This ensures that a user's partial effort is fairly counted without being unfairly compounded.
 
 ### ✅ Recently Completed (Version 3.0) - 09/22/2025
 
@@ -198,8 +212,10 @@ This update focused on improving the long-term stability and maintainability of 
 
 This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
 
-*   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
-*   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
+*   **Advanced `calculateStatus` Tuning:** Fine-tune the predictive logic for task statuses. The current system uses several hard-coded values that could be exposed to the user as "power user" settings. This would provide granular control over how the predictive engine behaves. Key tunable parameters include:
+    *   **The "Yellow Window" (currently 16 hours):** This determines how far in advance the engine looks when summing up task durations for the `yellow` status calculation. A shorter window would make the system less sensitive, while a longer window would provide earlier warnings.
+    *   **Time-to-Due Buffers (currently 2x duration for yellow, 1x for red):** Adjusting these multipliers would change how quickly a task escalates as its deadline approaches, independent of other tasks.
+    *   **Miss Ratio Thresholds (currently 50% for escalation):** Allowing users to set this threshold would let them define their own tolerance for failure on repeating tasks.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 

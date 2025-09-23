@@ -230,6 +230,29 @@ export function taskViewTemplate(task, { categories, appSettings }) {
     `;
 }
 
+export function dataMigrationModalTemplate() {
+    return `
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Task Data Migration Tool</h3>
+            <button class="close-button">&times;</button>
+            <div id="migration-step-1">
+                <p class="mb-4">Upload your old task data file (JSON format). The tool will attempt to automatically map the fields.</p>
+                <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
+            </div>
+            <div id="migration-step-2" class="hidden mt-4">
+                <p class="mb-2 font-semibold">Map your old data fields to the new task properties:</p>
+                <div id="migration-mapping-area" class="space-y-2 max-h-60 overflow-y-auto p-2 border rounded">
+                    <!-- Mapping UI will be generated here -->
+                </div>
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="cancel-migration-btn" class="control-button control-button-gray themed-button-secondary">Cancel</button>
+                    <button id="run-migration-btn" class="control-button control-button-blue themed-button-primary">Run Migration</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export function bulkEditFormTemplate(categoryId, settings) {
     const {
         durationAmount = '',

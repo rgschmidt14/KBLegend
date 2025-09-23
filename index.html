@@ -567,14 +567,22 @@
                         </div>
                         <div>
                             <label class="form-label">Import Data:</label>
-                            <button data-action="importData" class="control-button control-button-green themed-button-primary">Import from File</button>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-action="importData" class="control-button control-button-green themed-button-primary">Import from File</button>
+                                <button data-action="openMigrationTool" class="control-button control-button-yellow themed-button-secondary">Migration Tool</button>
+                            </div>
                             <input type="file" id="import-file-input" class="hidden" accept=".json">
-                            <p class="form-hint">Import data from a previously exported JSON file. This will overwrite existing data.</p>
+                            <p class="form-hint">Import from a backup, or use the Migration Tool for old data formats.</p>
                         </div>
                     </div>
                 </fieldset>
             </div>
         </div>
+    </div>
+
+    <!-- Modal for Data Migration -->
+    <div id="data-migration-modal" class="modal">
+        <!-- Content will be rendered by JS -->
     </div>
 
     <!-- Modal for viewing task details and stats -->
