@@ -500,6 +500,28 @@ export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
     `;
 }
 
+export function sensitivityControlsTemplate(settings) {
+    const { sValue, isAdaptive } = settings;
+    const sliderDisabled = isAdaptive ? 'disabled' : '';
+    const containerOpacity = isAdaptive ? 'opacity-50' : '';
+
+    return `
+        <div class="flex items-center justify-between">
+            <label for="adaptive-sensitivity-toggle" class="form-label mb-0">Use Adaptive Sensitivity:</label>
+            <input type="checkbox" id="adaptive-sensitivity-toggle" data-action="toggleAdaptiveSensitivity" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isAdaptive ? 'checked' : ''}>
+        </div>
+        <div id="manual-sensitivity-container" class="space-y-2 ${containerOpacity}">
+            <label for="sensitivity-slider" class="form-label">Manual Sensitivity:</label>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-500">Least</span>
+                <input type="range" id="sensitivity-slider" min="0" max="1" step="0.01" value="${sValue}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" ${sliderDisabled}>
+                <span class="text-sm text-gray-500">Most</span>
+            </div>
+            <p class="form-hint">Controls how early the system warns you about upcoming tasks. Disabled when adaptive mode is on.</p>
+        </div>
+    `;
+}
+
 export function notificationManagerTemplate(notificationSettings, categories) {
     const categoryItems = categories.map(cat => {
         // Default to true if not set

@@ -234,6 +234,12 @@ describe('getDurationMs', () => {
 describe('calculateStatus', () => {
     const now = new Date('2025-09-20T10:00:00Z').getTime();
     const allTasks = []; // Start with an empty list of other tasks
+    const defaultSensitivity = {
+        yellowWindowMs: 16 * 3600000,
+        yellowBuffer: 2,
+        redBuffer: 1,
+        missRatio: 0.5,
+    };
 
     it('should return "green" for a standard task that is not due soon', () => {
         const task = {
@@ -245,7 +251,7 @@ describe('calculateStatus', () => {
             completed: false,
             misses: 0,
         };
-        const status = calculateStatus(task, now, allTasks);
+        const status = calculateStatus(task, now, allTasks, defaultSensitivity);
         expect(status.name).toBe('green');
     });
 
@@ -259,7 +265,7 @@ describe('calculateStatus', () => {
             completed: false,
             misses: 0,
         };
-        const status = calculateStatus(task, now, allTasks);
+        const status = calculateStatus(task, now, allTasks, defaultSensitivity);
         expect(status.name).toBe('red');
     });
 
@@ -283,7 +289,7 @@ describe('calculateStatus', () => {
              estimatedDurationAmount: 4,
              estimatedDurationUnit: 'hours',
         }
-        const status = calculateStatus(task, now, [otherBusyTask]);
+        const status = calculateStatus(task, now, [otherBusyTask], defaultSensitivity);
         // The logic is: now (10:00) + other task (4h) = 14:00. This is NOT > task due date (22:00).
         // However, the *other* logic is `timeUntilDue <= taskEstimateMs * 2`.
         // Time until due is 12 hours. Estimate is 30 mins. 12h is not <= 60 mins.
@@ -295,12 +301,12 @@ describe('calculateStatus', () => {
         // 14:00 is not > 22:00. So it should still be green.
         // Let's adjust the test to *make* it yellow.
         const busyTask2 = { ...otherBusyTask, id: '5', estimatedDurationAmount: 10, estimatedDurationUnit: 'hours' }; // 10 hour task
-        const status2 = calculateStatus(task, now, [busyTask2]);
+        const status2 = calculateStatus(task, now, [busyTask2], defaultSensitivity);
         // now (10:00) + busyTask2 (10h) = effective time of 20:00.
         // 20:00 is not > 22:00. Still green.
         // Let's make it more aggressive.
         const busyTask3 = { ...otherBusyTask, id: '6', estimatedDurationAmount: 13, estimatedDurationUnit: 'hours' }; // 13 hour task
-        const status3 = calculateStatus(task, now, [busyTask3]);
+        const status3 = calculateStatus(task, now, [busyTask3], defaultSensitivity);
         // now (10:00) + busyTask3 (13h) = effective time of 23:00.
         // 23:00 IS > 22:00. This should be yellow.
         expect(status3.name).toBe('yellow');
@@ -316,7 +322,7 @@ describe('calculateStatus', () => {
             completed: false,
             misses: 0,
         };
-        const status = calculateStatus(task, now, allTasks);
+        const status = calculateStatus(task, now, allTasks, defaultSensitivity);
         expect(status.name).toBe('red');
     });
 
@@ -328,7 +334,7 @@ describe('calculateStatus', () => {
             completed: true, // This is the key
             misses: 0,
         };
-        const status = calculateStatus(task, now, allTasks);
+        const status = calculateStatus(task, now, allTasks, defaultSensitivity);
         expect(status.name).toBe('blue');
     });
 
@@ -341,7 +347,7 @@ describe('calculateStatus', () => {
             maxMisses: 3,
             misses: 3,
         };
-        const status = calculateStatus(task, now, allTasks);
+        const status = calculateStatus(task, now, allTasks, defaultSensitivity);
         expect(status.name).toBe('black');
     });
 
@@ -358,7 +364,7 @@ describe('calculateStatus', () => {
 
         it('should upgrade a "green" task to "yellow" when miss ratio is over 50%', () => {
             const task = { ...baseHabitTask, misses: 6 }; // 6/10 = 60%
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('yellow');
         });
 
@@ -366,33 +372,33 @@ describe('calculateStatus', () => {
             // To make the original task yellow, we need to adjust its due date and create a sufficiently busy task.
             const yellowTask = { ...baseHabitTask, id: '11', dueDate: new Date('2025-09-21T01:00:00Z') }; // Due in 15 hours
             const busyTask = { id: 'busy1', dueDate: new Date('2025-09-20T23:00:00Z'), estimatedDurationAmount: 16, estimatedDurationUnit: 'hours', requiresFullAttention: true, status: 'green' };
-            const initialStatus = calculateStatus(yellowTask, now, [busyTask]);
+            const initialStatus = calculateStatus(yellowTask, now, [busyTask], defaultSensitivity);
             expect(initialStatus.name).toBe('yellow'); // First, confirm it's yellow
 
             const taskWithMisses = { ...yellowTask, misses: 6 }; // Now add the misses
-            const finalStatus = calculateStatus(taskWithMisses, now, [busyTask]);
+            const finalStatus = calculateStatus(taskWithMisses, now, [busyTask], defaultSensitivity);
             expect(finalStatus.name).toBe('red');
         });
 
         it('should upgrade a "red" task to "black" when miss ratio is over 50%', () => {
             const pastDueTask = { ...baseHabitTask, dueDate: new Date('2025-09-20T09:00:00Z') }; // Make it overdue
-            const initialStatus = calculateStatus(pastDueTask, now, allTasks);
+            const initialStatus = calculateStatus(pastDueTask, now, allTasks, defaultSensitivity);
             expect(initialStatus.name).toBe('red'); // First, confirm it's red
 
             const task = { ...pastDueTask, misses: 6 }; // Now add the misses
-            const finalStatus = calculateStatus(task, now, allTasks);
+            const finalStatus = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(finalStatus.name).toBe('black');
         });
 
         it('should not change status if miss ratio is exactly 50%', () => {
             const task = { ...baseHabitTask, misses: 5 }; // 5/10 = 50%
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('green');
         });
 
         it('should not change status if habit tracking is disabled', () => {
             const task = { ...baseHabitTask, misses: 6, trackMisses: false };
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('green');
         });
     });
@@ -422,7 +428,7 @@ describe('calculateStatus', () => {
             };
             // With the full 12 hours, baseTask would be yellow (10:00 + 12h > 20:00).
             // With the remaining 3 hours, it should be green (10:00 + 3h < 20:00).
-            const status = calculateStatus(baseTask, now, [busyTask]);
+            const status = calculateStatus(baseTask, now, [busyTask], defaultSensitivity);
             expect(status.name).toBe('green');
         });
 
@@ -440,7 +446,7 @@ describe('calculateStatus', () => {
                 currentProgress: getDurationMs(10, 'hours'), // 10 hours logged
             };
             // With the remaining 2 hours, baseTask should be green (10:00 + 2h < 20:00).
-            const status = calculateStatus(baseTask, now, [busyTask]);
+            const status = calculateStatus(baseTask, now, [busyTask], defaultSensitivity);
             expect(status.name).toBe('green');
         });
 
@@ -459,7 +465,7 @@ describe('calculateStatus', () => {
                 currentProgress: 0,
             };
             // With the full 12 hours, baseTask should be yellow (10:00 + 12h > 20:00).
-            const status = calculateStatus(baseTask, now, [busyTask]);
+            const status = calculateStatus(baseTask, now, [busyTask], defaultSensitivity);
             expect(status.name).toBe('yellow');
         });
     });
@@ -467,7 +473,7 @@ describe('calculateStatus', () => {
     describe('with confirmation states', () => {
         it('should return "red" if confirmationState is "awaiting_overdue_input"', () => {
             const task = { id: '30', confirmationState: 'awaiting_overdue_input' };
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('red');
         });
 
@@ -480,7 +486,7 @@ describe('calculateStatus', () => {
                 maxMisses: 10,
                 misses: 6,
             };
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('black');
         });
 
@@ -490,7 +496,7 @@ describe('calculateStatus', () => {
                 confirmationState: 'confirming_complete',
                 dueDate: new Date(now - 1000), // 1 second ago
             };
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('red');
         });
 
@@ -500,7 +506,7 @@ describe('calculateStatus', () => {
                 confirmationState: 'confirming_complete',
                 dueDate: new Date(now + 100000), // In the future
             };
-            const status = calculateStatus(task, now, allTasks);
+            const status = calculateStatus(task, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('green');
         });
     });
@@ -513,7 +519,7 @@ describe('calculateStatus', () => {
                 repetitionType: 'relative',
                 cycleEndDate: new Date(now + 100000), // The cycle is paused until the future
             };
-            const status = calculateStatus(pausedTask, now, allTasks);
+            const status = calculateStatus(pausedTask, now, allTasks, defaultSensitivity);
             expect(status.name).toBe('blue');
         });
 
@@ -530,7 +536,88 @@ describe('calculateStatus', () => {
             // So timeUntilDue (3600000) > taskEstimateMs * 2 (1800000 * 2 = 3600000) is false.
             // It should be green. Let me recheck the logic.
             // `timeUntilDue <= taskEstimateMs * 2` -> 3600000 <= 3600000 is true. So it should be yellow.
-            const status = calculateStatus(unpausedTask, now, allTasks);
+            const status = calculateStatus(unpausedTask, now, allTasks, defaultSensitivity);
+            expect(status.name).toBe('yellow');
+        });
+    });
+
+    describe('with dynamic sensitivity settings', () => {
+        const baseTask = {
+            id: '50',
+            dueDate: new Date('2025-09-25T10:00:00Z'), // 5 days from now
+            estimatedDurationAmount: 2,
+            estimatedDurationUnit: 'hours',
+            repetitionType: 'none',
+            completed: false,
+            misses: 0,
+        };
+
+        it('should be "green" with least sensitive settings (S=0)', () => {
+            const leastSensitive = {
+                yellowWindowMs: 16 * 3600000, // 16 hours
+                yellowBuffer: 2,
+                redBuffer: 1,
+                missRatio: 0.50,
+            };
+            const status = calculateStatus(baseTask, now, allTasks, leastSensitive);
+            expect(status.name).toBe('green');
+        });
+
+        it('should be "yellow" with most sensitive settings (S=1)', () => {
+            const mostSensitive = {
+                yellowWindowMs: 1176 * 3600000, // 7 weeks
+                yellowBuffer: 10,
+                redBuffer: 5,
+                missRatio: 0.10,
+            };
+            // The yellow window is huge, so the task (due in 5 days) will be inside it.
+            // The busyness check will run. Since there are no other tasks, it should be green.
+            // However, the *second* check is timeUntilDue <= taskEstimateMs * yellowBuffer
+            // timeUntilDue = 5 days = 120 hours.
+            // taskEstimateMs * yellowBuffer = 2 hours * 10 = 20 hours.
+            // 120 > 20, so it should still be green.
+            // Let's adjust the due date to make it yellow.
+            // Let's make it due in 19 hours.
+            const closerTask = { ...baseTask, dueDate: new Date(now + 19 * 3600000) };
+            // timeUntilDue = 19 hours. taskEstimate*yellowBuffer = 20 hours.
+            // 19 <= 20 is true. So it should be yellow.
+            const status = calculateStatus(closerTask, now, allTasks, mostSensitive);
+            expect(status.name).toBe('yellow');
+        });
+
+        it('should be "red" with most sensitive settings (S=1) when due soon', () => {
+             const mostSensitive = {
+                yellowWindowMs: 1176 * 3600000, // 7 weeks
+                yellowBuffer: 10,
+                redBuffer: 5,
+                missRatio: 0.10,
+            };
+            // taskEstimate * redBuffer = 2 hours * 5 = 10 hours.
+            // Let's make the task due in 9 hours.
+            const veryCloseTask = { ...baseTask, dueDate: new Date(now + 9 * 3600000) };
+            const status = calculateStatus(veryCloseTask, now, allTasks, mostSensitive);
+            expect(status.name).toBe('red');
+        });
+
+        it('should upgrade status based on a more sensitive missRatio', () => {
+            const sensitiveMissRatio = {
+                yellowWindowMs: 16 * 3600000,
+                yellowBuffer: 2,
+                redBuffer: 1,
+                missRatio: 0.10, // Only 10% needed to trigger status upgrade
+            };
+            const habitTask = {
+                id: '51',
+                dueDate: new Date('2025-09-21T12:00:00Z'), // Green by default
+                repetitionType: 'relative',
+                trackMisses: true,
+                maxMisses: 10,
+                misses: 2, // 20% miss rate
+                requiresFullAttention: true,
+            };
+            // With default 0.5 threshold, this would be green.
+            // With 0.1 threshold, this should be yellow.
+            const status = calculateStatus(habitTask, now, allTasks, sensitiveMissRatio);
             expect(status.name).toBe('yellow');
         });
     });

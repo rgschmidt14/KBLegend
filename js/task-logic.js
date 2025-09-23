@@ -1,8 +1,6 @@
 const MS_PER_MINUTE = 60000;
 const MS_PER_HOUR = 3600000;
 const MS_PER_DAY = 86400000;
-const YELLOW_WINDOW_HOURS = 16;
-const YELLOW_WINDOW_MS = YELLOW_WINDOW_HOURS * MS_PER_HOUR;
 
 function getDurationMs(amount, unit) {
     if (!amount || !unit || amount <= 0) return 0;
@@ -19,7 +17,9 @@ function getDurationMs(amount, unit) {
     return ms;
 }
 
-function calculateStatus(task, nowMs, allTasks) {
+function calculateStatus(task, nowMs, allTasks, sensitivityParams) {
+    const { yellowWindowMs, yellowBuffer, redBuffer, missRatio: missRatioThreshold } = sensitivityParams;
+
     try {
         if (task.repetitionType === 'none' && task.completed) return { name: 'blue', className: 'task-blue' };
         if (task.repetitionType !== 'none' && task.maxMisses > 0 && task.trackMisses && (task.misses / task.maxMisses) >= 1) {
@@ -77,7 +77,7 @@ function calculateStatus(task, nowMs, allTasks) {
                     return tEstimateMs;
                 }
             };
-            const yellowLookaheadMs = nowMs + YELLOW_WINDOW_MS;
+            const yellowLookaheadMs = nowMs + yellowWindowMs;
             const sumRelevantEstimatesMs = activeBusyTasksForSum.reduce((sum, t) => {
                 const tDueDateMs = t.dueDate.getTime();
                 if (t.status === 'yellow' || t.status === 'red' || (t.status === 'green' && tDueDateMs <= yellowLookaheadMs)) {
@@ -93,9 +93,9 @@ function calculateStatus(task, nowMs, allTasks) {
             } else if ((nowMs + sumRelevantEstimatesMs) > dueDateMs) {
                 activeStatusName = 'yellow';
             }
-            if (timeUntilDue <= taskEstimateMs) {
+            if (timeUntilDue <= taskEstimateMs * redBuffer) {
                 activeStatusName = 'red';
-            } else if (activeStatusName !== 'red' && timeUntilDue <= taskEstimateMs * 2) {
+            } else if (activeStatusName !== 'red' && timeUntilDue <= taskEstimateMs * yellowBuffer) {
                 activeStatusName = 'yellow';
             }
         } else {
@@ -104,7 +104,7 @@ function calculateStatus(task, nowMs, allTasks) {
         let finalStatusName = activeStatusName;
         if (finalStatusName !== 'black' && task.repetitionType !== 'none' && task.maxMisses > 0 && task.trackMisses) {
             const missRatio = task.misses / task.maxMisses;
-            if (missRatio > 0.5 && missRatio < 1) {
+            if (missRatio > missRatioThreshold && missRatio < 1) {
                 if (finalStatusName === 'red') finalStatusName = 'black';
                 else if (finalStatusName === 'yellow') finalStatusName = 'red';
                 else if (finalStatusName === 'green') finalStatusName = 'yellow';

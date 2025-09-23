@@ -208,15 +208,6 @@ This update focused on improving the long-term stability and maintainability of 
 *   **Planner View Rendering Overhaul:** Fixed a major visual bug in the **Weekly and Daily** planner views where concurrent tasks would overlap and become unreadable. The rendering logic was re-architected to use a modern **CSS Grid layout**. This replaces the old, brittle positioning logic with a robust system that correctly and automatically handles laying out tasks, ensuring the planner is stable and legible.
 *   **Code Stability:** Refined the JavaScript rendering functions (`renderDailyView`, `renderWeeklyView`) to be simpler and more maintainable, directly supporting the new CSS Grid system.
 
-### **🔜 Up Next: Pre-Database Features**
-
-This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
-
-*   **Advanced `calculateStatus` Tuning:** Fine-tune the predictive logic for task statuses. The current system uses several hard-coded values that could be exposed to the user as "power user" settings. This would provide granular control over how the predictive engine behaves. Key tunable parameters include:
-    *   **The "Yellow Window" (currently 16 hours):** This determines how far in advance the engine looks when summing up task durations for the `yellow` status calculation. A shorter window would make the system less sensitive, while a longer window would provide earlier warnings.
-    *   **Time-to-Due Buffers (currently 2x duration for yellow, 1x for red):** Adjusting these multipliers would change how quickly a task escalates as its deadline approaches, independent of other tasks.
-    *   **Miss Ratio Thresholds (currently 50% for escalation):** Allowing users to set this threshold would let them define their own tolerance for failure on repeating tasks.
-
 ### **🚀 Future Roadmap: Database & Collaboration**
 
 These are larger, long-term goals for the project that are dependent on migrating the application's backend from `localStorage` to a persistent, server-side database. For a detailed guide on the migration process itself, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
