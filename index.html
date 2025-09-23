@@ -132,33 +132,60 @@
                     <span class="text-sm font-medium text-gray-600">Advanced</span>
                 </div>
             </div>
-             <form id="task-form">
+             <form id="task-form" class="space-y-4">
                 <input type="hidden" id="task-id">
 
                 <!-- Simple Fields -->
-                <div class="mb-4">
-                    <label for="task-name" class="form-label">Task Name:</label>
-                    <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <div id="due-date-group" class="mb-4">
-                    <label for="task-due-date" class="form-label">Due Date & Time:</label>
-                    <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <div id="simple-task-fields">
+                    <div class="mb-4">
+                        <label for="task-name" class="form-label">Task Name:</label>
+                        <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div id="due-date-group" class="mb-4">
+                        <label for="task-due-date" class="form-label">Due Date & Time:</label>
+                        <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
                 </div>
 
                 <!-- Advanced Fields Container -->
                 <div id="advanced-task-fields" class="hidden space-y-4">
-                    <div class="mb-4">
-                        <label for="task-icon" class="form-label">Task Icon:</label>
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                            <button type="button" id="open-icon-picker" class="control-button control-button-gray themed-button-secondary">Choose Icon</button>
-                        </div>
-                        <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
-                    </div>
-
+                    <!-- General Section -->
                     <fieldset>
-                       <legend>Category</legend>
-                       <div class="mb-4">
+                        <legend class="form-legend">General</legend>
+                        <div class="mb-4">
+                            <label class="form-label">Completion Type:</label>
+                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="simple">Simple (Mark Done)</option>
+                                <option value="count">Count</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div id="completion-count-group" class="mb-4 hidden">
+                             <label for="count-target" class="form-label">Target Count:</label>
+                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <p class="form-hint">The total count needed to complete the task.</p>
+                        </div>
+                        <div id="completion-time-group" class="mb-4 hidden">
+                             <label class="form-label">Target Time:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">The total time needed to complete the task.</p>
+                         </div>
+                        <div class="mb-4">
+                            <label for="task-description" class="form-label">Description:</label>
+                            <textarea id="task-description" name="task-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
+                    </fieldset>
+
+                    <!-- Categorization Section -->
+                    <fieldset>
+                        <legend class="form-legend">Categorization</legend>
+                        <div class="mb-4">
                            <label for="task-category" class="form-label">Category:</label>
                            <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
                                <option value="">None</option>
@@ -170,10 +197,26 @@
                            <label for="new-category-name" class="form-label">New Category Name:</label>
                            <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                        </div>
+                        <div class="mb-4">
+                            <label for="task-icon" class="form-label">Task Icon:</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <button type="button" id="open-icon-picker" class="control-button control-button-gray themed-button-secondary">Choose Icon</button>
+                            </div>
+                            <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
+                        </div>
                     </fieldset>
 
+                    <!-- Time and Scheduling Section -->
                     <fieldset>
-                        <legend>Time & Scheduling</legend>
+                        <legend class="form-legend">Time and Scheduling</legend>
+                         <div class="mb-4">
+                            <label class="form-label">Due Date Type:</label>
+                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="absolute">Absolute Date & Time</option>
+                                <option value="relative">Relative Time</option>
+                            </select>
+                        </div>
                         <div class="mb-4">
                             <label class="form-label">Time Input Type:</label>
                             <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
@@ -184,13 +227,6 @@
                         <div id="start-date-group" class="mb-4 hidden">
                             <label for="task-start-date" class="form-label">Start Date & Time:</label>
                             <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label">Due Date Type:</label>
-                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                <option value="absolute">Absolute Date & Time</option>
-                                <option value="relative">Relative Time</option>
-                            </select>
                         </div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
                             <label class="form-label">Due In:</label>
@@ -226,36 +262,9 @@
                            </div>
                     </fieldset>
 
+                    <!-- Repetition and Failure Tracking Section -->
                     <fieldset>
-                        <legend>Completion</legend>
-                        <div class="mb-4">
-                            <label class="form-label">Completion Type:</label>
-                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                <option value="simple">Simple (Mark Done)</option>
-                                <option value="count">Count</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div id="completion-count-group" class="mb-4 hidden">
-                             <label for="count-target" class="form-label">Target Count:</label>
-                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                             <p class="form-hint">The total count needed to complete the task.</p>
-                        </div>
-                        <div id="completion-time-group" class="mb-4 hidden">
-                             <label class="form-label">Target Time:</label>
-                             <div class="flex space-x-2 items-center">
-                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                    <option value="minutes">Minute(s)</option>
-                                    <option value="hours">Hour(s)</option>
-                                 </select>
-                             </div>
-                             <p class="form-hint">The total time needed to complete the task.</p>
-                         </div>
-                    </fieldset>
-
-                    <fieldset>
-                       <legend>Repetition</legend>
+                       <legend class="form-legend">Repetition & Failure Tracking</legend>
                         <div class="mb-4">
                             <label class="form-label sr-only">Repetition Type:</label>
                             <select id="task-repetition" name="task-repetition" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">

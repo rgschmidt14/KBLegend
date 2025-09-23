@@ -148,7 +148,8 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
 
     const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
     const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="common-buttons-container"></div>`;
-    const iconHtml = task.icon ? `<i class="${task.icon} mr-2"></i>` : '';
+    const iconToUse = task.icon || (category ? category.icon : null);
+    const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
 
     return `<div class="flex-grow pr-4">
                 <div class="flex justify-between items-baseline">
@@ -177,9 +178,10 @@ export function categoryManagerTemplate(categories) {
         <div class="p-2 border-b" id="category-item-${cat.id}">
             <div class="flex items-center justify-between">
                 <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
-                    <span class="font-medium cursor-pointer">${cat.name}</span>
+                    <span class="font-medium cursor-pointer">${cat.icon ? `<i class="${cat.icon} mr-2"></i>` : ''}${cat.name}</span>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <button data-action="setCategoryIcon" data-category-id="${cat.id}" class="control-button control-button-gray text-xs themed-button-secondary">Set Icon</button>
                     <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
                     <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg themed-button-tertiary" aria-label="Delete category ${cat.name}">&times;</button>
                 </div>

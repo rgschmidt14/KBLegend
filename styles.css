@@ -198,6 +198,15 @@ legend {
     @apply text-sm font-medium text-gray-600 px-1;
 }
 
+.form-legend {
+    @apply w-full pb-2 border-b border-gray-300 mb-4 text-lg font-semibold;
+}
+
+.light-mode .form-legend {
+    border-color: #D1D5DB; /* gray-300 */
+}
+
+
 .checkbox-label {
     @apply flex items-center text-sm px-2 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150;
 }
@@ -709,9 +718,8 @@ legend {
 .light-mode .modal-content legend,
 .light-mode .modal-content .form-label,
 .light-mode .modal-content label,
-.light-mode .modal-content span,
 .light-mode .modal-content div {
-    color: #1F2937 !important; /* Force dark color for key elements */
+    color: #1F2937 !important; /* Force dark color for key elements. Span removed. */
 }
 
 .light-mode .modal-content .form-hint {

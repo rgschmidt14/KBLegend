@@ -29,7 +29,8 @@ let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGr
 let lastBulkEditSettings = {};
 let oldTasksData = [];
 let editingTaskId = null;
-let isSimpleMode = true;
+let editingCategoryIdForIcon = null;
+// isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
 let mainUpdateInterval = null;
 let taskTimers = {};
@@ -40,6 +41,10 @@ let plannerSettings = { defaultCategoryId: 'Planner' };
 let taskDisplaySettings = {
     showDueDate: true, showRepetition: true, showDuration: true,
     showCategory: true, showCountdown: true, showProgress: true,
+};
+let uiSettings = {
+    isSimpleMode: true,
+    activeView: 'calendar-view', // Default view
 };
 let sensitivitySettings = { sValue: 0.5, isAdaptive: true };
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -62,7 +67,7 @@ const DUE_THRESHOLD_MS = 1000;
 const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
-let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskIconInput,
+let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskIconInput,
     iconPickerModal, dataMigrationModal,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
     dueDateTypeSelect, relativeDueDateGroup,
@@ -335,6 +340,7 @@ function sanitizeAndUpgradeTask(task) {
         createdAt: new Date(),
         cycleEndDate: null,
         completionReducedMisses: false,
+        description: '',
         estimatedDurationAmount: null,
         estimatedDurationUnit: 'minutes',
         categoryId: null,
@@ -1089,23 +1095,25 @@ function openModal(taskId = null, options = {}) {
             modalTitle.textContent = 'Edit Task';
             taskIdInput.value = task.id;
             taskNameInput.value = task.name;
+            taskDescriptionInput.value = task.description || '';
             taskIconInput.value = task.icon || '';
 
             // Set Time Input Type and corresponding date fields
             timeInputTypeSelect.value = task.timeInputType || 'due';
             const dateToUse = options.occurrenceDate || task.dueDate;
 
+            // Always populate the main due date input for simplicity
+            taskDueDateInput.value = formatDateForInput(dateToUse);
+
+            // Populate start date if applicable, but visibility is handled later
             if (task.timeInputType === 'start') {
-                dueDateGroup.classList.add('hidden');
-                startDateGroup.classList.remove('hidden');
                 const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
                 const startDate = new Date(dateToUse.getTime() - durationMs);
                 taskStartDateInput.value = formatDateForInput(startDate);
-            } else {
-                dueDateGroup.classList.remove('hidden');
-                startDateGroup.classList.add('hidden');
-                taskDueDateInput.value = formatDateForInput(dateToUse);
             }
+
+            // Show/hide based on saved values
+            startDateGroup.classList.toggle('hidden', task.timeInputType !== 'start');
 
             dueDateTypeSelect.value = task.dueDateType || 'absolute';
             relativeDueDateGroup.classList.toggle('hidden', task.dueDateType !== 'relative');
@@ -1161,20 +1169,14 @@ function openModal(taskId = null, options = {}) {
             timeTargetUnitSelect.value = task.timeTargetUnit || 'minutes';
             taskCategorySelect.value = task.categoryId || '';
 
-            const isComplex = (task.repetitionType && task.repetitionType !== 'none') ||
-                (task.completionType && task.completionType !== 'simple') ||
-                task.icon || task.categoryId ||
-                (task.timeInputType && task.timeInputType === 'start') ||
-                (task.dueDateType && task.dueDateType === 'relative');
-            isSimpleMode = !isComplex;
-
         } else {
             modalTitle.textContent = 'Add New Task';
             taskIdInput.value = '';
-            isSimpleMode = true; // Default to simple mode for new tasks
+            // When adding a new task, we respect the user's saved preference for simple/advanced mode,
+            // which is already in uiSettings.isSimpleMode.
         }
 
-        toggleSimpleMode(); // Set the view based on isSimpleMode
+        toggleSimpleMode(); // Set the view based on the current uiSettings.isSimpleMode
 
         // Ensure estimated duration requirement is set based on time input type
         if (estimatedDurationAmountInput) {
@@ -1197,8 +1199,21 @@ function toggleSimpleMode() {
     const simpleModeToggle = document.getElementById('simple-mode-toggle');
 
     if (advancedFields && simpleModeToggle) {
-        advancedFields.classList.toggle('hidden', isSimpleMode);
-        simpleModeToggle.checked = !isSimpleMode;
+        advancedFields.classList.toggle('hidden', uiSettings.isSimpleMode);
+        simpleModeToggle.checked = !uiSettings.isSimpleMode;
+
+        // In simple mode, the main due date input should always be visible.
+        // In advanced mode, its visibility is controlled by other dropdowns.
+        if (dueDateGroup) {
+            if (uiSettings.isSimpleMode) {
+                dueDateGroup.classList.remove('hidden');
+            } else {
+                // When switching to advanced, hide it if conditions aren't met
+                const isDueTime = timeInputTypeSelect.value === 'due';
+                const isAbsolute = dueDateTypeSelect.value === 'absolute';
+                dueDateGroup.classList.toggle('hidden', !isDueTime || !isAbsolute);
+            }
+        }
     }
 }
 
@@ -1522,6 +1537,7 @@ function handleFormSubmit(event) {
 
         const taskData = {
             name: taskNameInput.value.trim(),
+            description: taskDescriptionInput.value.trim(),
             icon: taskIconInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
             dueDateType: dueDateTypeSelect.value,
@@ -1594,7 +1610,8 @@ function handleFormSubmit(event) {
                 const newCategory = {
                     id: newCategoryName,
                     name: newCategoryName,
-                    color: getRandomColor()
+                color: getRandomColor(),
+                icon: null
                 };
                 categories.push(newCategory);
                 taskData.categoryId = newCategory.id;
@@ -2026,7 +2043,8 @@ function addCategoryFromManager() {
         const newCategory = {
             id: newCategoryName,
             name: newCategoryName,
-            color: getRandomColor()
+            color: getRandomColor(),
+            icon: null
         };
         categories.push(newCategory);
         saveData();
@@ -2678,6 +2696,7 @@ function stopNotificationEngine() {
 function initializeDOMElements() {
     // Task Manager
     taskModal = document.getElementById('task-modal'); taskForm = document.getElementById('task-form'); taskListDiv = document.getElementById('task-list'); modalTitle = document.getElementById('modal-title'); taskIdInput = document.getElementById('task-id'); taskNameInput = document.getElementById('task-name');
+    taskDescriptionInput = document.getElementById('task-description');
     taskIconInput = document.getElementById('task-icon');
     iconPickerModal = document.getElementById('icon-picker-modal');
     dataMigrationModal = document.getElementById('data-migration-modal');
@@ -2847,8 +2866,9 @@ function setupEventListeners() {
     const simpleModeToggle = document.getElementById('simple-mode-toggle');
     if (simpleModeToggle) {
         simpleModeToggle.addEventListener('change', (e) => {
-            isSimpleMode = !e.target.checked;
+            uiSettings.isSimpleMode = !e.target.checked;
             toggleSimpleMode();
+            saveData();
         });
     }
 
@@ -2879,7 +2899,15 @@ function setupEventListeners() {
             const iconWrapper = e.target.closest('[data-icon]');
             if (iconWrapper) {
                 const iconClass = iconWrapper.dataset.icon;
-                if (taskIconInput) {
+                if (editingCategoryIdForIcon) {
+                    const category = categories.find(c => c.id === editingCategoryIdForIcon);
+                    if (category) {
+                        category.icon = iconClass;
+                        saveData();
+                        renderCategoryManager();
+                    }
+                    editingCategoryIdForIcon = null;
+                } else if (taskIconInput) {
                     taskIconInput.value = iconClass;
                 }
                 deactivateModal(iconPickerModal);
@@ -2889,7 +2917,10 @@ function setupEventListeners() {
 
     timeInputTypeSelect.addEventListener('change', (e) => {
         const isStart = e.target.value === 'start';
-        dueDateGroup.classList.toggle('hidden', isStart);
+        // Only hide the main due date group if in advanced mode.
+        if (!uiSettings.isSimpleMode) {
+            dueDateGroup.classList.toggle('hidden', isStart);
+        }
         startDateGroup.classList.toggle('hidden', !isStart);
         if (estimatedDurationAmountInput) {
             estimatedDurationAmountInput.required = isStart;
@@ -3028,6 +3059,10 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'setCategoryIcon':
+                    editingCategoryIdForIcon = categoryId;
+                    openIconPicker();
+                    break;
                 case 'toggleAdaptiveSensitivity':
                     sensitivitySettings.isAdaptive = event.target.checked;
                     if (sensitivitySettings.isAdaptive) {
@@ -3291,24 +3326,28 @@ function setupEventListeners() {
             if (!target) return;
 
             const views = [
-                { btn: showTaskManagerBtn, view: taskManagerView },
-                { btn: showCalendarBtn, view: calendarView },
-                { btn: showDashboardBtn, view: dashboardView }
+                { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
+                { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
+                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
             ];
 
             views.forEach(item => {
                 if (item.btn === target) {
                     item.view.classList.remove('hidden');
-                    item.btn.classList.add('active-view-btn');
+                    item.btn.classList.add('active-view-btn', 'themed-button-primary');
+                    item.btn.classList.remove('themed-button-secondary');
+                    uiSettings.activeView = item.id;
                     // If switching to calendar view, ensure it resizes correctly
                     if (item.view === calendarView && calendar) {
                         calendar.updateSize();
                     }
                 } else {
                     item.view.classList.add('hidden');
-                    item.btn.classList.remove('active-view-btn');
+                    item.btn.classList.remove('active-view-btn', 'themed-button-primary');
+                    item.btn.classList.add('themed-button-secondary');
                 }
             });
+            saveData();
         });
     }
 
@@ -3339,6 +3378,7 @@ function saveData() {
         localStorage.setItem('taskDisplaySettings', JSON.stringify(taskDisplaySettings));
         localStorage.setItem('appSettings', JSON.stringify(appSettings));
         localStorage.setItem('sensitivitySettings', JSON.stringify(sensitivitySettings));
+        localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
         savePlannerData();
     } catch (error) {
         console.error("Error saving data to localStorage:", error);
@@ -3361,6 +3401,7 @@ function loadData() {
     const storedTaskDisplaySettings = localStorage.getItem('taskDisplaySettings');
     const storedAppSettings = localStorage.getItem('appSettings');
     const storedSensitivitySettings = localStorage.getItem('sensitivitySettings');
+    const storedUiSettings = localStorage.getItem('uiSettings');
 
     tasks = [];
     categories = [];
@@ -3469,6 +3510,15 @@ function loadData() {
             sensitivitySettings = { ...sensitivitySettings, ...parsedSettings };
         } catch (e) {
             console.error("Error parsing sensitivity settings:", e);
+        }
+    }
+
+    if (storedUiSettings) {
+        try {
+            const parsedSettings = JSON.parse(storedUiSettings);
+            uiSettings = { ...uiSettings, ...parsedSettings };
+        } catch (e) {
+            console.error("Error parsing UI settings:", e);
         }
     }
 
@@ -3747,6 +3797,40 @@ const initializePlannerState = () => {
     savePlannerData();
 };
 
+function applyActiveView() {
+    const views = [
+        { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
+        { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
+        { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
+    ];
+
+    const activeViewId = uiSettings.activeView || 'calendar-view'; // Default to calendar
+    let foundActive = false;
+
+    views.forEach(item => {
+        if (item.id === activeViewId) {
+            item.view.classList.remove('hidden');
+            item.btn.classList.add('active-view-btn', 'themed-button-primary');
+            item.btn.classList.remove('themed-button-secondary');
+            if (item.view === calendarView && calendar) {
+                calendar.updateSize();
+            }
+            foundActive = true;
+        } else {
+            item.view.classList.add('hidden');
+            item.btn.classList.remove('active-view-btn', 'themed-button-primary');
+            item.btn.classList.add('themed-button-secondary');
+        }
+    });
+
+    // Fallback if the saved view ID is invalid for some reason
+    if (!foundActive && views.length > 0) {
+        views[1].view.classList.remove('hidden'); // Default to calendar view
+        views[1].btn.classList.add('active-view-btn', 'themed-button-primary');
+        views[1].btn.classList.remove('themed-button-secondary');
+    }
+}
+
 function initializeCalendar() {
     if (!calendarEl) {
         console.error("Calendar element not found!");
@@ -3905,6 +3989,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializePlannerState(); // Renamed from initializeOrSyncState
         applyTheme(); // Apply theme after state is initialized
         initializeCalendar(); // New function to set up FullCalendar
+        applyActiveView(); // Apply the saved view
         console.log("Mission Planner initialized.");
     } catch (e) {
         console.error("Error during Mission Planner initialization:", e);
