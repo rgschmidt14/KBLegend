@@ -197,9 +197,10 @@ export function categoryManagerTemplate(categories) {
 
     content += `
         <div class="mt-4">
-            <button class="control-button control-button-blue w-full themed-button-secondary" data-action="addCategory">
+            <button class="control-button control-button-blue w-full themed-button-secondary" data-action="renderCategoryAdd">
                 Add New Category
             </button>
+            <div id="add-category-form-container" class="mt-2"></div>
         </div>
     `;
 

@@ -244,9 +244,9 @@ legend {
 /* Toggle Switch Styles */
 .toggle-checkbox {
     position: relative;
-    width: 3.5rem; /* w-14 */
-    height: 2rem; /* h-8 */
-    padding: 0.25rem; /* p-1 */
+    width: 3rem; /* w-12 */
+    height: 1.5rem; /* h-6 */
+    padding: 0.125rem; /* p-0.5 */
     background-color: #e5e7eb; /* gray-200 */
     border-radius: 9999px; /* rounded-full */
     appearance: none;
@@ -264,6 +264,7 @@ legend {
     background-color: white;
     border-radius: 9999px;
     transition: transform 0.2s ease-in-out;
+    transform: scale(0.8);
 }
 
 .toggle-checkbox:checked {
@@ -271,7 +272,7 @@ legend {
 }
 
 .toggle-checkbox:checked::before {
-    transform: translateX(1.5rem); /* w-6 */
+    transform: translateX(1.5rem) scale(0.8);
 }
 
 

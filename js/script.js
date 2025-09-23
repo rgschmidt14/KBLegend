@@ -2402,8 +2402,24 @@ function deleteCategory(categoryId) {
     renderTasks();
     if (calendar) calendar.refetchEvents();
 }
-function addCategoryFromManager() {
-    const newCategoryName = prompt("Enter new category name:");
+function renderAddCategoryForm() {
+    const container = document.getElementById('add-category-form-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <input type="text" id="new-category-inline-name" placeholder="New Category Name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-black">
+            <button data-action="addCategoryFromInline" class="control-button control-button-green themed-button-secondary">Add</button>
+        </div>
+    `;
+    document.getElementById('new-category-inline-name').focus();
+}
+
+function addCategoryFromInline() {
+    const input = document.getElementById('new-category-inline-name');
+    if (!input) return;
+
+    const newCategoryName = input.value.trim();
     if (newCategoryName && !categories.find(c => c.name.toLowerCase() === newCategoryName.toLowerCase())) {
         const newCategory = {
             id: newCategoryName,
@@ -2415,6 +2431,11 @@ function addCategoryFromManager() {
         saveData();
         renderCategoryManager();
         renderCategoryFilters();
+        // Clear the form after adding
+        const container = document.getElementById('add-category-form-container');
+        if (container) {
+            container.innerHTML = '';
+        }
     } else if (newCategoryName) {
         alert("A category with that name already exists.");
     }
@@ -3418,7 +3439,8 @@ function setupEventListeners() {
                     }
                     break;
                 case 'deleteCategoryTasks': deleteCategoryTasks(categoryId); break;
-                case 'addCategory': addCategoryFromManager(); break;
+                case 'renderCategoryAdd': renderAddCategoryForm(); break;
+                case 'addCategoryFromInline': addCategoryFromInline(); break;
                 case 'triggerCategoryEdit': triggerCategoryEdit(categoryId); break;
                 case 'saveCategoryEdit': saveCategoryEdit(categoryId); break;
                 case 'cancelCategoryEdit': cancelCategoryEdit(categoryId); break;
