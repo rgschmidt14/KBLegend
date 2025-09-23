@@ -623,6 +623,7 @@ legend {
 .modal-content input[type="text"],
 .modal-content input[type="number"],
 .modal-content input[type="datetime-local"],
+.modal-content textarea,
 .modal-content select {
     background-color: #1A202C; /* Gray 900 */
     border-color: #4A5568; /* Gray 600 */
@@ -729,6 +730,7 @@ legend {
 .light-mode .modal-content input[type="text"],
 .light-mode .modal-content input[type="number"],
 .light-mode .modal-content input[type="datetime-local"],
+.light-mode .modal-content textarea,
 .light-mode .modal-content select {
     background-color: #FFFFFF;
     border-color: #D1D5DB;

@@ -1180,6 +1180,14 @@ function openModal(taskId = null, options = {}) {
             taskIdInput.value = '';
             // When adding a new task, we respect the user's saved preference for simple/advanced mode,
             // which is already in uiSettings.isSimpleMode.
+
+            // Set default values for new tasks
+            const now = new Date();
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            taskDueDateInput.value = formatDateForInput(oneHourFromNow);
+
+            if (estimatedDurationAmountInput) estimatedDurationAmountInput.value = 1;
+            if (estimatedDurationUnitSelect) estimatedDurationUnitSelect.value = 'hours';
         }
 
         toggleSimpleMode(); // Set the view based on the current uiSettings.isSimpleMode
@@ -1208,20 +1216,30 @@ function toggleSimpleMode() {
         advancedFields.classList.toggle('hidden', uiSettings.isSimpleMode);
         simpleModeToggle.checked = !uiSettings.isSimpleMode;
 
-        // In simple mode, the main due date input should always be visible.
-        // In advanced mode, its visibility is controlled by other dropdowns.
-        if (dueDateGroup) {
-            if (uiSettings.isSimpleMode) {
-                dueDateGroup.classList.remove('hidden');
-            } else {
-                // When switching to advanced, hide it if conditions aren't met
-                const isDueTime = timeInputTypeSelect.value === 'due';
-                const isAbsolute = dueDateTypeSelect.value === 'absolute';
-                dueDateGroup.classList.toggle('hidden', !isDueTime || !isAbsolute);
-            }
-        }
+        // In simple mode, the main due date input is part of the advanced form now, so it's always hidden.
+        // In advanced mode, its visibility is controlled by the new updateDateTimeFieldsVisibility function.
+        updateDateTimeFieldsVisibility();
     }
 }
+
+function updateDateTimeFieldsVisibility() {
+    if (!dueDateGroup || !relativeDueDateGroup || !startDateGroup || !dueDateTypeSelect || !timeInputTypeSelect) {
+        return;
+    }
+
+    const isRelative = dueDateTypeSelect.value === 'relative';
+    const isStartInput = timeInputTypeSelect.value === 'start';
+
+    // Show relative group only if due date type is relative
+    relativeDueDateGroup.classList.toggle('hidden', !isRelative);
+
+    // Show absolute due date group only if type is absolute AND input is 'due'
+    dueDateGroup.classList.toggle('hidden', isRelative || isStartInput);
+
+    // Show start date group only if input type is 'start'
+    startDateGroup.classList.toggle('hidden', !isStartInput);
+}
+
 
 function toggleCompletionFields(type) {
     completionCountGroup.classList.toggle('hidden', type !== 'count');
@@ -3160,14 +3178,9 @@ function setupEventListeners() {
     }
 
     timeInputTypeSelect.addEventListener('change', (e) => {
-        const isStart = e.target.value === 'start';
-        // Only hide the main due date group if in advanced mode.
-        if (!uiSettings.isSimpleMode) {
-            dueDateGroup.classList.toggle('hidden', isStart);
-        }
-        startDateGroup.classList.toggle('hidden', !isStart);
+        updateDateTimeFieldsVisibility();
         if (estimatedDurationAmountInput) {
-            estimatedDurationAmountInput.required = isStart;
+            estimatedDurationAmountInput.required = (e.target.value === 'start');
         }
     });
 
@@ -3189,7 +3202,7 @@ function setupEventListeners() {
         radio.addEventListener('change', (e) => toggleYearlyOptions(e.target.value));
     });
     dueDateTypeSelect.addEventListener('change', (e) => {
-        relativeDueDateGroup.classList.toggle('hidden', e.target.value !== 'relative');
+        updateDateTimeFieldsVisibility();
     });
     completionTypeSelect.addEventListener('change', (e) => {
         toggleCompletionFields(e.target.value);
