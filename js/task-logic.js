@@ -123,6 +123,7 @@ function calculateStatus(task, nowMs, allTasks, sensitivityParams) {
 /**
  * Checks for daily KPIs and generates tasks for them if they don't already exist for the current day.
  * @param {Array} indicators - The array of all KPI indicators.
+ */
 function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
     // Deep clone tasks to avoid modifying the original objects
     let scheduledTasks = JSON.parse(JSON.stringify(tasks));

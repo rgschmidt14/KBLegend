@@ -21,8 +21,8 @@
         </header>
 
         <!-- Main View Navigation -->
-        <div id="main-view-nav" class="mb-6 flex justify-between items-center">
-            <div class="flex space-x-2">
+        <div id="main-view-nav" class="mb-6 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex flex-wrap space-x-2">
                 <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-secondary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-tasks mr-2"></i>Task Manager
                 </button>
@@ -41,15 +41,15 @@
             <!-- Calendar View -->
             <div id="calendar-view">
                 <div id="mainPlannerSection">
-                    <div class="flex justify-between items-center mb-4">
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
                         <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">&lt; Prev Week</button>
                         <button id="todayBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Today</button>
                         <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
                         <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Next Week &gt;</button>
                     </div>
 
-                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
-                        <div class="flex items-center space-x-2">
+                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg gap-2">
+                        <div class="flex flex-wrap items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
                             <button data-view="daily" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Day</button>
                             <button data-view="weekly" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Week</button>
