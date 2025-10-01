@@ -35,7 +35,10 @@ The core of the application is a dynamic and intelligent task management system.
   * **Customizable Task Cards:** From the Advanced Options menu, choose exactly which details you want to see on your task cards, such as due date, duration, category, and more.  
   * **Categories:** Create an unlimited number of color-coded categories to organize your tasks.  
   * **Status Names & Colors:** Edit the names and colors for each status (Ready, Overdue, etc.) to match your personal workflow.  
-  * **Theming Engine:** Choose a base color to generate a dynamic, cohesive theme across the entire application, or stick with the default color scheme. You can also randomize the theme for a fresh look.  
+  *   **Advanced Theming Engine:** The application features a powerful, dynamic theming system that goes beyond simple color changes to ensure readability and a cohesive look.
+    *   **How it Works:** From the "Advanced Options" menu, you can enable the theme and select a single "base color." The application then uses this color to generate a full palette, including complementary colors for backgrounds, buttons, and accents.
+    *   **8-Color Dynamic Text:** To ensure text is always readable, the system automatically calculates the luminance of any given background color. Based on whether the background is light or dark, it selects from a palette of four white shades or four black shades (ranging from 100% pure to 55% gray). This is all handled via CSS custom properties (`--text-color-primary`, `--text-color-secondary`, etc.), which are applied automatically.
+    *   **Applying Themes to New Elements:** To make a new button compatible with the theming engine, simply assign it the class `themed-button-primary`, `themed-button-secondary`, or `themed-button-tertiary`. **Crucially, you must avoid adding any hardcoded color classes** (like `bg-blue-600` or `hover:bg-blue-700`) as these will override the dynamic theme styles. The core logic for this system can be found in the `applyTheme` and `getContrastingTextColor` functions in `js/script.js`.
 * **Notifications:** Receive desktop notifications when a task's status changes, ensuring you never miss an important deadline. (Currently under development).
 
 ### **The Mission Planner**
