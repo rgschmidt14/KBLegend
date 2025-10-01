@@ -60,6 +60,19 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.4) - 10/01/2025
+
+This update introduces a more intelligent data migration tool and resolves several UI theming inconsistencies.
+
+*   **Intelligent Data Migration:** The data migration tool has been significantly enhanced to be more user-friendly.
+    *   It now automatically compares the schema of an imported file against the current data structure.
+    *   Fields that are identical are auto-mapped and grayed out.
+    *   The UI now highlights only the fields that are new or different, requiring user mapping.
+    *   If no differences are found, the tool now presents a simple one-click confirmation step, streamlining the process.
+*   **UI Theming Fixes:**
+    *   Resolved an issue where several buttons and toggles (like the calendar view chooser and KPI combined/stacked toggle) were hardcoded with a blue background, ignoring the application's theme. These now correctly use the dynamic theming system.
+    *   Added a new `themed-button-clear` class for buttons that require a transparent background. Their text color will now correctly adapt to day/night mode. This has been applied to the "Choose Icon", "Export Data", and various category management buttons for a cleaner look.
+
 ### ✅ Recently Completed (Version 3.3) - 09/30/2025
 
 This is a comprehensive feature update that improves the user experience, enhances the KPI dashboard, and automates key data management processes.
