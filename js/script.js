@@ -856,7 +856,7 @@ function applyTheme() {
         }
 
         const buttonPalette = generateComplementaryPalette(theming.baseColor);
-        const { main, secondary, tertiary, secondary_selected } = buttonPalette;
+        const { main, secondary, tertiary, secondary_selected, main_gradient } = buttonPalette;
 
         // Apply main background color
         document.body.style.backgroundColor = main;
