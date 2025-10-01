@@ -434,27 +434,67 @@ function getRandomColor() {
     };
     return hslToHex(hue, 80, 85);
 }
+// New helper function to get the luminance of a color
+function getLuminance(hexColor) {
+    const rgb = parseInt(hexColor.slice(1), 16);
+    const r = (rgb >> 16) & 0xff;
+    const g = (rgb >> 8) & 0xff;
+    const b = (rgb >> 0) & 0xff;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+// New helper function to adjust the lightness of a color
+function adjustColor(hex, percent) {
+    const f = parseInt(hex.slice(1), 16),
+        t = percent < 0 ? 0 : 255,
+        p = percent < 0 ? percent * -1 : percent,
+        R = f >> 16,
+        G = (f >> 8) & 0x00FF,
+        B = f & 0x0000FF;
+    return "#" + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 + (Math.round((t - G) * p) + G) * 0x100 + (Math.round((t - B) * p) + B)).toString(16).slice(1);
+}
+
 function getContrastingTextColor(hexcolor) {
-    if (!hexcolor) return { color: '#000000', textShadow: 'none' };
-
-    const r = parseInt(hexcolor.substr(1, 2), 16);
-    const g = parseInt(hexcolor.substr(3, 2), 16);
-    const b = parseInt(hexcolor.substr(5, 2), 16);
-
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    let textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
-    let textShadow = 'none';
-
-    const distanceFromMiddle = Math.abs(luminance - 0.5);
-    const opacity = 1 - (distanceFromMiddle / 0.5);
-
-    if (luminance > 0.25 && luminance < 0.75) {
-        let shadowColor = luminance > 0.5 ? `rgba(255, 255, 255, ${opacity * 0.7})` : `rgba(0, 0, 0, ${opacity * 0.7})`;
-        textShadow = `0px 0px 1px ${shadowColor}`;
+    if (!hexcolor) {
+        // Return a default set of colors if no hex color is provided
+        return {
+            '--text-color-primary': 'var(--text-color-dark-primary)',
+            '--text-color-secondary': 'var(--text-color-dark-secondary)',
+            '--text-color-tertiary': 'var(--text-color-dark-tertiary)',
+            '--text-color-quaternary': 'var(--text-color-dark-quaternary)',
+            '--text-shadow': 'none'
+        };
     }
 
-    return { color: textColor, textShadow: textShadow };
+    const luminance = getLuminance(hexcolor);
+    const isDark = luminance < 0.5;
+
+    // Define the base colors for light and dark text
+    const baseLight = '#FFFFFF';
+    const baseDark = '#000000';
+
+    // Determine the primary text color and its opposite for adjustments
+    const primaryTextColor = isDark ? baseLight : baseDark;
+    const adjustDirection = isDark ? -1 : 1; // -1 for darkening (making it more gray from white), 1 for lightening (making it more gray from black)
+
+    // Generate the 4 shades for the determined text color
+    const shades = {
+        '--text-color-primary': primaryTextColor,
+        '--text-color-secondary': adjustColor(primaryTextColor, adjustDirection * 0.15), // 85%
+        '--text-color-tertiary': adjustColor(primaryTextColor, adjustDirection * 0.30), // 70%
+        '--text-color-quaternary': adjustColor(primaryTextColor, adjustDirection * 0.45), // 55%
+    };
+
+    // Add a text shadow for mid-range colors to improve readability
+    const distanceFromMiddle = Math.abs(luminance - 0.5);
+    if (distanceFromMiddle < 0.25) { // If the color is in the "danger zone"
+        const shadowColor = isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+        shades['--text-shadow'] = `0 0 5px ${shadowColor}`;
+    } else {
+        shades['--text-shadow'] = 'none';
+    }
+
+    return shades;
 }
 function hexToRgb(hex) {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -756,13 +796,13 @@ function generateComplementaryPalette(baseColor) {
 
     // 1. Main Background Color
     // Adjust lightness based on the base color's lightness and the theme mode
-    let mainBgLightness = baseHSL.l;
+    let mainBgLightness;
     if (isDarkMode) {
         // For dark mode, if the color is light, make it much darker. If it's already dark, make it slightly darker.
-        mainBgLightness = baseHSL.l > 50 ? 20 : Math.max(10, baseHSL.l - 5);
+        mainBgLightness = baseHSL.l > 50 ? 20 : Math.max(10, baseHSL.l - 10);
     } else {
-        // For light mode, if the color is dark, make it much lighter. If it's already light, make it slightly lighter.
-        mainBgLightness = baseHSL.l < 50 ? 95 : Math.min(100, baseHSL.l + 5);
+        // For light mode, ensure the background is always light.
+        mainBgLightness = baseHSL.l < 70 ? 95 : Math.min(100, baseHSL.l + 20);
     }
     const main = HSLToHex(baseHSL.h, baseHSL.s * 0.8, mainBgLightness); // Desaturate slightly for background
 
@@ -821,31 +861,50 @@ function setAppTitle(newTitle) {
 function applyTheme() {
     applyThemeMode(); // Apply day/night/auto mode first
 
-    const styleButton = (btn, bg) => {
+    const root = document.documentElement;
+
+    // Define a function to set CSS variables for text colors
+    const setTextTheme = (textStyles) => {
+        for (const [key, value] of Object.entries(textStyles)) {
+            root.style.setProperty(key, value);
+        }
+    };
+
+    // Define a function to style buttons, now setting CSS variables
+    const styleButton = (btn, bg, palette) => {
         let baseColorForText;
         if (typeof bg === 'string' && bg.includes('gradient')) {
-            btn.style.background = bg;
-            // Extract the first color from the gradient to determine text contrast
             const match = bg.match(/#([a-fA-F0-9]{6})/);
-            baseColorForText = match ? match[0] : '#ffffff'; // default to white bg if parse fails
+            baseColorForText = match ? match[0] : '#ffffff';
         } else {
-            btn.style.backgroundColor = bg;
-            btn.style.background = ''; // clear any gradient
             baseColorForText = bg;
         }
 
-        const textStyle = getContrastingTextColor(baseColorForText);
-        btn.style.color = textStyle.color;
-        btn.style.textShadow = textStyle.textShadow;
-        btn.style.borderColor = 'transparent'; // Remove default borders that might clash
+        const textStyles = getContrastingTextColor(baseColorForText);
+        // Set button-specific text styles directly on the button for isolation
+        for (const [key, value] of Object.entries(textStyles)) {
+            btn.style.setProperty(key, value);
+        }
+
+        // Set button-specific CSS variables
+        btn.style.setProperty('--btn-bg', bg);
+        btn.style.setProperty('--btn-text-color', 'var(--text-color-primary)');
+        btn.style.setProperty('--btn-text-shadow', 'var(--text-shadow)');
+
+        if (palette) {
+            // Use a generic way to calculate hover/active for any given background
+            const baseForInteraction = bg.includes('gradient') ? palette.secondary : bg;
+            const hsl = hexToHSL(baseForInteraction);
+            const hoverBg = HSLToHex(hsl.h, hsl.s, Math.min(100, hsl.l + 10));
+            const activeBg = HSLToHex(hsl.h, hsl.s, Math.max(0, hsl.l - 5));
+
+            btn.style.setProperty('--btn-hover-bg', hoverBg);
+            btn.style.setProperty('--btn-active-bg', activeBg);
+        }
     };
 
     const unstyleButton = (btn) => {
-        btn.style.background = '';
-        btn.style.backgroundColor = '';
-        btn.style.color = '';
-        btn.style.textShadow = '';
-        btn.style.borderColor = '';
+        btn.style.cssText = ''; // Clear all inline styles
     };
 
     if (theming.enabled) {
@@ -859,23 +918,21 @@ function applyTheme() {
         const buttonPalette = generateComplementaryPalette(theming.baseColor);
         const { main, secondary, tertiary, secondary_selected, main_gradient } = buttonPalette;
 
-        // Apply main background color
+        // Set global background and text colors
         document.body.style.backgroundColor = main;
+        const mainTextStyles = getContrastingTextColor(main);
+        setTextTheme(mainTextStyles);
 
         // Apply gradient to calendar background
         const calendarGradient = `linear-gradient(to bottom, ${statusColors.blue}, ${statusColors.green}, ${statusColors.yellow}, ${statusColors.red}, ${statusColors.black})`;
-        document.documentElement.style.setProperty('--calendar-background', calendarGradient);
+        root.style.setProperty('--calendar-background', calendarGradient);
 
         // Theme buttons based on their functional color class
         document.querySelectorAll('.themed-button-primary').forEach(btn => {
-            if (btn.classList.contains('active-view-btn')) {
-                styleButton(btn, secondary_selected);
-            } else {
-                styleButton(btn, secondary);
-            }
+            styleButton(btn, btn.classList.contains('active-view-btn') ? secondary_selected : secondary, buttonPalette);
         });
-        document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, tertiary));
-        document.querySelectorAll('.themed-button-tertiary').forEach(btn => styleButton(btn, tertiary));
+        document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, tertiary, buttonPalette));
+        document.querySelectorAll('.themed-button-tertiary').forEach(btn => styleButton(btn, tertiary, buttonPalette));
 
         // Theme other elements
         document.querySelectorAll('.themed-modal-primary').forEach(modal => {
@@ -886,15 +943,32 @@ function applyTheme() {
         });
 
     } else {
-        // Revert to default colors
-        document.documentElement.style.removeProperty('--calendar-background');
-        document.body.style.backgroundColor = '';
+        // Revert to default colors based on the current mode
+        document.body.style.backgroundColor = ''; // Remove inline style to let CSS classes take over
+        root.style.removeProperty('--calendar-background');
         statusColors = { ...defaultStatusColors };
 
+        // Set text colors based on the mode, but don't set background here
+        if (theming.mode === 'light') {
+            setTextTheme({
+                '--text-color-primary': 'var(--text-color-light-primary)',
+                '--text-color-secondary': 'var(--text-color-light-secondary)',
+                '--text-color-tertiary': 'var(--text-color-light-tertiary)',
+                '--text-color-quaternary': 'var(--text-color-light-quaternary)',
+                '--text-shadow': 'none'
+            });
+        } else { // night or auto
+            setTextTheme({
+                '--text-color-primary': 'var(--text-color-dark-primary)',
+                '--text-color-secondary': 'var(--text-color-dark-secondary)',
+                '--text-color-tertiary': 'var(--text-color-dark-tertiary)',
+                '--text-color-quaternary': 'var(--text-color-dark-quaternary)',
+                '--text-shadow': 'none'
+            });
+        }
+
         // Remove inline styles from all themed buttons to revert to CSS
-        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
-            unstyleButton(btn);
-        });
+        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(unstyleButton);
         document.querySelectorAll('.themed-modal-primary, .themed-modal-tertiary').forEach(modal => {
             modal.style.background = '';
             modal.style.backgroundColor = '';
@@ -903,7 +977,7 @@ function applyTheme() {
     renderTasks();
     if (calendar) {
         calendar.refetchEvents();
-        calendar.updateSize(); // Force calendar to re-render its container
+        calendar.updateSize();
     }
 }
 
@@ -991,14 +1065,18 @@ function renderTasks() {
         const category = categories.find(c => c.id === task.categoryId);
         const categoryColor = category ? category.color : 'transparent';
         taskElement.style.borderLeft = `5px solid ${categoryColor}`;
-        const textStyle = getContrastingTextColor(statusColor);
-        taskElement.style.color = textStyle.color;
-        taskElement.style.textShadow = textStyle.textShadow;
+
+        // Apply the full suite of text color variables to the task element
+        const textStyles = getContrastingTextColor(statusColor);
+        for (const [key, value] of Object.entries(textStyles)) {
+            taskElement.style.setProperty(key, value);
+        }
 
         if (isCompletedNonRepeating) taskElement.classList.add('task-completed');
         if (task.confirmationState === 'confirming_delete') taskElement.classList.add('task-confirming-delete');
 
-        taskElement.innerHTML = taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings });
+        // The template will now inherit the CSS variables set on taskElement
+        taskElement.innerHTML = taskTemplate(task, { categories, taskDisplaySettings, appSettings });
 
         taskListDiv.appendChild(taskElement);
 
@@ -1025,8 +1103,9 @@ function renderTasks() {
             const group = groupedByDate[groupIndex];
             const percent = groupOrder.length <= 1 ? 0 : (sortDirection === 'asc' ? i / (groupOrder.length - 1) : (groupOrder.length - 1 - i) / (groupOrder.length - 1));
             const bgColor = interpolateFiveColors(percent);
-            const textStyle = getContrastingTextColor(bgColor);
-            taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(group.name, bgColor, textStyle));
+            const textStyles = getContrastingTextColor(bgColor);
+            const styleString = Object.entries(textStyles).map(([key, value]) => `${key}: ${value};`).join(' ');
+            taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(group.name, bgColor, styleString));
             group.tasks.forEach(task => renderTaskItem(task, group.name));
         });
 
@@ -1046,8 +1125,9 @@ function renderTasks() {
             }
 
             if (currentGroup !== lastGroup) {
-                const textStyle = getContrastingTextColor(groupColor);
-                taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(currentGroup, groupColor, textStyle));
+                const textStyles = getContrastingTextColor(groupColor);
+                const styleString = Object.entries(textStyles).map(([key, value]) => `${key}: ${value};`).join(' ');
+                taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(currentGroup, groupColor, styleString));
                 lastGroup = currentGroup;
             }
             renderTaskItem(task, currentGroup);

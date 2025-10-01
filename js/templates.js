@@ -104,8 +104,8 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
     let categoryHtml = '';
     if (taskDisplaySettings.showCategory) {
         const categoryColor = category ? category.color : '#808080'; // Default to gray
-        const categoryTextStyle = getContrastingTextColor(categoryColor);
-        categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor}; color: ${categoryTextStyle.color}; text-shadow: ${categoryTextStyle.textShadow};">${categoryName}</span>`;
+        // The text color is now handled by the parent .task-item's CSS variables
+        categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor};">${categoryName}</span>`;
     }
 
     const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
