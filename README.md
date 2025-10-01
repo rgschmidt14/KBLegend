@@ -57,6 +57,21 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.3) - 09/30/2025
+
+This is a comprehensive feature update that improves the user experience, enhances the KPI dashboard, and automates key data management processes.
+
+*   **UI/UX Enhancements for Time and Scheduling**:
+    *   The "Start Date & Time" field is now correctly hidden when "Relative Time" is selected in the task form, reducing clutter.
+    *   The label for relative time input now dynamically changes from "Due In:" to "Start In:" based on the "Time Input Type" selection, improving clarity.
+*   **KPI View Improvements**:
+    *   Added "Previous Week," "Next Week," and "Today" buttons to the KPI view, allowing for easy navigation through weekly data to review past performance.
+    *   Weekly goals and KPIs are now saved and can be viewed for previous weeks.
+*   **Data Export/Import**:
+    *   The "Export All" feature now includes all application settings, ensuring a complete and accurate backup for restoration.
+*   **Migration Tool Automation**:
+    *   The data migration tool is now automated. When the application detects outdated task formats, it will automatically launch the tool with the data pre-loaded, streamlining the update process for the user.
+
 ### ✅ Recently Completed (Version 3.2) - 09/22/2025
 
 This update focused on fixing key UI bugs to improve the user experience.

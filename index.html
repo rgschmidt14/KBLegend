@@ -71,10 +71,15 @@
                     </div>
 
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
-                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2 flex-wrap gap-2">
                             <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="kpi-prev-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">&lt; Prev</button>
+                                <button id="kpi-today-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Today</button>
+                                <button id="kpi-next-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Next &gt;</button>
+                            </div>
                             <div id="kpi-controls" class="flex items-center space-x-4">
-                                <!-- KPI Controls will be rendered here by JS -->
+                                <!-- Existing KPI Controls will be rendered here by JS -->
                             </div>
                         </div>
                         <div id="kpi-chart-container" class="relative" style="height: 400px;">
@@ -215,7 +220,7 @@
                             <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
-                            <label class="form-label">Due In:</label>
+                            <label id="relative-due-date-label" class="form-label">Due In:</label>
                             <div class="flex space-x-2 items-center">
                                 <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
                                 <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">

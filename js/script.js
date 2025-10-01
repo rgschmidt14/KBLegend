@@ -49,6 +49,7 @@ let uiSettings = {
     activeView: 'calendar-view', // Default view
     kpiChartMode: 'single', // 'single' or 'stacked'
     kpiChartDateRange: '8d', // '8d', '30d', etc.
+    kpiWeekOffset: 0,
 };
 let sensitivitySettings = { sValue: 0.5, isAdaptive: true };
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -1312,6 +1313,7 @@ function updateDateTimeFieldsVisibility() {
 
     const isRelative = dueDateTypeSelect.value === 'relative';
     const isStartInput = timeInputTypeSelect.value === 'start';
+    const relativeLabel = document.getElementById('relative-due-date-label');
 
     // Show relative group only if due date type is relative
     relativeDueDateGroup.classList.toggle('hidden', !isRelative);
@@ -1319,8 +1321,13 @@ function updateDateTimeFieldsVisibility() {
     // Show absolute due date group only if type is absolute AND input is 'due'
     dueDateGroup.classList.toggle('hidden', isRelative || isStartInput);
 
-    // Show start date group only if input type is 'start'
-    startDateGroup.classList.toggle('hidden', !isStartInput);
+    // Show start date group only if type is 'start' AND type is 'absolute'
+    startDateGroup.classList.toggle('hidden', !isStartInput || isRelative);
+
+    // Update the label for the relative time input
+    if (relativeLabel) {
+        relativeLabel.textContent = isStartInput ? 'Start In:' : 'Due In:';
+    }
 }
 
 
@@ -1717,7 +1724,12 @@ function renderKpiList() {
 
 
     const now = new Date();
-    now.setHours(23, 59, 59, 999); // End of today
+    // Apply the week offset for viewing different weeks
+    if (uiSettings.kpiWeekOffset !== 0) {
+        now.setDate(now.getDate() + (uiSettings.kpiWeekOffset * 7));
+    }
+    now.setHours(23, 59, 59, 999); // End of the target day
+
     const days = parseInt(uiSettings.kpiChartDateRange.replace('d', ''));
     const startDate = new Date(now.getTime() - (days - 1) * MS_PER_DAY);
     startDate.setHours(0, 0, 0, 0);
@@ -2640,10 +2652,9 @@ function confirmRestoreDefaultsAction(confirmed) {
 }
 
 // --- Data Migration Tool Functions ---
-function openDataMigrationModal() {
+function openDataMigrationModal(tasksData = null) {
     if (!dataMigrationModal) return;
     dataMigrationModal.innerHTML = dataMigrationModalTemplate();
-    activateModal(dataMigrationModal);
 
     // Add event listeners for the new modal
     const closeButton = dataMigrationModal.querySelector('.close-button');
@@ -2662,6 +2673,65 @@ function openDataMigrationModal() {
     if(runBtn) {
         runBtn.addEventListener('click', runMigration);
     }
+
+    if (tasksData) {
+        prepareMigrationUI(tasksData);
+        const step1Prompt = dataMigrationModal.querySelector('#migration-step-1 p');
+        if (step1Prompt) {
+            step1Prompt.textContent = 'Outdated task format detected. Please map your old task fields to the new format below to continue.';
+        }
+    }
+
+    activateModal(dataMigrationModal);
+}
+
+function prepareMigrationUI(data) {
+    try {
+        if (!Array.isArray(data) || data.length === 0) {
+            alert('Error: The provided data is not a valid array of tasks.');
+            return;
+        }
+        oldTasksData = data; // Store the raw data
+        const oldTaskFields = Object.keys(data[0] || {});
+        const newTaskFields = Object.keys(sanitizeAndUpgradeTask({id: 'test'}));
+
+        const mappingArea = document.getElementById('migration-mapping-area');
+        mappingArea.innerHTML = ''; // Clear previous mappings
+
+        oldTaskFields.forEach(oldField => {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-2 gap-4 items-center';
+            row.innerHTML = `<label class="text-right font-medium">${oldField}:</label>`;
+
+            const select = document.createElement('select');
+            select.className = 'w-full p-1 border rounded';
+            select.dataset.oldField = oldField;
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Ignore this field --';
+            select.appendChild(defaultOption);
+
+            newTaskFields.forEach(newField => {
+                const option = document.createElement('option');
+                option.value = newField;
+                option.textContent = newField;
+                if (oldField.toLowerCase() === newField.toLowerCase()) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            row.appendChild(select);
+            mappingArea.appendChild(row);
+        });
+
+        document.getElementById('migration-step-1').classList.add('hidden');
+        document.getElementById('migration-step-2').classList.remove('hidden');
+
+    } catch (error) {
+        alert('An error occurred while preparing the migration interface.');
+        console.error("Migration UI preparation error:", error);
+    }
 }
 
 function handleMigrationFileSelect(event) {
@@ -2672,51 +2742,9 @@ function handleMigrationFileSelect(event) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            // Assuming the old data is an array of task-like objects
-            if (!Array.isArray(data) || data.length === 0) {
-                alert('Error: The selected file does not contain a valid array of tasks.');
-                return;
-            }
-            oldTasksData = data; // Store the raw data
-            const oldTaskFields = Object.keys(data[0]);
-            const newTaskFields = Object.keys(sanitizeAndUpgradeTask({id: 'test'}));
-
-            const mappingArea = document.getElementById('migration-mapping-area');
-            mappingArea.innerHTML = ''; // Clear previous mappings
-
-            oldTaskFields.forEach(oldField => {
-                const row = document.createElement('div');
-                row.className = 'grid grid-cols-2 gap-4 items-center';
-                row.innerHTML = `<label class="text-right font-medium">${oldField}:</label>`;
-
-                const select = document.createElement('select');
-                select.className = 'w-full p-1 border rounded';
-                select.dataset.oldField = oldField;
-
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = '-- Ignore this field --';
-                select.appendChild(defaultOption);
-
-                newTaskFields.forEach(newField => {
-                    const option = document.createElement('option');
-                    option.value = newField;
-                    option.textContent = newField;
-                    // Simple auto-mapping
-                    if (oldField.toLowerCase() === newField.toLowerCase()) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
-                row.appendChild(select);
-                mappingArea.appendChild(row);
-            });
-
-            document.getElementById('migration-step-1').classList.add('hidden');
-            document.getElementById('migration-step-2').classList.remove('hidden');
-
+            prepareMigrationUI(data);
         } catch (error) {
-            alert('Error parsing JSON file. Please ensure it is a valid JSON file containing an array of tasks.');
+            alert('Error parsing JSON file. Please ensure it is a valid JSON file.');
             console.error("Migration file parse error:", error);
         }
     };
@@ -2783,7 +2811,8 @@ function exportData(exportType) {
 
     const allSettings = {
         statusColors, statusNames, sortBy, sortDirection, notificationSettings, theming,
-        calendarSettings, categoryFilter, plannerSettings, taskDisplaySettings, appSettings
+        calendarSettings, categoryFilter, plannerSettings, taskDisplaySettings, appSettings,
+        uiSettings, sensitivitySettings
     };
 
     switch (exportType) {
@@ -3646,6 +3675,34 @@ function setupEventListeners() {
     }
 
     // KPI Listeners
+    const kpiPrevWeekBtn = document.getElementById('kpi-prev-week-btn');
+    const kpiNextWeekBtn = document.getElementById('kpi-next-week-btn');
+    const kpiTodayBtn = document.getElementById('kpi-today-btn');
+
+    if (kpiPrevWeekBtn) {
+        kpiPrevWeekBtn.addEventListener('click', () => {
+            uiSettings.kpiWeekOffset--;
+            saveData();
+            renderKpiList();
+        });
+    }
+
+    if (kpiNextWeekBtn) {
+        kpiNextWeekBtn.addEventListener('click', () => {
+            uiSettings.kpiWeekOffset++;
+            saveData();
+            renderKpiList();
+        });
+    }
+
+    if (kpiTodayBtn) {
+        kpiTodayBtn.addEventListener('click', () => {
+            uiSettings.kpiWeekOffset = 0;
+            saveData();
+            renderKpiList();
+        });
+    }
+
     if (addNewKpiBtn) {
         addNewKpiBtn.addEventListener('click', () => {
             openModal(null, { isKpi: true });
@@ -3921,7 +3978,8 @@ function loadData() {
             const lastCheck = localStorage.getItem('lastMigrationCheck');
             const today = new Date().toDateString();
             if (wasUpgraded && lastCheck !== today) {
-                openDataMigrationModal();
+                // Pass the original parsed tasks to the migration tool automatically
+                openDataMigrationModal(parsedTasks);
                 localStorage.setItem('lastMigrationCheck', today);
             }
 
