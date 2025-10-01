@@ -181,14 +181,14 @@ export function categoryManagerTemplate(categories) {
                         <span class="font-medium cursor-pointer">${cat.icon ? `<i class="${cat.icon} mr-2"></i>` : ''}${cat.name}</span>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button data-action="setCategoryIcon" data-category-id="${cat.id}" class="control-button control-button-gray text-xs themed-button-secondary">Set Icon</button>
+                        <button data-action="setCategoryIcon" data-category-id="${cat.id}" class="themed-button-clear text-xs">Set Icon</button>
                         <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
-                        <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg themed-button-tertiary" aria-label="Delete category ${cat.name}">&times;</button>
+                        <button data-action="deleteCategory" data-category-id="${cat.id}" class="themed-button-clear font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
                     </div>
                 </div>
                 <div class="mt-2 flex justify-end space-x-2">
-                    <button data-action="bulkEdit" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs themed-button-secondary">Bulk Edit</button>
-                    <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs themed-button-tertiary">Delete All Tasks</button>
+                    <button data-action="bulkEdit" data-category-id="${cat.id}" class="themed-button-clear text-xs">Bulk Edit</button>
+                    <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="themed-button-clear text-xs">Delete All Tasks</button>
                 </div>
                 <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
             </div>
@@ -239,20 +239,44 @@ export function taskViewTemplate(task, { categories, appSettings }) {
 export function dataMigrationModalTemplate() {
     return `
         <div class="modal-content">
-            <h3 class="text-xl font-semibold mb-4">Task Data Migration Tool</h3>
+            <h3 class="text-xl font-semibold mb-4">Task Data Migration & Integrity Tool</h3>
             <button class="close-button">&times;</button>
+
+            <div id="history-analysis-section" class="hidden mb-4 p-3 border rounded border-red-400 bg-red-50">
+                <h4 class="font-semibold text-red-800">History Issues Detected</h4>
+                <p id="history-issues-summary" class="text-sm text-red-700 my-2"></p>
+                <p class="text-xs text-gray-600 mb-3">This can happen if tasks are deleted. Cleaning removes history records that no longer link to a valid task. This action cannot be undone.</p>
+                <button id="clean-history-btn" data-action="cleanHistory" class="control-button control-button-red themed-button-tertiary">Clean Orphaned History</button>
+            </div>
+
             <div id="migration-step-1">
-                <p class="mb-4">Upload your old task data file (JSON format). The tool will attempt to automatically map the fields.</p>
+                <p class="mb-4">Upload an old task data file (JSON format) to migrate tasks.</p>
                 <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
             </div>
+
             <div id="migration-step-2" class="hidden mt-4">
-                <p class="mb-2 font-semibold">Map your old data fields to the new task properties:</p>
-                <div id="migration-mapping-area" class="space-y-2 max-h-60 overflow-y-auto p-2 border rounded">
-                    <!-- Mapping UI will be generated here -->
+                <div id="migration-summary" class="mb-4 p-3 bg-blue-100 text-blue-800 rounded-lg"></div>
+                <p class="mb-2 font-semibold">Fields to Map</p>
+                <div id="migration-differences-area" class="space-y-2 p-2 border rounded border-yellow-400 bg-yellow-50 mb-4">
+                    <!-- Fields that require manual mapping will be shown here. -->
                 </div>
+
+                <p class="mb-2 font-semibold text-gray-500">Identical Fields (Auto-Mapped)</p>
+                <div id="migration-identical-area" class="space-y-2 p-2 border rounded bg-gray-100 text-gray-500">
+                    <!-- Auto-mapped fields shown here, disabled -->
+                </div>
+
                 <div class="mt-4 flex justify-end space-x-2">
-                    <button id="cancel-migration-btn" class="control-button control-button-gray themed-button-tertiary">Cancel</button>
-                    <button id="run-migration-btn" class="control-button control-button-blue themed-button-secondary">Run Migration</button>
+                    <button id="cancel-migration-btn" class="themed-button-tertiary">Cancel</button>
+                    <button id="run-migration-btn" class="themed-button-secondary">Run Migration</button>
+                </div>
+            </div>
+
+            <div id="migration-step-confirm" class="hidden mt-4">
+                <p class="mb-4 text-center" id="migration-confirm-message"></p>
+                <div class="mt-4 flex justify-center space-x-2">
+                    <button id="cancel-confirm-btn" class="themed-button-tertiary">Cancel</button>
+                    <button id="run-confirm-btn" class="themed-button-secondary">Confirm Migration</button>
                 </div>
             </div>
         </div>

@@ -35,7 +35,10 @@ The core of the application is a dynamic and intelligent task management system.
   * **Customizable Task Cards:** From the Advanced Options menu, choose exactly which details you want to see on your task cards, such as due date, duration, category, and more.  
   * **Categories:** Create an unlimited number of color-coded categories to organize your tasks.  
   * **Status Names & Colors:** Edit the names and colors for each status (Ready, Overdue, etc.) to match your personal workflow.  
-  * **Theming Engine:** Choose a base color to generate a dynamic, cohesive theme across the entire application, or stick with the default color scheme. You can also randomize the theme for a fresh look.  
+  *   **Advanced Theming Engine:** The application features a powerful, dynamic theming system that goes beyond simple color changes to ensure readability and a cohesive look.
+    *   **How it Works:** From the "Advanced Options" menu, you can enable the theme and select a single "base color." The application then uses this color to generate a full palette, including complementary colors for backgrounds, buttons, and accents.
+    *   **8-Color Dynamic Text:** To ensure text is always readable, the system automatically calculates the luminance of any given background color. Based on whether the background is light or dark, it selects from a palette of four white shades or four black shades (ranging from 100% pure to 55% gray). This is all handled via CSS custom properties (`--text-color-primary`, `--text-color-secondary`, etc.), which are applied automatically.
+    *   **Applying Themes to New Elements:** To make a new button compatible with the theming engine, simply assign it the class `themed-button-primary`, `themed-button-secondary`, or `themed-button-tertiary`. **Crucially, you must avoid adding any hardcoded color classes** (like `bg-blue-600` or `hover:bg-blue-700`) as these will override the dynamic theme styles. The core logic for this system can be found in the `applyTheme` and `getContrastingTextColor` functions in `js/script.js`.
 * **Notifications:** Receive desktop notifications when a task's status changes, ensuring you never miss an important deadline. (Currently under development).
 
 ### **The Mission Planner**
@@ -56,6 +59,27 @@ Integrated directly with the task manager, the mission planner provides a high-l
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
+
+### ✅ Recently Completed (Version 3.5) - 10/01/2025
+
+This update focused on improving data integrity and fixing UI bugs related to theming.
+
+*   **Robust History Tracking:** Fixed a critical bug where task history (completions and misses) was not being saved correctly, particularly if the local data had become corrupted. The data loading process now intelligently validates and cleans the history on startup, ensuring that corrupted data is automatically repaired and new history is always saved reliably.
+*   **Intelligent History Cleanup:** The Data Migration & Integrity tool has been enhanced. It now automatically detects and reports "orphaned" history records—entries for tasks that have been deleted. Users are now given a simple one-click option to clean these records, maintaining data integrity.
+*   **Dynamic Button Theming Fix:** Resolved a UI bug where the main view-switching buttons (Task Manager, Calendar, Dashboard) would get "stuck" on their old colors after the theme was changed. They now update their styles instantly and correctly when switching between day and night modes.
+
+### ✅ Recently Completed (Version 3.4) - 10/01/2025
+
+This update introduces a more intelligent data migration tool and resolves several UI theming inconsistencies.
+
+*   **Intelligent Data Migration:** The data migration tool has been significantly enhanced to be more user-friendly.
+    *   It now automatically compares the schema of an imported file against the current data structure.
+    *   Fields that are identical are auto-mapped and grayed out.
+    *   The UI now highlights only the fields that are new or different, requiring user mapping.
+    *   If no differences are found, the tool now presents a simple one-click confirmation step, streamlining the process.
+*   **UI Theming Fixes:**
+    *   Resolved an issue where several buttons and toggles (like the calendar view chooser and KPI combined/stacked toggle) were hardcoded with a blue background, ignoring the application's theme. These now correctly use the dynamic theming system.
+    *   Added a new `themed-button-clear` class for buttons that require a transparent background. Their text color will now correctly adapt to day/night mode. This has been applied to the "Choose Icon", "Export Data", and various category management buttons for a cleaner look.
 
 ### ✅ Recently Completed (Version 3.3) - 09/30/2025
 
