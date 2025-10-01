@@ -13,7 +13,14 @@ This application is built as a comprehensive tool for managing complex schedules
 
 The core of the application is a dynamic and intelligent task management system.
 
-* **Intelligent Task Status:** Tasks automatically change color and status (Ready, Start Soon, Do Right Now, Overdue) based on a predictive algorithm. This system doesn't just look at the due date; it considers the estimated duration of all your other high-priority tasks to warn you about potential time crunches before they happen.  
+* **Intelligent Task Status:** Tasks automatically change color and status (Ready, Start Soon, Do Right Now, Overdue) based on a predictive algorithm. This system doesn't just look at the due date; it considers the estimated duration of all your other high-priority tasks to warn you about potential time crunches before they happen.
+*   **How `calculateStatus` Works:** The `calculateStatus` function is the predictive engine that drives the application's intelligent warnings. It's triggered whenever tasks are loaded, modified, or periodically in the background. Here’s a breakdown of its logic:
+    1.  **Immediate Overdue Check:** The first thing it does is check if a task's due date is in the past. If so, it's immediately marked `red` (or `black` if the miss ratio is high).
+    2.  **Time-to-Due Buffers:** It checks if the time remaining is less than the task's estimated duration (making it `red`) or less than twice the estimated duration (making it `yellow`). This provides a simple, direct warning if you're cutting it close.
+    3.  **Predictive Workload Analysis:** This is the core of the intelligent system. It calculates the sum of the remaining estimated durations of all other *active, high-priority* tasks.
+        *   It first checks if the current time plus the sum of all other `red` and `yellow` tasks would push you past the due date of the task being calculated. If so, this task becomes `red`.
+        *   It then performs a wider check, summing the estimates of all `red`, `yellow`, and *soon-to-be-yellow* tasks (those due within the next 16 hours). If that total workload pushes you past the due date, the task becomes `yellow`.
+    4.  **Miss Ratio Escalation:** For repeating tasks, the system checks the current `misses` against the `maxMisses`. If the ratio exceeds 50%, the status is escalated to the next level of urgency (e.g., `green` becomes `yellow`, `yellow` becomes `red`). If the ratio reaches 100%, the task is marked `black` (failed).
 * **Flexible Time Input:** Choose to define a task by its due date and time, or by its start time and estimated duration. The application will handle the calculations for you.  
 * **Advanced Repetition Engine:** Create tasks that repeat on almost any schedule imaginable.  
   * **Relative Repetition:** Set tasks to repeat at an interval after their due date (e.g., "every 3 days").  
@@ -49,6 +56,59 @@ Integrated directly with the task manager, the mission planner provides a high-l
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
+
+### ✅ Recently Completed (Version 3.3) - 09/30/2025
+
+This is a comprehensive feature update that improves the user experience, enhances the KPI dashboard, and automates key data management processes.
+
+*   **UI/UX Enhancements for Time and Scheduling**:
+    *   The "Start Date & Time" field is now correctly hidden when "Relative Time" is selected in the task form, reducing clutter.
+    *   The label for relative time input now dynamically changes from "Due In:" to "Start In:" based on the "Time Input Type" selection, improving clarity.
+*   **KPI View Improvements**:
+    *   Added "Previous Week," "Next Week," and "Today" buttons to the KPI view, allowing for easy navigation through weekly data to review past performance.
+    *   Weekly goals and KPIs are now saved and can be viewed for previous weeks.
+*   **Data Export/Import**:
+    *   The "Export All" feature now includes all application settings, ensuring a complete and accurate backup for restoration.
+*   **Migration Tool Automation**:
+    *   The data migration tool is now automated. When the application detects outdated task formats, it will automatically launch the tool with the data pre-loaded, streamlining the update process for the user.
+
+### ✅ Recently Completed (Version 3.2) - 09/22/2025
+
+This update focused on fixing key UI bugs to improve the user experience.
+
+*   **Button Spacing Fix:** Corrected a CSS layout issue where the main navigation buttons were positioned too close to the page header. A top margin was added to provide appropriate spacing.
+*   **Calendar Rendering Fix:** Resolved a critical JavaScript error that was preventing the FullCalendar component from rendering. The error was caused by an incorrect variable reference when applying themes, which has now been fixed.
+
+### ✅ Recently Completed (Version 3.1) - 09/22/2025
+
+This update focused on improving data management and providing deeper insight into the application's core logic.
+
+*   **Task Data Migration Tool:** A new tool has been added to the "Advanced Options" menu that allows users to migrate tasks from an older, unstructured JSON format. The tool intelligently detects fields from the uploaded file and prompts the user to map them to the current task properties, ensuring a smooth transition from legacy data formats.
+*   **Partial Miss Logic Refinement:** The logic for confirming multiple overdue cycles has been clarified. The system now correctly applies only one partial miss (based on progress) for the most recent cycle and full, whole-number misses for any older cycles being confirmed at the same time. This ensures that a user's partial effort is fairly counted without being unfairly compounded.
+
+### ✅ Recently Completed (Version 3.0) - 09/22/2025
+
+This is a major feature update that adds powerful new ways to manage tasks and customize the application's look and feel, while also fixing key bugs.
+
+*   **Bulk-Edit by Category:** In the "Advanced Options" menu, each category now has a "Bulk Edit" button. This opens a form that allows a user to apply changes (like setting a new duration or completion type) to all tasks within that category at once. The form remembers the last-used settings to speed up repetitive edits across multiple categories.
+*   **Themeable Buttons:** The theming engine has been expanded to all buttons throughout the application. When a user picks a base color for their theme, all buttons will now adopt a complementary primary, secondary, or tertiary color, creating a more cohesive and personalized user experience.
+*   **Status Color Picker Fix:** Fixed a critical bug where the color pickers for the five task statuses (Locked, Ready, Start Soon, etc.) would not display the currently saved color, always defaulting to black. They now correctly show the user's chosen color.
+*   **Partial Miss Tracking:** For tasks that use a timer or a counter, the miss tracking system has been enhanced to support partial completion. If a task is only 50% complete when it becomes overdue, it is now recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
+
+### ✅ Recently Completed (Version 2.9) - 09/22/2025
+
+This update focused on improving the user experience by implementing several features from the backlog.
+
+*   **Re-integrated "Today" Button:** The "Today" button has been re-integrated into the main calendar header, providing quick navigation back to the current day.
+*   **Incremental Data Import:** The import functionality has been enhanced to allow users to merge imported tasks and categories with their existing data, in addition to the previous overwrite functionality.
+*   **Unified Task Click Behavior:** Ensured that clicking on a task in the main Task Manager list opens the "Task View" modal, providing a consistent user experience with the calendar view.
+
+### ✅ Recently Completed (Version 2.8) - 09/22/2025
+
+This update focused on code quality and analytics, continuing the project's cleanup and feature enhancement goals.
+
+*   **Comprehensive HTML Refactoring:** Continued the major initiative to separate application logic from presentation by moving all remaining HTML generation out of `js/script.js` and into dedicated functions in `js/templates.js`. This makes the code significantly cleaner, more maintainable, and easier to test.
+*   **Enhanced Task Statistics:** The dedicated Task Statistics page has been upgraded to provide deeper insights into user performance. It now features a bar chart that visualizes completions and misses on a weekly basis, allowing users to track their performance trends over time. This was implemented using Chart.js.
 
 ### ✅ Recently Completed (Version 2.7) - 09/22/2025
 
@@ -169,20 +229,6 @@ This update focused on improving the long-term stability and maintainability of 
 
 *   **Planner View Rendering Overhaul:** Fixed a major visual bug in the **Weekly and Daily** planner views where concurrent tasks would overlap and become unreadable. The rendering logic was re-architected to use a modern **CSS Grid layout**. This replaces the old, brittle positioning logic with a robust system that correctly and automatically handles laying out tasks, ensuring the planner is stable and legible.
 *   **Code Stability:** Refined the JavaScript rendering functions (`renderDailyView`, `renderWeeklyView`) to be simpler and more maintainable, directly supporting the new CSS Grid system.
-
-### **🔜 Up Next: Pre-Database Features**
-
-This section outlines the next set of features and improvements planned before the major architectural shift to a server-side database. The focus is on enhancing the user experience, improving code quality, and adding value to the current single-user version of the application.
-
-*   **Continue HTML Refactoring:** Continue the refactoring of the application to separate HTML from JavaScript. Good progress has been made with `js/templates.js`, and several components (`renderCategoryManager`, `renderNotificationManager`, `renderTaskStats`) have been successfully refactored. The goal is to move all remaining HTML generation to the `templates.js` file.
-*   **Enhance Task Statistics:** Improve the dedicated Task Statistics page by adding more advanced analytics and visualizations, such as graphs for completion rates over time, to provide deeper insights into user performance.
-*   **Unified Task Click Behavior:** Determine a consistent and intuitive behavior for clicking on tasks in the main Task Manager list, similar to the "Task View" modal that was implemented for the planner.
-*   **Partial Miss Tracking:** For tasks that use a timer or a counter, enhance the miss tracking system to support partial completion. If a task is only 50% complete when it becomes overdue, it could be recorded as a "0.5 miss" instead of a full one, providing a more nuanced and fair reflection of the user's effort.
-*   **Incremental Data Import:** Enhance the current import functionality. Instead of completely overwriting existing data, the app should provide an option to import *new* tasks and categories from a JSON file while keeping existing data intact. This is crucial for collaborative scenarios where a new set of tasks needs to be added to an existing workload.
-*   **Bulk-Edit by Category:** In the Category Manager, add options to perform bulk actions on all tasks within a category. This could include deleting all tasks in that category, or clearing all *active* tasks while preserving the completed/missed history for statistical purposes.
-*   **Task Data Migration Tool:** Create a tool that can seamlessly migrate user tasks from an old data format to the current one by prompting the user to map old data fields to new ones.
-*   **Advanced calculateStatus Tuning:** Fine-tune the predictive logic for task statuses based on user feedback.
-*   **Re-integrate "Today" Button:** The main calendar controls were simplified to a `Prev`/`Next` layout. A "Today" button, which was part of the default FullCalendar UI, should be re-integrated into the new custom header to provide quick navigation back to the current day.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 

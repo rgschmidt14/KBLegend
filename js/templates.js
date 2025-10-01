@@ -148,7 +148,8 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
 
     const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
     const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="common-buttons-container"></div>`;
-    const iconHtml = task.icon ? `<i class="${task.icon} mr-2"></i>` : '';
+    const iconToUse = task.icon || (category ? category.icon : null);
+    const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
 
     return `<div class="flex-grow pr-4">
                 <div class="flex justify-between items-baseline">
@@ -169,34 +170,41 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
 }
 
 export function categoryManagerTemplate(categories) {
+    let content = '';
     if (categories.length === 0) {
-        return '<p class="text-gray-500 italic">No categories created yet.</p>';
+        content += '<p class="text-gray-500 italic">No categories created yet.</p>';
+    } else {
+        content += categories.map(cat => `
+            <div class="p-2 border-b" id="category-item-${cat.id}">
+                <div class="flex items-center justify-between">
+                    <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
+                        <span class="font-medium cursor-pointer">${cat.icon ? `<i class="${cat.icon} mr-2"></i>` : ''}${cat.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button data-action="setCategoryIcon" data-category-id="${cat.id}" class="control-button control-button-gray text-xs themed-button-secondary">Set Icon</button>
+                        <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
+                        <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg themed-button-tertiary" aria-label="Delete category ${cat.name}">&times;</button>
+                    </div>
+                </div>
+                <div class="mt-2 flex justify-end space-x-2">
+                    <button data-action="bulkEdit" data-category-id="${cat.id}" class="control-button control-button-yellow text-xs themed-button-secondary">Bulk Edit</button>
+                    <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs themed-button-tertiary">Delete All Tasks</button>
+                </div>
+                <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
+            </div>
+        `).join('');
     }
 
-    const categoryItems = categories.map(cat => `
-        <div class="p-2 border-b" id="category-item-${cat.id}">
-            <div class="flex items-center justify-between">
-                <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
-                    <span class="font-medium cursor-pointer">${cat.name}</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
-                    <button data-action="deleteCategory" data-category-id="${cat.id}" class="text-red-500 hover:text-red-700 font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
-                </div>
-            </div>
-            <div class="mt-2 flex justify-end space-x-2">
-                <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="control-button control-button-red text-xs">Delete All Tasks</button>
-            </div>
+    content += `
+        <div class="mt-4">
+            <button class="control-button control-button-blue w-full themed-button-secondary" data-action="renderCategoryAdd">
+                Add New Category
+            </button>
+            <div id="add-category-form-container" class="mt-2"></div>
         </div>
-    `).join('');
-
-    const addButton = `
-        <button class="control-button control-button-blue mt-4" data-action="addCategory">
-            Add New Category
-        </button>
     `;
 
-    return categoryItems + addButton;
+    return content;
 }
 
 export function taskViewTemplate(task, { categories, appSettings }) {
@@ -222,13 +230,85 @@ export function taskViewTemplate(task, { categories, appSettings }) {
             <p><strong>Repetition:</strong> ${repetitionStr}</p>
         </div>
         <div class="mt-6 flex justify-end space-x-3">
-            <button data-action="viewTaskStats" class="control-button control-button-blue">View Statistics</button>
-            <button data-action="editTaskFromView" class="control-button control-button-yellow">Edit Task</button>
+            <button data-action="viewTaskStats" class="control-button control-button-blue themed-button-secondary">View Statistics</button>
+            <button data-action="editTaskFromView" class="control-button control-button-yellow themed-button-secondary">Edit Task</button>
         </div>
     `;
 }
 
-export function taskStatsTemplate(task, stats, historyHtml) {
+export function dataMigrationModalTemplate() {
+    return `
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Task Data Migration Tool</h3>
+            <button class="close-button">&times;</button>
+            <div id="migration-step-1">
+                <p class="mb-4">Upload your old task data file (JSON format). The tool will attempt to automatically map the fields.</p>
+                <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
+            </div>
+            <div id="migration-step-2" class="hidden mt-4">
+                <p class="mb-2 font-semibold">Map your old data fields to the new task properties:</p>
+                <div id="migration-mapping-area" class="space-y-2 max-h-60 overflow-y-auto p-2 border rounded">
+                    <!-- Mapping UI will be generated here -->
+                </div>
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="cancel-migration-btn" class="control-button control-button-gray themed-button-tertiary">Cancel</button>
+                    <button id="run-migration-btn" class="control-button control-button-blue themed-button-secondary">Run Migration</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+export function bulkEditFormTemplate(categoryId, settings) {
+    const {
+        durationAmount = '',
+        durationUnit = 'minutes',
+        completionType = '',
+    } = settings;
+
+    return `
+        <div class="p-4 rounded-md" style="background-color: #374151; border: 1px solid #4b5563;">
+            <h4 class="font-bold mb-3" style="color: #d1d5db;">Bulk Edit Tasks in this Category</h4>
+            <form id="bulk-edit-form-${categoryId}" class="space-y-4">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label" style="color: #d1d5db;">Set Duration:</label>
+                        <div class="flex space-x-2 items-center">
+                            <input type="number" name="durationAmount" value="${durationAmount}" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 duration-input" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                            <select name="durationUnit" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 flex-grow" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                                <option value="minutes" ${durationUnit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                                <option value="hours" ${durationUnit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                            </select>
+                        </div>
+                        <p class="form-hint" style="color: #9ca3af;">Leave blank to ignore.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" style="color: #d1d5db;">Set Completion Type:</label>
+                        <select name="completionType" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                            <option value="">-- No Change --</option>
+                            <option value="simple" ${completionType === 'simple' ? 'selected' : ''}>Simple (Mark Done)</option>
+                            <option value="count" ${completionType === 'count' ? 'selected' : ''}>Count</option>
+                            <option value="time" ${completionType === 'time' ? 'selected' : ''}>Time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end items-center space-x-3 pt-4 border-t" style="border-color: #4b5563;">
+                    <button type="button" data-action="deleteAllInCategory" data-category-id="${categoryId}" class="control-button text-xs themed-button-tertiary">Delete All In Category</button>
+                    <button type="submit" class="control-button text-white themed-button-secondary" style="background-color: #10B981; hover:background-color: #059669;">Apply Changes to All</button>
+                </div>
+
+            </form>
+        </div>
+    `;
+}
+
+export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
+    const chartHtml = hasChartData
+        ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>`
+        : '<p class="text-gray-500 italic mt-4">Not enough history to display a chart.</p>';
+
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
@@ -236,11 +316,222 @@ export function taskStatsTemplate(task, stats, historyHtml) {
             <p><strong>Total Completions:</strong> ${stats.completions}</p>
             <p><strong>Total Misses:</strong> ${stats.misses}</p>
         </div>
-        <h4 class="text-lg font-semibold mt-4 mb-2">History</h4>
-        <ul class="list-disc list-inside max-h-48 overflow-y-auto">
+
+        <h4 class="text-lg font-semibold mt-6 mb-2">Performance Over Time</h4>
+        ${chartHtml}
+
+        <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
+        <ul class="list-disc list-inside max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
             ${historyHtml}
         </ul>
-        <button data-action="backToTaskView" class="control-button control-button-gray mt-4">Back to Details</button>
+
+        <button data-action="backToTaskView" class="control-button control-button-gray mt-6 themed-button-secondary">Back to Details</button>
+    `;
+}
+
+export function actionAreaTemplate(task) {
+    const cycles = task.pendingCycles || 1;
+    switch (task.confirmationState) {
+        case 'confirming_complete':
+            const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-secondary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-tertiary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
+        case 'awaiting_overdue_input':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green themed-button-secondary">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red themed-button-tertiary">Missed</button></div>`;
+        case 'confirming_miss':
+            const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green themed-button-secondary">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red themed-button-tertiary">No</button></div>`;
+        case 'confirming_delete':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
+        case 'confirming_undo':
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow themed-button-secondary">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-tertiary">Cancel</button></div>`;
+    }
+    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+    if (isCompletedNonRepeating) {
+        return '<span class="text-xs text-gray-500 italic">Done</span>';
+    }
+    if (task.status === 'blue') {
+        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="control-button control-button-gray themed-button-secondary" title="Undo Completion / Reactivate Early">Undo</button>`;
+    }
+    switch (task.completionType) {
+        case 'count':
+            const target = task.countTarget || Infinity;
+            return (task.currentProgress < target)
+                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray themed-button-tertiary w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue themed-button-secondary w-6 h-6 flex items-center justify-center">+</button> </div>`
+                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+        case 'time':
+            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+            if (task.currentProgress >= targetMs) {
+                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+            }
+            const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
+            const btnClass = task.isTimerRunning ? 'control-button-yellow themed-button-tertiary' : 'control-button-green themed-button-secondary';
+            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="control-button ${btnClass}">${btnText}</button>`;
+        default:
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+    }
+}
+
+export function commonButtonsTemplate(task) {
+    if (task.confirmationState) return '';
+    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+
+    if (isCompletedNonRepeating) {
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>`;
+    }
+    return `
+        <div class="flex space-x-1">
+            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow themed-button-secondary" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>
+        </div>
+    `;
+}
+
+export function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
+    const toggleHtml = `
+        <div class="flex items-center justify-between mb-4 p-2 border-b">
+            <label for="status-theme-toggle" class="form-label mb-0">Use Theme Gradient for Statuses:</label>
+            <input type="checkbox" id="status-theme-toggle" data-action="toggleStatusTheme" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${theming.useThemeForStatus ? 'checked' : ''}>
+        </div>
+    `;
+
+    const statusItems = Object.keys(defaultStatusNames).map(statusKey => {
+        const displayName = statusNames[statusKey] || defaultStatusNames[statusKey];
+        const color = statusColors[statusKey] || '#ccc';
+        return `
+            <div class="flex items-center justify-between p-2 border-b" id="status-item-${statusKey}">
+                <div id="status-display-${statusKey}" class="flex-grow flex items-center space-x-3">
+                    <div class="w-4 h-4 rounded-full" style="background-color: ${color};"></div>
+                    <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${displayName}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="color" value="${color}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded" ${theming.useThemeForStatus ? 'disabled' : ''}>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return toggleHtml + statusItems;
+}
+
+export function categoryFilterTemplate(categories, categoryFilter) {
+    if (categories.length === 0) {
+        return '<p class="text-gray-500 italic">No categories to filter.</p>';
+    }
+
+    const allLabel = `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}>
+            <span>Show All</span>
+        </label>
+    `;
+
+    const uncategorizedLabel = `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}>
+            <span>Uncategorized</span>
+        </label>
+    `;
+
+    const categoryLabels = categories.map(cat => `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}>
+            <span>${cat.name}</span>
+        </label>
+    `).join('');
+
+    return allLabel + uncategorizedLabel + categoryLabels;
+}
+
+export function iconPickerTemplate(iconCategories) {
+    let contentHtml = '';
+    for (const category in iconCategories) {
+        const iconsHtml = iconCategories[category].map(iconClass => `
+            <div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}">
+                <i class="${iconClass} fa-2x text-gray-700"></i>
+            </div>
+        `).join('');
+
+        contentHtml += `
+            <div class="icon-picker-category">
+                <div class="icon-picker-category-header p-2 bg-gray-200 text-gray-800 font-bold rounded cursor-pointer flex justify-between items-center">
+                    ${category}
+                    <span class="transform transition-transform duration-200"> ▼ </span>
+                </div>
+                <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                    ${iconsHtml}
+                </div>
+            </div>
+        `;
+    }
+    return contentHtml;
+}
+
+export function editProgressTemplate(taskId, currentValue, max) {
+    return `
+        <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
+        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
+    `;
+}
+
+export function editCategoryTemplate(categoryId, currentName) {
+    return `
+        <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
+        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
+    `;
+}
+
+export function editStatusNameTemplate(statusKey, currentName) {
+    return `
+        <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
+        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
+        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
+    `;
+}
+
+export function restoreDefaultsConfirmationTemplate() {
+    return `
+        <div class="flex flex-col items-center gap-2 text-center">
+            <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
+            <div class="flex gap-2 mt-2">
+                <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes, Reset</button>
+                <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">No, Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
+    return `
+        <div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
+             data-group="${groupName}"
+             style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
+            <h4 class="font-bold">${groupName}</h4>
+            <span class="transform transition-transform duration-200"> ▼ </span>
+        </div>
+    `;
+}
+
+export function sensitivityControlsTemplate(settings) {
+    const { sValue, isAdaptive } = settings;
+    const sliderDisabled = isAdaptive ? 'disabled' : '';
+    const containerOpacity = isAdaptive ? 'opacity-50' : '';
+
+    return `
+        <div class="flex items-center justify-between">
+            <label for="adaptive-sensitivity-toggle" class="form-label mb-0">Use Adaptive Sensitivity:</label>
+            <input type="checkbox" id="adaptive-sensitivity-toggle" data-action="toggleAdaptiveSensitivity" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isAdaptive ? 'checked' : ''}>
+        </div>
+        <div id="manual-sensitivity-container" class="space-y-2 ${containerOpacity}">
+            <label for="sensitivity-slider" class="form-label">Manual Sensitivity:</label>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-500">Least</span>
+                <input type="range" id="sensitivity-slider" min="0" max="1" step="0.01" value="${sValue}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" ${sliderDisabled}>
+                <span class="text-sm text-gray-500">Most</span>
+            </div>
+            <p class="form-hint">Controls how early the system warns you about upcoming tasks. Disabled when adaptive mode is on.</p>
+        </div>
     `;
 }
 

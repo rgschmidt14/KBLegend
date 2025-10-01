@@ -114,6 +114,10 @@ body.modal-open {
     @apply bg-red-500 hover:bg-red-600 text-white;
 }
 
+.view-btn {
+    background-color: #374151; /* gray-700 */
+}
+
 .control-button-green {
     @apply bg-green-500 hover:bg-green-600 text-white;
 }
@@ -194,6 +198,15 @@ legend {
     @apply text-sm font-medium text-gray-600 px-1;
 }
 
+.form-legend {
+    @apply w-full pb-2 border-b border-gray-300 mb-4 text-lg font-semibold;
+}
+
+.light-mode .form-legend {
+    border-color: #D1D5DB; /* gray-300 */
+}
+
+
 .checkbox-label {
     @apply flex items-center text-sm px-2 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150;
 }
@@ -231,6 +244,14 @@ legend {
 /* Toggle Switch Styles */
 .toggle-checkbox {
     position: relative;
+    width: 3rem; /* w-12 */
+    height: 1.5rem; /* h-6 */
+    padding: 0.125rem; /* p-0.5 */
+    background-color: #e5e7eb; /* gray-200 */
+    border-radius: 9999px; /* rounded-full */
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
 }
 
 .toggle-checkbox::before {
@@ -243,6 +264,7 @@ legend {
     background-color: white;
     border-radius: 9999px;
     transition: transform 0.2s ease-in-out;
+    transform: scale(0.8);
 }
 
 .toggle-checkbox:checked {
@@ -250,7 +272,7 @@ legend {
 }
 
 .toggle-checkbox:checked::before {
-    transform: translateX(1.5rem); /* w-6 */
+    transform: translateX(1.5rem) scale(0.8);
 }
 
 
@@ -475,6 +497,32 @@ legend {
     color: #1F2937;
 }
 
+/* Main View Toggle Button Styles */
+.view-toggle-btn {
+    background-color: #4A5568; /* gray-600 */
+    color: #F7FAFC; /* gray-100 */
+    transition: all 0.2s ease-in-out;
+}
+.view-toggle-btn:hover {
+    background-color: #2D3748; /* gray-800 */
+}
+.active-view-btn {
+    background-color: #4299E1; /* blue-400 */
+    color: white;
+}
+
+.light-mode .view-toggle-btn {
+    background-color: #E2E8F0; /* gray-200 */
+    color: #2D3748; /* gray-800 */
+}
+.light-mode .view-toggle-btn:hover {
+    background-color: #CBD5E0; /* gray-300 */
+}
+.light-mode .active-view-btn {
+    background-color: #3B82F6; /* blue-500 */
+    color: white;
+}
+
 /* Light Mode Styles */
 @media (prefers-color-scheme: light) {
   .auto-theme {
@@ -529,17 +577,17 @@ legend {
 }
 
 .light-mode .nav-btn, .light-mode .view-btn {
-    background-color: #E5E7EB;
-    color: #1F2937;
+    background-color: #E2E8F0; /* gray-200 */
+    color: #2D3748; /* gray-800 */
 }
 
 .light-mode .nav-btn:hover, .light-mode .view-btn:hover {
-    background-color: #D1D5DB;
+    background-color: #CBD5E0; /* gray-300 */
 }
 
 .light-mode .view-btn.bg-blue-600 {
-    background-color: #3B82F6;
-    color: #FFFFFF;
+    background-color: #2563EB !important; /* blue-600 */
+    color: #FFFFFF !important;
 }
 
 .light-mode input[type="text"], .light-mode input[type="number"] {
@@ -576,6 +624,7 @@ legend {
 .modal-content input[type="text"],
 .modal-content input[type="number"],
 .modal-content input[type="datetime-local"],
+.modal-content textarea,
 .modal-content select {
     background-color: #1A202C; /* Gray 900 */
     border-color: #4A5568; /* Gray 600 */
@@ -671,9 +720,8 @@ legend {
 .light-mode .modal-content legend,
 .light-mode .modal-content .form-label,
 .light-mode .modal-content label,
-.light-mode .modal-content span,
 .light-mode .modal-content div {
-    color: #1F2937 !important; /* Force dark color for key elements */
+    color: #1F2937 !important; /* Force dark color for key elements. Span removed. */
 }
 
 .light-mode .modal-content .form-hint {
@@ -683,6 +731,7 @@ legend {
 .light-mode .modal-content input[type="text"],
 .light-mode .modal-content input[type="number"],
 .light-mode .modal-content input[type="datetime-local"],
+.light-mode .modal-content textarea,
 .light-mode .modal-content select {
     background-color: #FFFFFF;
     border-color: #D1D5DB;
@@ -699,6 +748,21 @@ legend {
     border-color: #93C5FD;
     color: #1E40AF; /* Darker blue text for selected items */
 }
+
+/* General form element styling for dark mode */
+select {
+    background-color: #1A202C; /* Gray 900 */
+    border: 1px solid #4A5568; /* Gray 600 */
+    color: #F7FAFC; /* Gray 100 */
+}
+
+/* General form element styling for light mode */
+.light-mode select {
+    background-color: #FFFFFF;
+    border-color: #D1D5DB;
+    color: #111827;
+}
+
 
 /* 5-Week Progress Tracker Styles */
 .kpi-indicator {
@@ -770,6 +834,7 @@ legend {
 .light-mode .kpi-goal-input, .light-mode .kpi-actual-input {
     border-color: #d1d5db; /* Gray-300 */
     color: #111827; /* Gray-900 */
+    background-color: #ffffff;
 }
 
 .light-mode .progress-bar-bg {
@@ -805,6 +870,7 @@ legend {
 #calendar {
     min-height: 70vh;
     color: #F3F4F6; /* Light Gray text for readability on dark background */
+    background: var(--calendar-background, #1F2937); /* Default to Gray-800 */
 }
 
 /* --- Toolbar Buttons --- */

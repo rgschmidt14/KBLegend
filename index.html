@@ -18,22 +18,22 @@
         <header class="mb-6 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-white">Task & Mission Planner</h1>
             <p class="text-gray-400 mt-1">Organize your tasks, plan your week, and track your progress.</p>
-            <div class="mt-4 space-x-2">
-                <button id="toggleTaskManagerBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Task Manager</button>
-                <button id="advancedOptionsBtnMain" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Advanced Options</button>
-            </div>
         </header>
 
         <!-- Main View Navigation -->
-        <div id="main-view-nav" class="mb-6 text-center">
-            <div class="inline-flex rounded-md shadow-sm" role="group">
-                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn">
+        <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex flex-wrap space-x-2">
+                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                    <i class="fa-solid fa-tasks mr-2"></i>Task Manager
+                </button>
+                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-dashboard-btn" type="button" class="view-toggle-btn">
+                <button id="show-dashboard-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
             </div>
+            <button id="advancedOptionsBtnMain" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Advanced Options</button>
         </div>
 
         <!-- Main Content Area -->
@@ -41,20 +41,21 @@
             <!-- Calendar View -->
             <div id="calendar-view">
                 <div id="mainPlannerSection">
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">&lt; Prev Week</button>
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+                        <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">&lt; Prev Week</button>
+                        <button id="todayBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Today</button>
                         <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
-                        <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors">Next Week &gt;</button>
+                        <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Next Week &gt;</button>
                     </div>
 
-                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg">
-                        <div class="flex items-center space-x-2">
+                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg gap-2">
+                        <div class="flex flex-wrap items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Day</button>
-                            <button data-view="weekly" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Week</button>
-                            <button data-view="month" class="view-btn bg-gray-700 hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors">Month</button>
+                            <button data-view="daily" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Day</button>
+                            <button data-view="weekly" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Week</button>
+                            <button data-view="month" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Month</button>
                         </div>
-                        <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-2 sm:mt-0">Add New Task</button>
+                        <button id="addNewTaskBtnPlanner" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Add New Task</button>
                     </div>
 
                     <div id="calendar" class="bg-gray-900 rounded-b-lg shadow-lg p-4 text-white"></div>
@@ -63,70 +64,49 @@
 
             <!-- Dashboard View -->
             <div id="dashboard-view" class="hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
                         <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
                         <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
                     </div>
 
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
-                        <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Key Performance Indicators (KPIs)</h2>
-                        <div id="indicatorList" class="mb-3 space-y-2"></div>
-                        <div class="flex space-x-2">
-                            <input type="text" id="newIndicatorInput" placeholder="New KPI (e.g., Landings)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                            <select id="newIndicatorFrequency" class="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500">
-                                <option value="weekly">Weekly</option>
-                                <option value="daily">Daily</option>
-                            </select>
-                            <button id="addIndicatorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Add</button>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2 flex-wrap gap-2">
+                            <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="kpi-prev-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">&lt; Prev</button>
+                                <button id="kpi-today-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Today</button>
+                                <button id="kpi-next-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Next &gt;</button>
+                            </div>
+                            <div id="kpi-controls" class="flex items-center space-x-4">
+                                <!-- Existing KPI Controls will be rendered here by JS -->
+                            </div>
+                        </div>
+                        <div id="kpi-chart-container" class="relative" style="height: 400px;">
+                            <!-- KPI Chart(s) will be rendered here by JS -->
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
-                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5-Week Progress Tracker</h2>
-                    <div id="progressTrackerContainer" class="space-y-6"></div>
+            <!-- Task Manager View -->
+            <div id="task-manager-view" class="hidden">
+                <div class="text-center mb-6">
+                    <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">
+                        Add New Task
+                    </button>
+                </div>
+                <!-- This div will be populated with tasks by JavaScript -->
+                <div id="task-list" class="space-y-2">
+                    <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div id="confirmModal" class="modal-backdrop hidden">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-4">Advance to Next Week?</h3>
-            <p class="text-gray-300 mb-6">This will archive the current week, make your "Next Week Preview" the new current week, and remove the oldest week's data. This action cannot be undone.</p>
-            <div class="flex justify-end space-x-4">
-                <button id="cancelNewWeek" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Cancel</button>
-                <button id="confirmNewWeek" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Confirm & Advance</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Task Manager Modal -->
-    <div id="taskManagerModal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-4xl w-full mx-auto p-6 mt-8">
-            <div class="flex justify-between items-center">
-                <h1 class="text-3xl font-bold mb-6 text-center">Task Manager</h1>
-                <button id="closeTaskManagerBtn" class="text-red-500 hover:text-red-700 font-bold text-2xl" aria-label="Close Task Manager">&times;</button>
-            </div>
-        <div class="text-center mb-6 space-x-2">
-            <button id="add-task-btn" class="control-button bg-blue-600 hover:bg-blue-700 text-white">
-                Add New Task
-            </button>
-            <button id="advanced-options-btn" class="control-button bg-gray-700 hover:bg-gray-800 text-white">
-                Advanced Options
-            </button>
-        </div>
-        <!-- This div will be populated with tasks by JavaScript -->
-        <div id="task-list" class="space-y-2">
-            <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
-        </div>
         </div>
     </div>
 
     <!-- Modal for adding and editing tasks -->
     <div id="task-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content themed-modal-primary">
             <button class="close-button" aria-label="Close Task Form">&times;</button>
             <div class="flex justify-between items-center mb-4">
                 <h2 id="modal-title" class="text-2xl font-semibold text-gray-700">Add New Task</h2>
@@ -136,33 +116,63 @@
                     <span class="text-sm font-medium text-gray-600">Advanced</span>
                 </div>
             </div>
-             <form id="task-form">
+             <form id="task-form" class="space-y-4">
                 <input type="hidden" id="task-id">
 
                 <!-- Simple Fields -->
-                <div class="mb-4">
-                    <label for="task-name" class="form-label">Task Name:</label>
-                    <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <div id="due-date-group" class="mb-4">
-                    <label for="task-due-date" class="form-label">Due Date & Time:</label>
-                    <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <div id="simple-task-fields">
+                    <div class="mb-4">
+                        <label for="task-name" class="form-label">Task Name:</label>
+                        <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
                 </div>
 
                 <!-- Advanced Fields Container -->
                 <div id="advanced-task-fields" class="hidden space-y-4">
-                    <div class="mb-4">
-                        <label for="task-icon" class="form-label">Task Icon:</label>
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                            <button type="button" id="open-icon-picker" class="control-button control-button-gray">Choose Icon</button>
-                        </div>
-                        <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
-                    </div>
-
+                    <!-- General Section -->
                     <fieldset>
-                       <legend>Category</legend>
-                       <div class="mb-4">
+                        <legend class="form-legend">General</legend>
+                        <div class="mb-4">
+                            <label class="form-label">Completion Type:</label>
+                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="simple">Simple (Mark Done)</option>
+                                <option value="count">Count</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div id="completion-count-group" class="mb-4 hidden">
+                             <label for="count-target" class="form-label">Target Count:</label>
+                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <p class="form-hint">The total count needed to complete the task.</p>
+                        </div>
+                        <div id="completion-time-group" class="mb-4 hidden">
+                             <label class="form-label">Target Time:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                             <p class="form-hint">The total time needed to complete the task.</p>
+                         </div>
+                        <div class="mb-4">
+                            <label for="task-description" class="form-label">Description:</label>
+                            <textarea id="task-description" name="task-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
+                        <div class="mb-4">
+                           <label for="is-kpi" class="flex items-center">
+                               <input type="checkbox" id="is-kpi" name="is-kpi" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                               <span class="ml-2 text-sm text-gray-700">Set as Key Performance Indicator (KPI)</span>
+                           </label>
+                           <p class="form-hint">KPIs are tracked on the dashboard.</p>
+                       </div>
+                    </fieldset>
+
+                    <!-- Categorization Section -->
+                    <fieldset>
+                        <legend class="form-legend">Categorization</legend>
+                        <div class="mb-4">
                            <label for="task-category" class="form-label">Category:</label>
                            <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
                                <option value="">None</option>
@@ -174,10 +184,26 @@
                            <label for="new-category-name" class="form-label">New Category Name:</label>
                            <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                        </div>
+                        <div class="mb-4">
+                            <label for="task-icon" class="form-label">Task Icon:</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <button type="button" id="open-icon-picker" class="control-button control-button-gray themed-button-secondary">Choose Icon</button>
+                            </div>
+                            <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
+                        </div>
                     </fieldset>
 
+                    <!-- Time and Scheduling Section -->
                     <fieldset>
-                        <legend>Time & Scheduling</legend>
+                        <legend class="form-legend">Time and Scheduling</legend>
+                         <div class="mb-4">
+                            <label class="form-label">Due Date Type:</label>
+                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                <option value="absolute">Absolute Date & Time</option>
+                                <option value="relative">Relative Time</option>
+                            </select>
+                        </div>
                         <div class="mb-4">
                             <label class="form-label">Time Input Type:</label>
                             <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
@@ -185,19 +211,16 @@
                                 <option value="start">Start Time</option>
                             </select>
                         </div>
+                        <div id="due-date-group" class="mb-4">
+                            <label for="task-due-date" class="form-label">Due Date & Time:</label>
+                            <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
                         <div id="start-date-group" class="mb-4 hidden">
                             <label for="task-start-date" class="form-label">Start Date & Time:</label>
                             <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Due Date Type:</label>
-                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                <option value="absolute">Absolute Date & Time</option>
-                                <option value="relative">Relative Time</option>
-                            </select>
-                        </div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
-                            <label class="form-label">Due In:</label>
+                            <label id="relative-due-date-label" class="form-label">Due In:</label>
                             <div class="flex space-x-2 items-center">
                                 <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
                                 <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
@@ -230,36 +253,9 @@
                            </div>
                     </fieldset>
 
+                    <!-- Repetition and Failure Tracking Section -->
                     <fieldset>
-                        <legend>Completion</legend>
-                        <div class="mb-4">
-                            <label class="form-label">Completion Type:</label>
-                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                <option value="simple">Simple (Mark Done)</option>
-                                <option value="count">Count</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div id="completion-count-group" class="mb-4 hidden">
-                             <label for="count-target" class="form-label">Target Count:</label>
-                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                             <p class="form-hint">The total count needed to complete the task.</p>
-                        </div>
-                        <div id="completion-time-group" class="mb-4 hidden">
-                             <label class="form-label">Target Time:</label>
-                             <div class="flex space-x-2 items-center">
-                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                    <option value="minutes">Minute(s)</option>
-                                    <option value="hours">Hour(s)</option>
-                                 </select>
-                             </div>
-                             <p class="form-hint">The total time needed to complete the task.</p>
-                         </div>
-                    </fieldset>
-
-                    <fieldset>
-                       <legend>Repetition</legend>
+                       <legend class="form-legend">Repetition & Failure Tracking</legend>
                         <div class="mb-4">
                             <label class="form-label sr-only">Repetition Type:</label>
                             <select id="task-repetition" name="task-repetition" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
@@ -408,8 +404,8 @@
                     </fieldset>
                 </div>
                 <div class="flex justify-end space-x-3 mt-8">
-                   <button type="button" class="control-button control-button-gray"> Cancel </button>
-                   <button type="submit" class="control-button control-button-green"> Save Task </button>
+                   <button type="button" class="control-button control-button-gray cancel-task-button themed-button-tertiary"> Cancel </button>
+                   <button type="submit" class="control-button control-button-green themed-button-secondary"> Save Task </button>
                </div>
              </form>
         </div>
@@ -427,7 +423,7 @@
     </div>
 
     <div id="advanced-options-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content themed-modal-primary">
             <button class="close-button" aria-label="Close Advanced Options">&times;</button>
             <h2 class="text-2xl font-semibold mb-6 text-gray-700">Advanced Options</h2>
             <div id="advanced-options-content" class="space-y-6">
@@ -451,7 +447,13 @@
                         </div>
                     </div>
                     <div id="restore-defaults-container" class="mt-4">
-                        <button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Restore Defaults</button>
+                        <button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Restore Defaults</button>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Status Sensitivity</legend>
+                    <div id="sensitivity-controls-container" class="space-y-4">
+                        <!-- This content will be rendered by a new template -->
                     </div>
                 </fieldset>
                 <fieldset>
@@ -487,33 +489,14 @@
                                 <label for="theme-base-color" class="form-label mb-0">Theme Base Color:</label>
                                 <input type="color" id="theme-base-color" data-action="setThemeColor" class="h-8 w-12 border-none cursor-pointer rounded">
                             </div>
-                            <button data-action="randomizeTheme" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Randomize Theme</button>
+                            <button data-action="randomizeTheme" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Randomize Theme</button>
                         </div>
                     </div>
                 </fieldset>
                 <fieldset>
                     <legend>Status Color Management</legend>
                     <div class="space-y-2" id="status-color-manager">
-                        <div class="flex items-center justify-between">
-                            <label for="color-picker-blue" class="form-label mb-0" title="inactive/completed">Locked:</label>
-                            <input type="color" id="color-picker-blue" data-status-key="blue" class="status-color-picker">
-                        </div>
-                         <div class="flex items-center justify-between">
-                            <label for="color-picker-green" class="form-label mb-0" title="can do anytime">Ready:</label>
-                            <input type="color" id="color-picker-green" data-status-key="green" class="status-color-picker">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="color-picker-yellow" class="form-label mb-0" title="do soon">Start Soon:</label>
-                            <input type="color" id="color-picker-yellow" data-status-key="yellow" class="status-color-picker">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="color-picker-red" class="form-label mb-0" title="do right now">Do Right Now:</label>
-                            <input type="color" id="color-picker-red" data-status-key="red" class="status-color-picker">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="color-picker-black" class="form-label mb-0" title="passed/burnt crispy">Overdue:</label>
-                            <input type="color" id="color-picker-black" data-status-key="black" class="status-color-picker">
-                        </div>
+                        <!-- This content is now rendered by renderStatusManager() in script.js -->
                     </div>
                 </fieldset>
                 <fieldset>
@@ -580,24 +563,32 @@
                         <div>
                             <label class="form-label">Export Data:</label>
                             <div class="flex flex-wrap gap-2" id="export-options-container">
-                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue">Export All</button>
-                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray">Tasks Only</button>
-                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray">Categories Only</button>
-                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray">History Only</button>
-                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray">Settings Only</button>
+                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue themed-button-secondary">Export All</button>
+                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray themed-button-tertiary">Tasks Only</button>
+                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray themed-button-tertiary">Categories Only</button>
+                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray themed-button-tertiary">History Only</button>
+                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray themed-button-tertiary">Settings Only</button>
                             </div>
                             <p class="form-hint">Export your application data to a JSON file.</p>
                         </div>
                         <div>
                             <label class="form-label">Import Data:</label>
-                            <button data-action="importData" class="control-button control-button-green">Import from File</button>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-action="importData" class="control-button control-button-green themed-button-secondary">Import from File</button>
+                                <button data-action="openMigrationTool" class="control-button control-button-yellow themed-button-tertiary">Migration Tool</button>
+                            </div>
                             <input type="file" id="import-file-input" class="hidden" accept=".json">
-                            <p class="form-hint">Import data from a previously exported JSON file. This will overwrite existing data.</p>
+                            <p class="form-hint">Import from a backup, or use the Migration Tool for old data formats.</p>
                         </div>
                     </div>
                 </fieldset>
             </div>
         </div>
+    </div>
+
+    <!-- Modal for Data Migration -->
+    <div id="data-migration-modal" class="modal">
+        <!-- Content will be rendered by JS -->
     </div>
 
     <!-- Modal for viewing task details and stats -->
