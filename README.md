@@ -57,6 +57,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.2) - 09/22/2025
+
+This update focused on fixing key UI bugs to improve the user experience.
+
+*   **Button Spacing Fix:** Corrected a CSS layout issue where the main navigation buttons were positioned too close to the page header. A top margin was added to provide appropriate spacing.
+*   **Calendar Rendering Fix:** Resolved a critical JavaScript error that was preventing the FullCalendar component from rendering. The error was caused by an incorrect variable reference when applying themes, which has now been fixed.
+
 ### ✅ Recently Completed (Version 3.1) - 09/22/2025
 
 This update focused on improving data management and providing deeper insight into the application's core logic.
