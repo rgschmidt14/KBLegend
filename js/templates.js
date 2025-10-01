@@ -239,11 +239,18 @@ export function taskViewTemplate(task, { categories, appSettings }) {
 export function dataMigrationModalTemplate() {
     return `
         <div class="modal-content">
-            <h3 class="text-xl font-semibold mb-4">Task Data Migration Tool</h3>
+            <h3 class="text-xl font-semibold mb-4">Task Data Migration & Integrity Tool</h3>
             <button class="close-button">&times;</button>
 
+            <div id="history-analysis-section" class="hidden mb-4 p-3 border rounded border-red-400 bg-red-50">
+                <h4 class="font-semibold text-red-800">History Issues Detected</h4>
+                <p id="history-issues-summary" class="text-sm text-red-700 my-2"></p>
+                <p class="text-xs text-gray-600 mb-3">This can happen if tasks are deleted. Cleaning removes history records that no longer link to a valid task. This action cannot be undone.</p>
+                <button id="clean-history-btn" data-action="cleanHistory" class="control-button control-button-red themed-button-tertiary">Clean Orphaned History</button>
+            </div>
+
             <div id="migration-step-1">
-                <p class="mb-4">Upload your old task data file (JSON format). The tool will intelligently compare and map fields.</p>
+                <p class="mb-4">Upload an old task data file (JSON format) to migrate tasks.</p>
                 <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
             </div>
 

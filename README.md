@@ -60,6 +60,14 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.5) - 10/01/2025
+
+This update focused on improving data integrity and fixing UI bugs related to theming.
+
+*   **Robust History Tracking:** Fixed a critical bug where task history (completions and misses) was not being saved correctly, particularly if the local data had become corrupted. The data loading process now intelligently validates and cleans the history on startup, ensuring that corrupted data is automatically repaired and new history is always saved reliably.
+*   **Intelligent History Cleanup:** The Data Migration & Integrity tool has been enhanced. It now automatically detects and reports "orphaned" history records—entries for tasks that have been deleted. Users are now given a simple one-click option to clean these records, maintaining data integrity.
+*   **Dynamic Button Theming Fix:** Resolved a UI bug where the main view-switching buttons (Task Manager, Calendar, Dashboard) would get "stuck" on their old colors after the theme was changed. They now update their styles instantly and correctly when switching between day and night modes.
+
 ### ✅ Recently Completed (Version 3.4) - 10/01/2025
 
 This update introduces a more intelligent data migration tool and resolves several UI theming inconsistencies.

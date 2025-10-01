@@ -2749,6 +2749,35 @@ function confirmRestoreDefaultsAction(confirmed) {
 }
 
 // --- Data Migration Tool Functions ---
+
+function analyzeAndPrepareMigrationModal() {
+    const historyAnalysisSection = document.getElementById('history-analysis-section');
+    const historyIssuesSummary = document.getElementById('history-issues-summary');
+    if (!historyAnalysisSection || !historyIssuesSummary) return;
+
+    const taskIds = new Set(tasks.map(t => t.id));
+    const orphanedHistory = appState.historicalTasks.filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
+
+    if (orphanedHistory.length > 0) {
+        historyIssuesSummary.textContent = `Found ${orphanedHistory.length} orphaned history record(s). These are records from tasks that no longer exist.`;
+        historyAnalysisSection.classList.remove('hidden');
+    } else {
+        historyAnalysisSection.classList.add('hidden');
+    }
+}
+
+function cleanHistoryAction() {
+    if (confirm("Are you sure you want to remove all orphaned history records? This cannot be undone.")) {
+        const taskIds = new Set(tasks.map(t => t.id));
+        const originalCount = appState.historicalTasks.length;
+        appState.historicalTasks = appState.historicalTasks.filter(h => h.originalTaskId && taskIds.has(h.originalTaskId));
+        const removedCount = originalCount - appState.historicalTasks.length;
+        saveData();
+        analyzeAndPrepareMigrationModal(); // Re-run analysis to update the UI
+        alert(`${removedCount} orphaned history record(s) have been cleaned.`);
+    }
+}
+
 function openDataMigrationModal(tasksData = null) {
     if (!dataMigrationModal) return;
     dataMigrationModal.innerHTML = dataMigrationModalTemplate();
@@ -2761,6 +2790,10 @@ function openDataMigrationModal(tasksData = null) {
     const fileInput = document.getElementById('migration-file-input');
     if (fileInput) {
         fileInput.addEventListener('change', handleMigrationFileSelect);
+    }
+    const cleanHistoryBtn = document.getElementById('clean-history-btn');
+    if (cleanHistoryBtn) {
+        cleanHistoryBtn.addEventListener('click', cleanHistoryAction);
     }
 
     // Step 2 buttons
@@ -2783,6 +2816,7 @@ function openDataMigrationModal(tasksData = null) {
         runConfirmBtn.addEventListener('click', runMigration);
     }
 
+    analyzeAndPrepareMigrationModal();
 
     if (tasksData) {
         prepareMigrationUI(tasksData);
@@ -3951,6 +3985,7 @@ function setupEventListeners() {
                     item.btn.classList.add('themed-button-secondary');
                 }
             });
+            applyTheme(); // Re-apply styles after changing classes
             saveData();
         });
     }
@@ -4299,8 +4334,28 @@ const loadPlannerData = () => {
             if (week.originalState === undefined) week.originalState = null;
         });
         appState.indicators = parsedData.indicators || appState.indicators;
-        appState.historicalTasks = parsedData.historicalTasks || [];
-    } catch (error) { console.error("Failed to parse saved data:", error); }
+
+        let loadedHistory = parsedData.historicalTasks || [];
+        if (!Array.isArray(loadedHistory)) {
+            console.warn("Historical tasks data found to be corrupted (not an array). Resetting history.", loadedHistory);
+            loadedHistory = [];
+        }
+
+        const cleanedHistory = loadedHistory.filter(item =>
+            item && typeof item === 'object' && item.originalTaskId && item.completionDate && item.status
+        );
+
+        if (cleanedHistory.length < loadedHistory.length) {
+            console.warn(`Removed ${loadedHistory.length - cleanedHistory.length} invalid items from task history during load.`);
+            // In a real app, we might want to inform the user more formally.
+        }
+
+        appState.historicalTasks = cleanedHistory;
+
+    } catch (error) {
+        console.error("Failed to parse saved planner data. Resetting historical tasks.", error);
+        appState.historicalTasks = [];
+    }
 };
 
 const loadViewState = () => {
