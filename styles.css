@@ -541,6 +541,19 @@ legend {
     background: var(--btn-active-bg);
 }
 
+.themed-button-clear {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--text-color-secondary) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+.themed-button-clear:hover {
+    color: var(--text-color-primary) !important;
+    background: rgba(128, 128, 128, 0.1) !important;
+}
+
 /* Light Mode Styles */
 @media (prefers-color-scheme: light) {
   .auto-theme {

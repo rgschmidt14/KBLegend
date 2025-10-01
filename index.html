@@ -42,18 +42,18 @@
             <div id="calendar-view">
                 <div id="mainPlannerSection">
                     <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
-                        <button id="prevWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">&lt; Prev Week</button>
-                        <button id="todayBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Today</button>
+                        <button id="prevWeekBtn" class="nav-btn p-2 rounded-md themed-button-secondary">&lt; Prev Week</button>
+                        <button id="todayBtn" class="nav-btn p-2 rounded-md themed-button-secondary">Today</button>
                         <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
-                        <button id="nextWeekBtn" class="nav-btn bg-gray-700 hover:bg-blue-600 p-2 rounded-md transition-colors themed-button-secondary">Next Week &gt;</button>
+                        <button id="nextWeekBtn" class="nav-btn p-2 rounded-md themed-button-secondary">Next Week &gt;</button>
                     </div>
 
                     <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg gap-2">
                         <div class="flex flex-wrap items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Day</button>
-                            <button data-view="weekly" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Week</button>
-                            <button data-view="month" class="view-btn hover:bg-blue-600 font-semibold py-1 px-3 rounded-md transition-colors themed-button-secondary">Month</button>
+                            <button data-view="daily" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Day</button>
+                            <button data-view="weekly" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Week</button>
+                            <button data-view="month" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Month</button>
                         </div>
                         <button id="addNewTaskBtnPlanner" class="text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Add New Task</button>
                     </div>
@@ -188,7 +188,7 @@
                             <label for="task-icon" class="form-label">Task Icon:</label>
                             <div class="flex items-center space-x-2">
                                 <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                <button type="button" id="open-icon-picker" class="control-button control-button-gray themed-button-secondary">Choose Icon</button>
+                                <button type="button" id="open-icon-picker" class="themed-button-clear">Choose Icon</button>
                             </div>
                             <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
                         </div>
@@ -563,11 +563,11 @@
                         <div>
                             <label class="form-label">Export Data:</label>
                             <div class="flex flex-wrap gap-2" id="export-options-container">
-                                <button data-action="exportData" data-export-type="all" class="control-button control-button-blue themed-button-secondary">Export All</button>
-                                <button data-action="exportData" data-export-type="tasks" class="control-button control-button-gray themed-button-tertiary">Tasks Only</button>
-                                <button data-action="exportData" data-export-type="categories" class="control-button control-button-gray themed-button-tertiary">Categories Only</button>
-                                <button data-action="exportData" data-export-type="history" class="control-button control-button-gray themed-button-tertiary">History Only</button>
-                                <button data-action="exportData" data-export-type="settings" class="control-button control-button-gray themed-button-tertiary">Settings Only</button>
+                                <button data-action="exportData" data-export-type="all" class="themed-button-clear">Export All</button>
+                                <button data-action="exportData" data-export-type="tasks" class="themed-button-clear">Tasks Only</button>
+                                <button data-action="exportData" data-export-type="categories" class="themed-button-clear">Categories Only</button>
+                                <button data-action="exportData" data-export-type="history" class="themed-button-clear">History Only</button>
+                                <button data-action="exportData" data-export-type="settings" class="themed-button-clear">Settings Only</button>
                             </div>
                             <p class="form-hint">Export your application data to a JSON file.</p>
                         </div>

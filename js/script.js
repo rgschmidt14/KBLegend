@@ -928,11 +928,28 @@ function applyTheme() {
         root.style.setProperty('--calendar-background', calendarGradient);
 
         // Theme buttons based on their functional color class
-        document.querySelectorAll('.themed-button-primary').forEach(btn => {
-            styleButton(btn, btn.classList.contains('active-view-btn') ? secondary_selected : secondary, buttonPalette);
+        document.querySelectorAll('.themed-button-primary, .themed-button-secondary').forEach(btn => {
+            if (btn.classList.contains('themed-button-clear')) {
+                unstyleButton(btn);
+                return;
+            }
+            const isActive = btn.classList.contains('active-view-btn');
+            let baseColor;
+            if (btn.classList.contains('themed-button-primary')) {
+                baseColor = secondary;
+            } else { // secondary
+                baseColor = tertiary;
+            }
+            // Use the selected gradient for active buttons, otherwise use the base color
+            styleButton(btn, isActive ? secondary_selected : baseColor, buttonPalette);
         });
-        document.querySelectorAll('.themed-button-secondary').forEach(btn => styleButton(btn, tertiary, buttonPalette));
-        document.querySelectorAll('.themed-button-tertiary').forEach(btn => styleButton(btn, tertiary, buttonPalette));
+        document.querySelectorAll('.themed-button-tertiary').forEach(btn => {
+            if (btn.classList.contains('themed-button-clear')) {
+                unstyleButton(btn);
+                return;
+            }
+            styleButton(btn, tertiary, buttonPalette);
+        });
 
         // Theme other elements
         document.querySelectorAll('.themed-modal-primary').forEach(modal => {
@@ -1770,8 +1787,8 @@ function renderKpiList() {
         <div class="flex items-center space-x-2">
             <label class="text-sm font-medium text-gray-300">View:</label>
             <div class="flex rounded-md bg-gray-700 p-0.5">
-                <button data-mode="single" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md ${uiSettings.kpiChartMode === 'single' ? 'bg-blue-600 text-white' : 'text-gray-300'}">Combined</button>
-                <button data-mode="stacked" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md ${uiSettings.kpiChartMode === 'stacked' ? 'bg-blue-600 text-white' : 'text-gray-300'}">Stacked</button>
+                <button data-mode="single" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md themed-button-secondary ${uiSettings.kpiChartMode === 'single' ? 'active-view-btn' : ''}">Combined</button>
+                <button data-mode="stacked" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md themed-button-secondary ${uiSettings.kpiChartMode === 'stacked' ? 'active-view-btn' : ''}">Stacked</button>
             </div>
         </div>
     `;
@@ -2745,6 +2762,8 @@ function openDataMigrationModal(tasksData = null) {
     if (fileInput) {
         fileInput.addEventListener('change', handleMigrationFileSelect);
     }
+
+    // Step 2 buttons
     const cancelBtn = document.getElementById('cancel-migration-btn');
     if(cancelBtn) {
         cancelBtn.addEventListener('click', () => deactivateModal(dataMigrationModal));
@@ -2753,6 +2772,17 @@ function openDataMigrationModal(tasksData = null) {
     if(runBtn) {
         runBtn.addEventListener('click', runMigration);
     }
+
+    // Step 3 (Confirm) buttons
+    const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
+    if (cancelConfirmBtn) {
+        cancelConfirmBtn.addEventListener('click', () => deactivateModal(dataMigrationModal));
+    }
+    const runConfirmBtn = document.getElementById('run-confirm-btn');
+    if (runConfirmBtn) {
+        runConfirmBtn.addEventListener('click', runMigration);
+    }
+
 
     if (tasksData) {
         prepareMigrationUI(tasksData);
@@ -2772,42 +2802,102 @@ function prepareMigrationUI(data) {
             return;
         }
         oldTasksData = data; // Store the raw data
-        const oldTaskFields = Object.keys(data[0] || {});
-        const newTaskFields = Object.keys(sanitizeAndUpgradeTask({id: 'test'}));
+        const oldTaskFields = new Set(Object.keys(data[0] || {}));
+        const newTaskFields = Object.keys(sanitizeAndUpgradeTask({ id: 'test' }));
+        const newTaskFieldsLower = new Set(newTaskFields.map(f => f.toLowerCase()));
 
-        const mappingArea = document.getElementById('migration-mapping-area');
-        mappingArea.innerHTML = ''; // Clear previous mappings
+        const differences = [];
+        const identicals = [];
 
+        // Find identical fields and old fields that don't match
         oldTaskFields.forEach(oldField => {
-            const row = document.createElement('div');
-            row.className = 'grid grid-cols-2 gap-4 items-center';
-            row.innerHTML = `<label class="text-right font-medium">${oldField}:</label>`;
-
-            const select = document.createElement('select');
-            select.className = 'w-full p-1 border rounded';
-            select.dataset.oldField = oldField;
-
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = '-- Ignore this field --';
-            select.appendChild(defaultOption);
-
-            newTaskFields.forEach(newField => {
-                const option = document.createElement('option');
-                option.value = newField;
-                option.textContent = newField;
-                if (oldField.toLowerCase() === newField.toLowerCase()) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-            row.appendChild(select);
-            mappingArea.appendChild(row);
+            const oldFieldLower = oldField.toLowerCase();
+            if (newTaskFieldsLower.has(oldFieldLower)) {
+                const newField = newTaskFields.find(f => f.toLowerCase() === oldFieldLower);
+                identicals.push({ oldField, newField });
+            } else {
+                differences.push({ oldField, newField: null, type: 'unmapped' });
+            }
         });
 
-        document.getElementById('migration-step-1').classList.add('hidden');
-        document.getElementById('migration-step-2').classList.remove('hidden');
+        // Find new fields that weren't in the old data
+        const mappedOldFieldsLower = new Set(identicals.map(i => i.oldField.toLowerCase()));
+        newTaskFields.forEach(newField => {
+            if (!mappedOldFieldsLower.has(newField.toLowerCase())) {
+                const isPresentInOld = Array.from(oldTaskFields).some(oldField => oldField.toLowerCase() === newField.toLowerCase());
+                if (!isPresentInOld) {
+                     differences.push({ oldField: null, newField, type: 'new' });
+                }
+            }
+        });
 
+        if (differences.length === 0) {
+            document.getElementById('migration-step-1').classList.add('hidden');
+            document.getElementById('migration-step-2').classList.add('hidden');
+            const confirmStep = document.getElementById('migration-step-confirm');
+            confirmStep.classList.remove('hidden');
+            const confirmMessage = document.getElementById('migration-confirm-message');
+            confirmMessage.textContent = 'All task fields match perfectly. Confirm to proceed with migration.';
+        } else {
+            const summaryEl = document.getElementById('migration-summary');
+            summaryEl.textContent = `Found ${identicals.length} identical fields (auto-mapped) and ${differences.length} differences that need your attention.`;
+
+            const differencesArea = document.getElementById('migration-differences-area');
+            differencesArea.innerHTML = '';
+            const identicalArea = document.getElementById('migration-identical-area');
+            identicalArea.innerHTML = '';
+
+            differences.forEach(({ oldField, newField, type }) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-2 gap-4 items-center';
+                let label = '';
+                if (type === 'unmapped') {
+                    label = `<label class="text-right font-medium text-yellow-800">Old Field: ${oldField}</label>`;
+                } else { // 'new'
+                    label = `<label class="text-right font-medium text-green-800">New Field: ${newField}</label>`;
+                }
+
+                const select = document.createElement('select');
+                select.className = 'w-full p-1 border rounded';
+                select.dataset.oldField = oldField || '';
+                select.dataset.newField = newField || '';
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Ignore this field --';
+                select.appendChild(defaultOption);
+
+                newTaskFields.forEach(nf => {
+                    const option = document.createElement('option');
+                    option.value = nf;
+                    option.textContent = nf;
+                    // Pre-select if it's a new field
+                    if (type === 'new' && nf === newField) {
+                         option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                row.innerHTML = label;
+                row.appendChild(select);
+                differencesArea.appendChild(row);
+            });
+
+            identicals.forEach(({ oldField, newField }) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-2 gap-4 items-center';
+                row.innerHTML = `
+                    <label class="text-right font-medium">${oldField}:</label>
+                    <input type="text" value="${newField}" disabled class="w-full p-1 border rounded bg-gray-200">
+                `;
+                row.dataset.oldField = oldField;
+                row.dataset.newField = newField;
+                identicalArea.appendChild(row);
+            });
+
+            document.getElementById('migration-step-1').classList.add('hidden');
+            document.getElementById('migration-step-2').classList.remove('hidden');
+            document.getElementById('migration-step-confirm').classList.add('hidden');
+        }
     } catch (error) {
         alert('An error occurred while preparing the migration interface.');
         console.error("Migration UI preparation error:", error);
@@ -2837,11 +2927,23 @@ function runMigration() {
         return;
     }
 
-    const mappingSelectors = document.querySelectorAll('#migration-mapping-area select');
     const fieldMapping = {};
-    mappingSelectors.forEach(select => {
-        if (select.value) {
-            fieldMapping[select.dataset.oldField] = select.value;
+
+    // Get mappings from the differences area (user-selected)
+    const differenceSelectors = document.querySelectorAll('#migration-differences-area select');
+    differenceSelectors.forEach(select => {
+        const oldField = select.dataset.oldField;
+        const newField = select.value;
+        if (oldField && newField) { // Only map if there was an old field and a new one is selected
+            fieldMapping[oldField] = newField;
+        }
+    });
+
+    // Get mappings from the identicals area (pre-approved)
+    const identicalRows = document.querySelectorAll('#migration-identical-area > div');
+    identicalRows.forEach(row => {
+        if (row.dataset.oldField && row.dataset.newField) {
+            fieldMapping[row.dataset.oldField] = row.dataset.newField;
         }
     });
 
@@ -4424,13 +4526,12 @@ function initializeCalendar() {
 
             // Update active state on view buttons
             viewBtns.forEach(btn => {
-                btn.classList.remove('bg-blue-600', 'text-white');
-                btn.classList.add('bg-gray-700', 'hover:bg-blue-600');
+                btn.classList.remove('active-view-btn');
                 if (btn.dataset.view === activeView) {
-                    btn.classList.add('bg-blue-600', 'text-white');
-                    btn.classList.remove('bg-gray-700', 'hover:bg-blue-600');
+                    btn.classList.add('active-view-btn');
                 }
             });
+            applyTheme(); // Re-apply theme to update button styles
         },
         eventClick: (info) => {
             const taskId = info.event.extendedProps.taskId;
