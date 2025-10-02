@@ -304,7 +304,11 @@ Here are the next items on our to-do list.
 5.  **Enable Day View Navigation from Week View:** If a date is clicked on the week view (like the actual date at the top) it should take you to that day in day view, just like month view does.
     *   **Implementation Notes:** This should be achievable by setting `navLinks: true` in the FullCalendar configuration options in `js/script.js`.
 
-6.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
+6. will you add one more thing to the to do list? the historical tasks are obviously not working right in the calendar view. it needs a possible overhaul but at least a look at. thank you
+
+7. the tasks are not ordering themselves correctly. on the calendar view. for one, when i click next week or previous all the tasks need to be figured out again as they are currently just stacking up without accounting for appointments or if a task requires full attention. only the current week is accounting for all that right now. and i need to be able to look into the future and see this too. and i hope it is accounting for things that would be on the first day of the next week that might be spilling over into this week. didn't we set up an algorithm for this? isn't it an option in the advanced options to be more or less agressive about it? anyway, can we get these accounting for as far out as they are supposed to be. also with this update i am seeing that i have something due at 10pm saturday night and something at 6pm but the 10pm one is 5 hours long and the 6pm one is only 1 hour long. since they are both requiring my attention and neither are appointments the one due at 6 should be "pushed" to right before the one due at 10pm eg, it should show on the calendar from 4 to 5pm and then the second one should show 5pm to 10pm, currently it is taking the 10pm one and putting it before the 6pm one basically saying i should start at noon. this is wrong. thank you so much for the help, let me know if i can provide any screenshots or do anything to help trouble shoot along the way. <3
+
+8. **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
     *   **Note:** This is a process reminder for us to follow for future updates.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
