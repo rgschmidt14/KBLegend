@@ -124,79 +124,213 @@ function calculateStatus(task, nowMs, allTasks, sensitivityParams) {
  * Checks for daily KPIs and generates tasks for them if they don't already exist for the current day.
  * @param {Array} indicators - The array of all KPI indicators.
  */
-function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
-    // Create a deep clone of tasks that preserves Date objects, unlike JSON.parse(JSON.stringify()).
-    let scheduledTasks = tasks.map(t => {
-        const newTask = { ...t };
-        if (t.dueDate) newTask.dueDate = new Date(t.dueDate);
-        if (t.cycleEndDate) newTask.cycleEndDate = new Date(t.cycleEndDate);
-        return newTask;
-    });
+// --- Start of Date Generation Helpers (moved from script.js) ---
 
-    const fullAttentionTasks = scheduledTasks.filter(t => t.requiresFullAttention);
-    const otherTasks = scheduledTasks.filter(t => !t.requiresFullAttention);
-
-    // Initialize scheduled times for full attention tasks
-    fullAttentionTasks.forEach(task => {
-        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
-        if (task.dueDate) {
-            task.scheduledEndTime = new Date(task.dueDate);
-            task.scheduledStartTime = new Date(task.dueDate.getTime() - durationMs);
+function checkDayOfMonthMatch(date, daysOfMonth) {
+    if (!daysOfMonth || daysOfMonth.length === 0) return false;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (const selectedDay of daysOfMonth) {
+        const selectedDayStr = String(selectedDay);
+        if (selectedDayStr === 'last' && day === daysInMonth) return true;
+        if (selectedDayStr === 'second_last' && day === daysInMonth - 1) return true;
+        if (selectedDayStr === 'third_last' && day === daysInMonth - 2) return true;
+        const selectedDayNum = parseInt(selectedDayStr, 10);
+        if (!isNaN(selectedDayNum) && selectedDayNum === day) {
+            return true;
         }
+    }
+    return false;
+}
+function checkNthWeekdayMatch(date, occurrences, weekdays) {
+    if (!occurrences || occurrences.length === 0 || !weekdays || weekdays.length === 0) return false;
+    const targetDayOfWeek = date.getDay();
+    if (!weekdays.includes(targetDayOfWeek)) {
+        return false;
+    }
+    const dayOfMonth = date.getDate();
+    const month = date.getMonth();
+    const occurrenceNumber = Math.ceil(dayOfMonth / 7);
+    for (const selectedOcc of occurrences) {
+        const selectedOccStr = String(selectedOcc);
+        if (selectedOccStr === 'last') {
+            let nextWeekDate = new Date(date);
+            nextWeekDate.setDate(dayOfMonth + 7);
+            if (nextWeekDate.getMonth() !== month) return true;
+        } else {
+            const selectedOccNum = parseInt(selectedOccStr, 10);
+            if (!isNaN(selectedOccNum) && selectedOccNum === occurrenceNumber) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+function generateAbsoluteOccurrences(task, startDate, endDate) {
+    if (task.repetitionType !== 'absolute' || !task.repetitionAbsoluteFrequency || !startDate || isNaN(startDate) || !endDate || isNaN(endDate) || endDate < startDate) {
+        console.error(`Invalid input for generateAbsoluteOccurrences for task ${task.id}`);
+        return [];
+    }
+    let occurrences = [];
+    let currentDate = new Date(startDate);
+    currentDate.setHours(0, 0, 0, 0);
+    const maxDaysToScan = 366 * 10;
+    let daysScanned = 0;
+    const applyTime = (date) => {
+        const originalTimeSource = task.dueDate || startDate;
+        if (originalTimeSource && !isNaN(originalTimeSource)) {
+            date.setHours(originalTimeSource.getHours(), originalTimeSource.getMinutes(), originalTimeSource.getSeconds(), originalTimeSource.getMilliseconds());
+        } else {
+            date.setHours(0, 0, 0, 0);
+        }
+        return date;
+    };
+    while (currentDate <= endDate && daysScanned < maxDaysToScan) {
+        daysScanned++;
+        let month = currentDate.getMonth();
+        let dayOfWeek = currentDate.getDay();
+        let isMatch = false;
+        try {
+            switch (task.repetitionAbsoluteFrequency) {
+                case 'weekly':
+                    if (task.repetitionAbsoluteWeeklyDays?.includes(dayOfWeek)) isMatch = true;
+                    break;
+                case 'monthly':
+                    if (task.repetitionAbsoluteMonthlyMode === 'day_number') {
+                        if (checkDayOfMonthMatch(currentDate, task.repetitionAbsoluteDaysOfMonth)) isMatch = true;
+                    } else {
+                        if (checkNthWeekdayMatch(currentDate, task.repetitionAbsoluteNthWeekdayOccurrence, task.repetitionAbsoluteNthWeekdayDays)) isMatch = true;
+                    }
+                    break;
+                case 'yearly':
+                    if (task.repetitionAbsoluteYearlyMonths?.includes(month)) {
+                        if (task.repetitionAbsoluteYearlyMode === 'day_number') {
+                            if (checkDayOfMonthMatch(currentDate, task.repetitionAbsoluteYearlyDaysOfMonth)) isMatch = true;
+                        } else {
+                            if (checkNthWeekdayMatch(currentDate, task.repetitionAbsoluteYearlyNthWeekdayOccurrence, task.repetitionAbsoluteYearlyNthWeekdayDays)) isMatch = true;
+                        }
+                    }
+                    break;
+            }
+        } catch (e) {
+            console.error(`Error checking match for ${task.id} on ${currentDate} in generateAbsoluteOccurrences:`, e);
+        }
+        if (isMatch) {
+            let occurrenceDate = applyTime(new Date(currentDate));
+            if (occurrenceDate.getTime() >= startDate.getTime() && occurrenceDate.getTime() <= endDate.getTime()) {
+                occurrences.push(occurrenceDate);
+            }
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setHours(0, 0, 0, 0);
+    }
+    if (daysScanned >= maxDaysToScan) {
+        console.warn(`generateAbsoluteOccurrences reached scan limit (${maxDaysToScan} days) for task ${task.id}`);
+    }
+    occurrences.sort((a, b) => a.getTime() - b.getTime());
+    return occurrences;
+}
+
+// --- End of Date Generation Helpers ---
+
+
+function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
+    let allOccurrences = [];
+
+    // 1. Generate all occurrences for all tasks within the given timeframe.
+    // We look back 7 days to catch tasks that might be pushed into the current view.
+    const schedulingStartDate = new Date(viewStartDate.getTime() - 7 * MS_PER_DAY);
+
+    tasks.forEach(task => {
+        if (!task.dueDate) return;
+
+        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
+        let dueDates = [];
+        const initialDueDate = new Date(task.dueDate);
+
+        if (task.repetitionType === 'none') {
+            if (initialDueDate.getTime() >= schedulingStartDate.getTime() && initialDueDate.getTime() <= viewEndDate.getTime()) {
+                 dueDates.push(initialDueDate);
+            }
+        } else if (task.repetitionType === 'absolute') {
+            dueDates = generateAbsoluteOccurrences(task, schedulingStartDate, viewEndDate);
+        } else if (task.repetitionType === 'relative') {
+            const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+            if (intervalMs > 0) {
+                let currentDate = new Date(initialDueDate);
+                while (currentDate.getTime() > schedulingStartDate.getTime()) {
+                    currentDate = new Date(currentDate.getTime() - intervalMs);
+                }
+                let i = 0;
+                while (currentDate.getTime() < viewEndDate.getTime() && i < 500) {
+                    if (currentDate.getTime() >= schedulingStartDate.getTime()) {
+                        dueDates.push(new Date(currentDate));
+                    }
+                    currentDate = new Date(currentDate.getTime() + intervalMs);
+                    i++;
+                }
+            }
+        }
+
+        dueDates.forEach(dueDate => {
+            allOccurrences.push({
+                ...task, // Copy all original task properties
+                originalId: task.id,
+                id: `${task.id}_${dueDate.toISOString()}`, // Unique ID for this occurrence
+                occurrenceDueDate: dueDate,
+                scheduledEndTime: dueDate,
+                scheduledStartTime: new Date(dueDate.getTime() - durationMs),
+            });
+        });
     });
 
-    // Sort tasks by priority: 1. Appointments, 2. Status, 3. Due Date
+    // 2. Separate tasks that need deconfliction from those that don't.
+    const fullAttentionOccurrences = allOccurrences.filter(o => o.requiresFullAttention);
+    const otherOccurrences = allOccurrences.filter(o => !o.requiresFullAttention);
+
+    // 3. Sort tasks by priority: 1. Appointments, 2. Status, 3. Due Date
     const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
-    fullAttentionTasks.sort((a, b) => {
-        // Appointments are highest priority
+    fullAttentionOccurrences.sort((a, b) => {
         if (a.isAppointment && !b.isAppointment) return -1;
         if (!a.isAppointment && b.isAppointment) return 1;
 
-        // Then, sort by status
         const statusA = statusOrder[a.status] ?? 5;
         const statusB = statusOrder[b.status] ?? 5;
-        if (statusA !== statusB) {
-            return statusA - statusB;
-        }
+        if (statusA !== statusB) return statusA - statusB;
 
-        // Finally, sort by due date (descending) for tasks with the same status
-        // This places later tasks first, making them the "anchor" during deconfliction.
-        const dueDateA = a.dueDate ? a.dueDate.getTime() : Infinity;
-        const dueDateB = b.dueDate ? b.dueDate.getTime() : Infinity;
-        return dueDateB - dueDateA;
+        return b.occurrenceDueDate.getTime() - a.occurrenceDueDate.getTime();
     });
 
-    // Deconflict tasks: move lower-priority tasks earlier to make space for higher-priority ones
-    for (let i = 0; i < fullAttentionTasks.length; i++) {
-        let taskA = fullAttentionTasks[i]; // The task being placed
-
-        // Appointments are immovable, so we skip them in the placement logic.
-        if (taskA.isAppointment) {
-            continue;
-        }
+    // 4. Deconflict tasks
+    for (let i = 0; i < fullAttentionOccurrences.length; i++) {
+        let taskA = fullAttentionOccurrences[i];
+        if (taskA.isAppointment) continue;
 
         let hasConflict = true;
         while (hasConflict) {
             hasConflict = false;
-            // Check for conflicts against all higher-priority tasks (which includes all appointments)
             for (let j = 0; j < i; j++) {
-                const taskB = fullAttentionTasks[j]; // An already-placed, more important task
-
-                // Check for overlap
+                const taskB = fullAttentionOccurrences[j];
                 if (taskA.scheduledStartTime < taskB.scheduledEndTime && taskA.scheduledEndTime > taskB.scheduledStartTime) {
                     const durationMs = getDurationMs(taskA.estimatedDurationAmount, taskA.estimatedDurationUnit) || 0;
-                    // Conflict found. Move taskA to end just before taskB begins.
-                    taskA.scheduledEndTime = new Date(taskB.scheduledStartTime.getTime() - 1000); // End 1 second before
+                    taskA.scheduledEndTime = new Date(taskB.scheduledStartTime.getTime() - 1000);
                     taskA.scheduledStartTime = new Date(taskA.scheduledEndTime.getTime() - durationMs);
-
-                    hasConflict = true; // Mark that a conflict was found and resolved
-                    break; // Restart the conflict check for taskA against all higher-priority tasks
+                    hasConflict = true;
+                    break;
                 }
             }
         }
     }
 
-    return [...fullAttentionTasks, ...otherTasks];
+    // 5. Combine and filter for the final view
+    const finalScheduledTasks = [...fullAttentionOccurrences, ...otherOccurrences];
+
+    return finalScheduledTasks.filter(o =>
+        o.scheduledStartTime < viewEndDate && o.scheduledEndTime > viewStartDate
+    );
 }
 
-export { getDurationMs, calculateStatus, calculateScheduledTimes };
+
+export { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences };
