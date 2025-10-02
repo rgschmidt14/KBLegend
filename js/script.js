@@ -822,14 +822,12 @@ function generateComplementaryPalette(baseColor, isDarkMode) {
     return { main, secondary, tertiary, accent1, accent2, accent3, secondary_selected, main_gradient };
 }
 
-function applyThemeMode() {
+function applyThemeMode(effectiveMode) {
     document.body.classList.remove('light-mode', 'auto-theme');
-    if (theming.mode === 'light') {
+    if (effectiveMode === 'light') {
         document.body.classList.add('light-mode');
-    } else if (theming.mode === 'auto') {
-        document.body.classList.add('auto-theme');
     }
-    // For 'night' mode, no class is needed as it's the default.
+    // For 'night' mode, no class is needed as it's the default. 'auto-theme' is now handled by JS.
 }
 
 function setAppTitle(newTitle) {
@@ -848,11 +846,12 @@ function setAppTitle(newTitle) {
 function applyTheme() {
     // Determine the effective mode (light/night) even when set to 'auto'
     let effectiveMode = theming.mode;
-    if (effectiveMode === 'auto') {
-        effectiveMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light';
+    if (theming.mode === 'auto') {
+        const isSystemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveMode = isSystemDark ? 'night' : 'light';
     }
 
-    applyThemeMode(); // This function just applies the body classes for CSS targeting
+    applyThemeMode(effectiveMode); // Pass the calculated mode to apply the correct body class
 
     const root = document.documentElement;
     const headerTitle = document.querySelector('#app header h1');
@@ -4590,14 +4589,13 @@ function initializeCalendar() {
                     occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
                         const category = categories.find(c => c.id === task.categoryId);
 
-                        // If the main task is overdue, all future occurrences should be 'blue'
+                        // If the main task is overdue (status is red or black), all future occurrences should be 'blue'
                         let eventStatus = task.status;
-                        const mainTaskDueDate = task.dueDate ? new Date(task.dueDate) : null;
-                        if (mainTaskDueDate && mainTaskDueDate < now && occurrenceStartDate > now) {
+                        if ((task.status === 'red' || task.status === 'black') && occurrenceStartDate > now) {
                             eventStatus = 'blue';
                         }
 
-                        const eventColor = category ? category.color : (statusColors[eventStatus] || '#374151');
+                        const eventColor = category ? category.color : '#374151'; // Default to a neutral dark gray if no category
                         const borderColor = statusColors[eventStatus] || '#FFFFFF';
 
                         calendarEvents.push({
@@ -4607,6 +4605,7 @@ function initializeCalendar() {
                             end: occurrenceDueDate,
                             backgroundColor: eventColor,
                             borderColor: borderColor,
+                            borderWidth: '2px', // Make the status border more prominent
                             extendedProps: {
                                 taskId: task.id,
                                 occurrenceDueDate: occurrenceDueDate.toISOString(),
@@ -4658,15 +4657,18 @@ function initializeCalendar() {
                         if (!isNaN(originalDueDate) && !isNaN(completionDate) && completionDate < originalDueDate) {
                             borderColor = statusColors.blue; // Ahead of schedule
                         } else {
-                            borderColor = statusColors.green; // Completed
+                            borderColor = statusColors.green; // On time
                         }
                     } else if (ht.status === 'missed') {
+                        // Handle cases where progress might be undefined/null for older data
                         if (ht.progress === 0) {
-                            borderColor = statusColors.black; // Missed completely
+                            borderColor = statusColors.black; // Complete miss
                         } else if (ht.progress > 0 && ht.progress <= 0.5) {
-                            borderColor = statusColors.red; // Partially missed
-                        } else { // progress > 0.5
-                            borderColor = statusColors.yellow; // Partially completed
+                            borderColor = statusColors.red; // Partial miss
+                        } else if (ht.progress > 0.5) {
+                            borderColor = statusColors.yellow; // Partial completion
+                        } else {
+                            borderColor = statusColors.black; // Default for miss with no progress data
                         }
                     }
 

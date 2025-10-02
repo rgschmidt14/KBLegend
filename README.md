@@ -71,6 +71,18 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.4) - 10/02/2025
+
+This update focused on resolving critical theme-related bugs and improving the accuracy of the calendar's visual display.
+
+*   **Corrected Theme Engine:** Fixed several issues with the application's theming system.
+    *   **Title Visibility:** Resolved a bug where the main application title would become invisible when the theme was disabled. This was caused by a hardcoded text color that has now been removed, allowing the title to correctly adapt to the background.
+    *   **"Auto" Theme Fix:** The "Auto" theme mode now correctly and instantly detects the user's system preference (light or dark) and applies the appropriate theme without requiring a page reload.
+*   **Improved Calendar Color-Coding:** The calendar now uses a more intuitive coloring system to convey information at a glance.
+    *   **Category Coloring:** The background color of a calendar event is now determined by its assigned category color, making it easy to see the distribution of different types of tasks.
+    *   **Status Border:** The border color of an event now represents its status (e.g., green for 'Ready', red for 'Do Right Now'), providing an immediate visual cue for task urgency.
+    *   **Future Task Status:** Future occurrences of a repeating task that is currently overdue are now correctly colored blue (locked), making it clear that they cannot be acted upon.
+
 ### ✅ Recently Completed (Version 4.3) - 10/02/2025
 
 *   **Improved Calendar Readability:**
@@ -117,12 +129,6 @@ This update overhauls the task history system, ensuring data is never lost, and 
     *   **Automatic Data Migration:** A one-time, automatic migration process has been added. The application now detects if a user has history stored in the old format and seamlessly moves it to the new, safer location, ensuring no data is lost during the update.
 *   **Enhanced Calendar View:**
     *   **Historical Task Display:** The calendar now displays your completed and missed tasks from the past, providing a complete picture of your activity.
-    *   **New 5-Color Border System:** All tasks on the calendar now feature a colored border to indicate their completion status at a glance:
-        *   **Blue Border:** Completed ahead of schedule.
-        *   **Green Border:** Completed on time.
-        *   **Yellow Border:** Missed, but with over 50% progress made.
-        *   **Red Border:** Missed, with less than 50% progress made.
-        *   **Black Border:** Missed with zero progress.
     *   **Clearer Visual Distinction:** Historical tasks are now rendered with a duller background color, making it easy to distinguish them from active, upcoming tasks.
 *   **UI & Styling Improvements:**
     *   **Clear Buttons:** Many secondary buttons (like "Edit," "Delete," and "Save/Cancel" in various forms) now have a clear background with theme-adaptive text, creating a cleaner and more modern user interface.
@@ -337,16 +343,13 @@ This update focused on improving the long-term stability and maintainability of 
 
 Here are the next items on our to-do list.
 
-1.  **Fix Historical Task Display on Calendar:** The historical tasks are obviously not working right in the calendar view. It needs a possible overhaul but at least a look at. as well as in week view i am seeing red borders for all tasks due close to the time of day i am at, this tells me it is not differentiating which day or time or maybe instance of the task, all future instances of a task should show blue as they are not allowed to be messed with until the current one is addressed, unless with the case of past due tasks since these will can have multiple that are all showing red or black depending when they are overdue. does this make sense?
-    *   **Implementation Notes:** The logic in the `events` fetch callback within `initializeCalendar` needs to be reviewed. We need to carefully check how historical task `startDate` and `endDate` are calculated and ensure they are being rendered correctly on the grid. This might involve debugging the `getDurationMs` and date calculation logic for historical items.
-
-3.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
+2.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
     *   **Note for future work:** The attempt to fix this by extending the calendar's lookahead window caused the event rendering to fail. The root cause appears to be in the complex interaction between `getTaskOccurrences` and `calculateScheduledTimes`. This will require a more careful refactoring of the event generation pipeline.
 
-4.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
+3.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
     *   **Note:** This is a process reminder for us to follow for future updates.
 
-5.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
+4.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
     *   **Implementation Ideas:**
         *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
         *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
@@ -354,7 +357,7 @@ Here are the next items on our to-do list.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
 
-6.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
+5.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
     *   **Implementation Ideas:**
         *   Create a new "Journal" view alongside the Task Manager, Calendar, and Dashboard.
         *   Allow users to write entries using a rich-text editor.
