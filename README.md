@@ -71,6 +71,12 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.2) - 10/02/2025
+
+*   **Fixed Critical Initialization Bug:** Resolved a JavaScript error that occurred during application startup, which was preventing the calendar from being displayed. The error was caused by leftover code from a deprecated feature that was trying to access HTML elements that no longer exist.
+*   **Corrected Calendar View Button Styling:** Fixed a persistent UI bug where the "Day," "Week," and "Month" view buttons would not update their visual style correctly when the calendar view was changed. This was resolved by addressing a race condition between the view change event and the application of the theme.
+*   **Reduced Console Noise:** Removed several unnecessary `console.log` statements from the notification engine to provide a cleaner and more professional development experience.
+
 ### ✅ Recently Completed (Version 4.1) - 10/02/2025
 
 *   **Themed "Current Time" Indicator:** The calendar now features a "current time" indicator line in the day and week views. The color of this indicator is dynamically tied to the application's theme, ensuring it is always visible and matches the user's chosen aesthetic.
@@ -323,11 +329,7 @@ This update focused on improving the long-term stability and maintainability of 
 
 Here are the next items on our to-do list.
 
-1.  **Fix Calendar View Button Styling:** There is a persistent UI bug where the "Day," "Week," and "Month" view buttons do not correctly update their style when the view is changed by clicking a `navLink` (e.g., a date in the week or month view). The button for the new view does not become highlighted, and the old one remains highlighted.
-    *   **Current Situation:** Multiple attempts to fix this by managing CSS classes in the `datesSet` and `viewDidMount` callbacks have failed, likely due to a race condition with the `applyTheme` function. The `applyTheme` function itself was also updated to be state-driven based on `calendar.view.type`, but this also did not resolve the issue.
-    *   **Next Step:** A systematic debugging approach is needed. The next attempt should focus on instrumenting the code with extensive `console.log` statements to trace the exact sequence of events during a view change and identify where the button state is being incorrectly reverted.
-
-2.  **Fix Historical Task Display on Calendar:** The historical tasks are obviously not working right in the calendar view. It needs a possible overhaul but at least a look at. as well as in week view i am seeing red borders for all tasks due close to the time of day i am at, this tells me it is not differentiating which day or time or maybe instance of the task, all future instances of a task should show blue as they are not allowed to be messed with until the current one is addressed, unless with the case of past due tasks since these will can have multiple that are all showing red or black depending when they are overdue. does this make sense?
+1.  **Fix Historical Task Display on Calendar:** The historical tasks are obviously not working right in the calendar view. It needs a possible overhaul but at least a look at. as well as in week view i am seeing red borders for all tasks due close to the time of day i am at, this tells me it is not differentiating which day or time or maybe instance of the task, all future instances of a task should show blue as they are not allowed to be messed with until the current one is addressed, unless with the case of past due tasks since these will can have multiple that are all showing red or black depending when they are overdue. does this make sense?
     *   **Implementation Notes:** The logic in the `events` fetch callback within `initializeCalendar` needs to be reviewed. We need to carefully check how historical task `startDate` and `endDate` are calculated and ensure they are being rendered correctly on the grid. This might involve debugging the `getDurationMs` and date calculation logic for historical items.
 
 3.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
