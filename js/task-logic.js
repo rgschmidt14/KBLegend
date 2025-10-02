@@ -146,33 +146,51 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
         }
     });
 
-    // Sort tasks by due date (earliest first), then by miss count (higher is more important)
+    // Sort tasks by priority: 1. Appointments, 2. Status, 3. Due Date
+    const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
     fullAttentionTasks.sort((a, b) => {
-        const dueDateA = a.dueDate ? a.dueDate.getTime() : 0;
-        const dueDateB = b.dueDate ? b.dueDate.getTime() : 0;
-        if (dueDateA !== dueDateB) {
-            return dueDateA - dueDateB;
+        // Appointments are highest priority
+        if (a.isAppointment && !b.isAppointment) return -1;
+        if (!a.isAppointment && b.isAppointment) return 1;
+
+        // Then, sort by status
+        const statusA = statusOrder[a.status] ?? 5;
+        const statusB = statusOrder[b.status] ?? 5;
+        if (statusA !== statusB) {
+            return statusA - statusB;
         }
-        return (b.misses || 0) - (a.misses || 0);
+
+        // Finally, sort by due date for tasks with the same status
+        const dueDateA = a.dueDate ? a.dueDate.getTime() : Infinity;
+        const dueDateB = b.dueDate ? b.dueDate.getTime() : Infinity;
+        return dueDateA - dueDateB;
     });
 
-    // Deconflict tasks
-    for (let i = 1; i < fullAttentionTasks.length; i++) {
-        let taskA = fullAttentionTasks[i];
+    // Deconflict tasks: move lower-priority tasks earlier to make space for higher-priority ones
+    for (let i = 0; i < fullAttentionTasks.length; i++) {
+        let taskA = fullAttentionTasks[i]; // The task being placed
+
+        // Appointments are immovable, so we skip them in the placement logic.
+        if (taskA.isAppointment) {
+            continue;
+        }
+
         let hasConflict = true;
         while (hasConflict) {
             hasConflict = false;
+            // Check for conflicts against all higher-priority tasks (which includes all appointments)
             for (let j = 0; j < i; j++) {
                 const taskB = fullAttentionTasks[j]; // An already-placed, more important task
 
                 // Check for overlap
                 if (taskA.scheduledStartTime < taskB.scheduledEndTime && taskA.scheduledEndTime > taskB.scheduledStartTime) {
                     const durationMs = getDurationMs(taskA.estimatedDurationAmount, taskA.estimatedDurationUnit) || 0;
-                    // Move taskA's end time to be 1 minute before taskB's start time
-                    taskA.scheduledEndTime = new Date(taskB.scheduledStartTime.getTime() - 60000); // 1 minute buffer
+                    // Conflict found. Move taskA to end just before taskB begins.
+                    taskA.scheduledEndTime = new Date(taskB.scheduledStartTime.getTime() - 1000); // End 1 second before
                     taskA.scheduledStartTime = new Date(taskA.scheduledEndTime.getTime() - durationMs);
-                    hasConflict = true; // Found a conflict, re-run checks for this taskA
-                    break; // Restart the inner loop for taskA
+
+                    hasConflict = true; // Mark that a conflict was found and resolved
+                    break; // Restart the conflict check for taskA against all higher-priority tasks
                 }
             }
         }

@@ -60,6 +60,18 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.6) - 10/01/2025
+
+This update introduces a more intelligent calendar scheduling system, giving users finer control over task prioritization and improving the clarity of the calendar view.
+
+*   **New "Appointment" Feature:** You can now mark a task as an "Appointment" using a new checkbox in the task form. Appointments are treated as immovable events on the calendar and will not be shifted by the automatic scheduling algorithm. This is perfect for meetings, doctor's appointments, or any other time-critical event.
+*   **Corrected Calendar Stacking Order:** The logic for how tasks are stacked and scheduled on the calendar has been significantly improved. Tasks are now prioritized in the following order:
+    1.  **Appointments:** Fixed in time.
+    2.  **Task Status:** Higher-priority tasks (e.g., "Do Right Now") are scheduled before lower-priority ones ("Start Soon").
+    3.  **Due Date:** For tasks with the same status, the one due sooner is scheduled first.
+    This ensures the calendar view more accurately reflects the priority order seen in the Task Manager.
+*   **Improved Overlapping Task Visualization:** The calendar view now intelligently renders overlapping tasks. Longer tasks are always placed in the background, ensuring that shorter tasks are never hidden from view. This makes complex schedules much easier to read at a glance.
+
 ### ✅ Recently Completed (Version 3.5) - 10/01/2025
 
 This update focused on improving data integrity and fixing UI bugs related to theming.
