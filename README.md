@@ -71,6 +71,14 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.3) - 10/02/2025
+
+*   **Improved Calendar Readability:**
+    *   **Short Event Styling:** Tasks shorter than 30 minutes on the calendar now have improved styling. The text is vertically centered, and overflow is handled with an ellipsis (...) to prevent text from wrapping or overflowing the event container.
+    *   **Historical Task Display:** The calendar has been decluttered. It now only displays historical tasks (completed or missed) from the last seven days, providing a cleaner and more relevant view of recent activity.
+    *   **Future Task Coloring:** Fixed a bug where future occurrences of an overdue repeating task were incorrectly colored red. They are now correctly colored blue (locked), indicating they cannot be acted upon until the current instance is resolved.
+*   **New History Deletion Feature:** A "Delete All History" button has been added to the "Danger Zone" within the Advanced Options menu. This allows users to permanently clear all task completion and miss records, providing a way to start fresh without deleting the tasks themselves.
+
 ### ✅ Recently Completed (Version 4.2) - 10/02/2025
 
 *   **Fixed Critical Initialization Bug:** Resolved a JavaScript error that occurred during application startup, which was preventing the calendar from being displayed. The error was caused by leftover code from a deprecated feature that was trying to access HTML elements that no longer exist.
