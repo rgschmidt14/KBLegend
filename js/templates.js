@@ -358,40 +358,39 @@ export function actionAreaTemplate(task) {
     switch (task.confirmationState) {
         case 'confirming_complete':
             const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-secondary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-green-500 hover:bg-green-600 text-white focus:ring-green-400">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-tertiary font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-red-500 hover:bg-red-600 text-white focus:ring-red-400">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear font-bold py-2 px-4 rounded">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear font-bold py-2 px-4 rounded">No</button></div>`;
         case 'awaiting_overdue_input':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="control-button control-button-green themed-button-secondary">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="control-button control-button-red themed-button-tertiary">Missed</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="themed-button-clear">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="themed-button-clear">Missed</button></div>`;
         case 'confirming_miss':
             const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-green themed-button-secondary">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-red themed-button-tertiary">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">No</button></div>`;
         case 'confirming_delete':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">Cancel</button></div>`;
         case 'confirming_undo':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="control-button control-button-yellow themed-button-secondary">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="control-button control-button-gray themed-button-tertiary">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">Cancel</button></div>`;
     }
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
         return '<span class="text-xs text-gray-500 italic">Done</span>';
     }
     if (task.status === 'blue') {
-        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="control-button control-button-gray themed-button-secondary" title="Undo Completion / Reactivate Early">Undo</button>`;
+        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="themed-button-clear" title="Undo Completion / Reactivate Early">Undo</button>`;
     }
     switch (task.completionType) {
         case 'count':
             const target = task.countTarget || Infinity;
             return (task.currentProgress < target)
-                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="control-button control-button-gray themed-button-tertiary w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="control-button control-button-blue themed-button-secondary w-6 h-6 flex items-center justify-center">+</button> </div>`
-                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="themed-button-clear w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="themed-button-clear w-6 h-6 flex items-center justify-center">+</button> </div>`
+                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
         case 'time':
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
             if (task.currentProgress >= targetMs) {
-                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
             }
             const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            const btnClass = task.isTimerRunning ? 'control-button-yellow themed-button-tertiary' : 'control-button-green themed-button-secondary';
-            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="control-button ${btnClass}">${btnText}</button>`;
+            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="themed-button-clear">${btnText}</button>`;
         default:
-            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="control-button control-button-green themed-button-secondary">Complete</button>`;
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
     }
 }
 
@@ -400,12 +399,12 @@ export function commonButtonsTemplate(task) {
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
 
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>`;
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="themed-button-clear" title="Delete Task">Delete</button>`;
     }
     return `
         <div class="flex space-x-1">
-            <button data-action="edit" data-task-id="${task.id}" class="control-button control-button-yellow themed-button-secondary" title="Edit Task">Edit</button>
-            <button data-action="triggerDelete" data-task-id="${task.id}" class="control-button control-button-red themed-button-tertiary" title="Delete Task">Delete</button>
+            <button data-action="edit" data-task-id="${task.id}" class="themed-button-clear" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="themed-button-clear" title="Delete Task">Delete</button>
         </div>
     `;
 }

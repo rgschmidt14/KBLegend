@@ -960,10 +960,30 @@ function applyTheme() {
             modal.style.backgroundColor = tertiary;
         });
 
+        // New: Set the background and text color for the current day in FullCalendar
+        const todayBgRgb = hexToRgb(secondary);
+        if (todayBgRgb) {
+            const headerBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.4)`;
+            const bodyBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.2)`;
+            root.style.setProperty('--fc-today-header-bg', headerBg);
+            root.style.setProperty('--fc-today-body-bg', bodyBg);
+
+            // Also set a contrasting text color for the date number
+            const todayTextStyles = getContrastingTextColor(secondary);
+            root.style.setProperty('--fc-today-text-color', todayTextStyles['--text-color-primary']);
+        }
+        // New: Set the color for the now indicator line from the theme's accent color
+        root.style.setProperty('--fc-now-indicator-color', tertiary);
+
+
     } else {
         // Revert to default colors based on the current mode
         document.body.style.backgroundColor = ''; // Remove inline style to let CSS classes take over
         root.style.removeProperty('--calendar-background');
+        root.style.removeProperty('--fc-today-header-bg');
+        root.style.removeProperty('--fc-today-body-bg');
+        root.style.removeProperty('--fc-today-text-color');
+        root.style.removeProperty('--fc-now-indicator-color');
         statusColors = { ...defaultStatusColors };
 
         // Set text colors based on the mode, but don't set background here
@@ -2249,8 +2269,10 @@ function confirmCompletionAction(taskId, confirmed) {
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
             const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: baseDate, status: 'completed',
+                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
                 categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                progress: 1, // Full completion
+                originalDueDate: new Date(baseDate)
             };
             appState.historicalTasks.push(historicalTask);
 
@@ -2290,6 +2312,8 @@ function confirmCompletionAction(taskId, confirmed) {
             const historicalTask = {
                 originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
                 categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                progress: 1,
+                originalDueDate: new Date(baseDate)
             };
             appState.historicalTasks.push(historicalTask);
             tasks = tasks.filter(t => t.id !== taskId);
@@ -2352,37 +2376,33 @@ function confirmMissAction(taskId, confirmed) {
         const completionsToApply = totalCycles - missesToApply;
         const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
 
+        let progress = 0;
+        if (task.completionType === 'count' && task.countTarget > 0) {
+            progress = (task.currentProgress || 0) / task.countTarget;
+        } else if (task.completionType === 'time') {
+            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+            if (targetMs > 0) {
+                progress = (task.currentProgress || 0) / targetMs;
+            }
+        }
+        progress = Math.min(1, Math.max(0, progress)); // Clamp between 0 and 1
+
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
             if (missesToApply > 0) {
                 const historicalTask = {
-                    originalTaskId: task.id, name: task.name, completionDate: baseDate, status: 'missed',
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    progress: progress,
+                    originalDueDate: new Date(baseDate)
                 };
                 appState.historicalTasks.push(historicalTask);
             }
 
             if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
             if (missesToApply > 0 && task.trackMisses) {
-                let missesToAdd = missesToApply; // Default to full misses
-                // Only apply partial miss logic to the first cycle being missed
-                if (missesToApply > 0 && (task.completionType === 'count' || task.completionType === 'time')) {
-                    let progress = 0;
-                    if (task.completionType === 'count' && task.countTarget > 0) {
-                        progress = (task.currentProgress || 0) / task.countTarget;
-                    } else if (task.completionType === 'time') {
-                        const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-                        if (targetMs > 0) {
-                            progress = (task.currentProgress || 0) / targetMs;
-                        }
-                    }
-                    // This logic correctly handles bulk misses with partial completion.
-                    // It calculates the partial miss value (0.0 to 1.0) for the *first* overdue cycle based on its progress.
-                    // For any additional cycles being missed at the same time (missesToApply - 1), it adds them as full integer misses.
-                    // This prevents multiple partial misses from being summed up in a single action.
-                    const partialMiss = 1 - Math.min(1, progress);
-                    missesToAdd = (missesToApply - 1) + partialMiss;
-                }
+                const partialMiss = 1 - progress;
+                const missesToAdd = (missesToApply - 1) + partialMiss;
 
                 if(missesToAdd > 0) {
                     task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToAdd);
@@ -2408,6 +2428,8 @@ function confirmMissAction(taskId, confirmed) {
             const historicalTask = {
                 originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
                 categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                progress: progress,
+                originalDueDate: new Date(baseDate)
             };
             appState.historicalTasks.push(historicalTask);
             tasks = tasks.filter(t => t.id !== taskId);
@@ -4022,6 +4044,8 @@ function saveData() {
         localStorage.setItem('appSettings', JSON.stringify(appSettings));
         localStorage.setItem('sensitivitySettings', JSON.stringify(sensitivitySettings));
         localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
+        // New: Explicitly save historical tasks to their own key
+        localStorage.setItem('historicalTasksV1', JSON.stringify(appState.historicalTasks));
         savePlannerData();
     } catch (error) {
         console.error("Error saving data to localStorage:", error);
@@ -4029,6 +4053,18 @@ function saveData() {
 }
 
 function loadData() {
+    // New: Load historical tasks from their own dedicated key first.
+    const storedHistory = localStorage.getItem('historicalTasksV1');
+    if (storedHistory) {
+        try {
+            const parsedHistory = JSON.parse(storedHistory);
+            appState.historicalTasks = Array.isArray(parsedHistory) ? parsedHistory : [];
+        } catch(e) {
+            console.error("Error parsing historical tasks from new storage:", e);
+            appState.historicalTasks = [];
+        }
+    }
+
     const storedTasks = localStorage.getItem('tasks');
     const storedCategories = localStorage.getItem('categories');
     const storedColors = localStorage.getItem('statusColors');
@@ -4321,8 +4357,8 @@ const savePlannerData = () => {
 
     localStorage.setItem(DATA_KEY, JSON.stringify({
         weeks: appState.weeks,
-        indicators: appState.indicators,
-        historicalTasks: appState.historicalTasks
+        indicators: appState.indicators
+        // historicalTasks is now saved separately
     }));
 };
 const saveViewState = () => localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ viewingIndex: appState.viewingIndex, currentView: appState.currentView, currentDayIndex: appState.currentDayIndex }));
@@ -4339,26 +4375,27 @@ const loadPlannerData = () => {
         });
         appState.indicators = parsedData.indicators || appState.indicators;
 
-        let loadedHistory = parsedData.historicalTasks || [];
-        if (!Array.isArray(loadedHistory)) {
-            console.warn("Historical tasks data found to be corrupted (not an array). Resetting history.", loadedHistory);
-            loadedHistory = [];
+        // One-time migration for historical tasks from old storage format.
+        if (parsedData.historicalTasks && Array.isArray(parsedData.historicalTasks) && parsedData.historicalTasks.length > 0) {
+            // Only migrate if the new storage is empty, to avoid overwriting good data.
+            const newHistoryStorage = localStorage.getItem('historicalTasksV1');
+            if (!newHistoryStorage || newHistoryStorage === '[]') {
+                console.log('Migrating historical tasks from old storage location...');
+                // The history loaded in loadData() would be empty, so we can just assign it.
+                appState.historicalTasks = parsedData.historicalTasks.filter(item =>
+                    item && typeof item === 'object' && item.originalTaskId && item.completionDate && item.status
+                );
+                // Save immediately to the new location
+                localStorage.setItem('historicalTasksV1', JSON.stringify(appState.historicalTasks));
+            }
+            // After migration (or if new storage already exists), remove history from the old object and re-save it.
+            delete parsedData.historicalTasks;
+            localStorage.setItem(DATA_KEY, JSON.stringify(parsedData));
+            console.log('Old history key removed from planner data.');
         }
-
-        const cleanedHistory = loadedHistory.filter(item =>
-            item && typeof item === 'object' && item.originalTaskId && item.completionDate && item.status
-        );
-
-        if (cleanedHistory.length < loadedHistory.length) {
-            console.warn(`Removed ${loadedHistory.length - cleanedHistory.length} invalid items from task history during load.`);
-            // In a real app, we might want to inform the user more formally.
-        }
-
-        appState.historicalTasks = cleanedHistory;
 
     } catch (error) {
-        console.error("Failed to parse saved planner data. Resetting historical tasks.", error);
-        appState.historicalTasks = [];
+        console.error("Failed to parse saved planner data.", error);
     }
 };
 
@@ -4517,6 +4554,8 @@ function initializeCalendar() {
         headerToolbar: false,
         editable: true,
         slotEventOverlap: true,
+        nowIndicator: true, // Show the current time indicator
+        navLinks: true, // Allow clicking on day/week numbers to navigate
         eventOrder: (a, b) => {
             const durationA = a.end - a.start;
             const durationB = b.end - b.start;
@@ -4525,13 +4564,52 @@ function initializeCalendar() {
             }
             return a.start - b.start;
         },
+        eventContent: function(arg) {
+            let eventEl = document.createElement('div');
+            eventEl.classList.add('fc-event-main-inner');
+
+            const durationMs = arg.event.end - arg.event.start;
+            const isShort = durationMs < (30 * 60 * 1000); // Less than 30 minutes
+
+            if (isShort) {
+                arg.el.classList.add('fc-event-short');
+            }
+
+            // Check if the event is in a timegrid view and appears narrow
+            const view = arg.view;
+            if (view.type.includes('timeGrid')) {
+                 // A simple proxy for "half-width" is to check the element's actual width.
+                 // This is brittle as it runs before the element might be fully rendered and sized.
+                 // A more robust way might be to check for overlapping events, but that's complex.
+                 // Let's try a simple, direct approach first.
+                 // NOTE: arg.el.offsetWidth is not reliable here as the layout might not be complete.
+                 // We will rely on the short duration for now as the primary driver of style change.
+            }
+
+            let timeText = arg.timeText;
+            let titleText = arg.event.title;
+
+            // In weekly view, if the event is short, omit the time
+            if (view.type === 'timeGridWeek' && isShort) {
+                eventEl.innerHTML = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
+            } else {
+                 eventEl.innerHTML = `<div class="fc-event-time">${timeText}</div><div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
+            }
+
+            return { domNodes: [eventEl] };
+        },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
                 const viewStartDate = fetchInfo.start;
                 const viewEndDate = fetchInfo.end;
-                const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
-
                 const calendarEvents = [];
+
+                // Extend the view by one week for the scheduling algorithm to handle rollovers
+                const extendedViewEndDate = new Date(viewEndDate.getTime());
+                extendedViewEndDate.setDate(extendedViewEndDate.getDate() + 7);
+
+                // 1. Process Active Tasks using the extended date range
+                const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, extendedViewEndDate);
                 const filteredTasks = scheduledTasks.filter(task => {
                     if (categoryFilter.length === 0) return true;
                     if (!task.categoryId) return categoryFilter.includes(null);
@@ -4543,20 +4621,88 @@ function initializeCalendar() {
                     occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
                         const category = categories.find(c => c.id === task.categoryId);
                         const eventColor = category ? category.color : (statusColors[task.status] || '#374151');
+                        const borderColor = statusColors[task.status] || '#FFFFFF';
 
                         calendarEvents.push({
-                            id: task.id + '_' + occurrenceStartDate.toISOString(), // Create a unique ID for each occurrence
+                            id: task.id + '_' + occurrenceStartDate.toISOString(),
                             title: task.name,
                             start: occurrenceStartDate,
                             end: occurrenceDueDate,
-                            color: eventColor,
+                            backgroundColor: eventColor,
+                            borderColor: borderColor,
                             extendedProps: {
                                 taskId: task.id,
-                                occurrenceDueDate: occurrenceDueDate.toISOString()
+                                occurrenceDueDate: occurrenceDueDate.toISOString(),
+                                isHistorical: false
                             }
                         });
                     });
                 });
+
+                // 2. Process Historical Tasks
+                const filteredHistory = appState.historicalTasks.filter(ht => {
+                    const completionDate = new Date(ht.completionDate);
+                    if (isNaN(completionDate)) return false;
+
+                    const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
+                    const startDate = new Date(completionDate.getTime() - durationMs);
+
+                    // Check if the event overlaps with the view window
+                    if (startDate > viewEndDate || completionDate < viewStartDate) {
+                        return false;
+                    }
+
+                    if (categoryFilter.length === 0) return true;
+                    if (!ht.categoryId) return categoryFilter.includes(null);
+                    return categoryFilter.includes(ht.categoryId);
+                });
+
+                filteredHistory.forEach(ht => {
+                    const category = categories.find(c => c.id === ht.categoryId);
+                    let baseColor = category ? category.color : '#808080';
+
+                    // Duller color for historical tasks
+                    const luminance = getLuminance(baseColor);
+                    const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
+                    const eventColor = adjustColor(baseColor, dullFactor);
+
+                    let borderColor = statusColors.green; // Default to green
+                    if (ht.status === 'completed') {
+                        const originalDueDate = new Date(ht.originalDueDate);
+                        const completionDate = new Date(ht.completionDate);
+                        if (!isNaN(originalDueDate) && !isNaN(completionDate) && completionDate < originalDueDate) {
+                            borderColor = statusColors.blue; // Ahead of schedule
+                        } else {
+                            borderColor = statusColors.green; // Completed
+                        }
+                    } else if (ht.status === 'missed') {
+                        if (ht.progress === 0) {
+                            borderColor = statusColors.black; // Missed completely
+                        } else if (ht.progress > 0 && ht.progress <= 0.5) {
+                            borderColor = statusColors.red; // Partially missed
+                        } else { // progress > 0.5
+                            borderColor = statusColors.yellow; // Partially completed
+                        }
+                    }
+
+                    const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
+                    const endDate = new Date(ht.completionDate);
+                    const startDate = new Date(endDate.getTime() - durationMs);
+
+                    calendarEvents.push({
+                        id: 'hist_' + ht.originalTaskId + '_' + ht.completionDate,
+                        title: ht.name,
+                        start: startDate,
+                        end: endDate,
+                        backgroundColor: eventColor,
+                        borderColor: borderColor,
+                        extendedProps: {
+                            taskId: ht.originalTaskId,
+                            isHistorical: true
+                        }
+                    });
+                });
+
                 successCallback(calendarEvents);
             } catch (e) {
                 console.error("Error fetching events for FullCalendar:", e);
