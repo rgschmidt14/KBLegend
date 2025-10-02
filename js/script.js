@@ -88,7 +88,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
     monthlyDayNumberOptions, monthlyDayOfWeekOptions, yearlyDayNumberOptions, yearlyDayOfWeekOptions,
     weekdayCheckboxes, monthlyOccurrenceCheckboxes, yearlyOccurrenceCheckboxes, yearlyMonthCheckboxes,
     monthlyWeekdayCheckboxes, yearlyWeekdayCheckboxes, monthlyDayCheckboxes, yearlyDayCheckboxes,
-    requiresFullAttentionInput,
+    requiresFullAttentionInput, isAppointmentInput,
     taskCategorySelect, newCategoryGroup, newCategoryNameInput,
     advancedOptionsModal,
     sortBySelect, sortDirectionSelect, categoryFilterList,
@@ -368,6 +368,7 @@ function sanitizeAndUpgradeTask(task) {
         timeTargetAmount: null,
         timeTargetUnit: null,
         isKpi: false,
+        isAppointment: false,
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1347,6 +1348,7 @@ function openModal(taskId = null, options = {}) {
             maxMissesInput.value = task.maxMisses || '';
             trackMissesInput.checked = typeof task.trackMisses === 'boolean' ? task.trackMisses : true;
             requiresFullAttentionInput.checked = typeof task.requiresFullAttention === 'boolean' ? task.requiresFullAttention : true;
+            isAppointmentInput.checked = typeof task.isAppointment === 'boolean' ? task.isAppointment : false;
             completionTypeSelect.value = task.completionType || 'simple';
             estimatedDurationAmountInput.value = task.estimatedDurationAmount || '';
             estimatedDurationUnitSelect.value = task.estimatedDurationUnit || 'minutes';
@@ -2047,6 +2049,7 @@ function handleFormSubmit(event) {
             maxMisses: null,
             trackMisses: true,
             requiresFullAttention: requiresFullAttentionInput.checked,
+            isAppointment: isAppointmentInput.checked,
             completionType: completionTypeSelect.value,
             currentProgress: 0,
             isTimerRunning: false,
@@ -3398,6 +3401,7 @@ function initializeDOMElements() {
     yearlyWeekdayCheckboxes = document.querySelectorAll('input[name="yearlyWeekday"]');
     yearlyDayCheckboxes = document.querySelectorAll('input[name="yearlyDay"]');
     requiresFullAttentionInput = document.getElementById('requires-full-attention');
+    isAppointmentInput = document.getElementById('is-appointment');
     taskCategorySelect = document.getElementById('task-category');
     newCategoryGroup = document.getElementById('new-category-group');
     newCategoryNameInput = document.getElementById('new-category-name');
@@ -4512,6 +4516,15 @@ function initializeCalendar() {
         initialView: 'timeGridWeek',
         headerToolbar: false,
         editable: true,
+        slotEventOverlap: true,
+        eventOrder: (a, b) => {
+            const durationA = a.end - a.start;
+            const durationB = b.end - b.start;
+            if (durationA !== durationB) {
+                return durationB - durationA;
+            }
+            return a.start - b.start;
+        },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
                 const viewStartDate = fetchInfo.start;

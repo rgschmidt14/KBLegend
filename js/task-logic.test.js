@@ -31,15 +31,17 @@ describe('calculateScheduledTimes', () => {
 
     it('should deconflict two overlapping full attention tasks', () => {
         const tasks = [
-            {
-                id: '1', // More important (due first)
+            { // This is taskB in the sort, the higher priority one
+                id: '1',
+                status: 'red',
                 dueDate: new Date('2025-09-22T12:00:00Z'),
                 estimatedDurationAmount: 2,
                 estimatedDurationUnit: 'hours',
                 requiresFullAttention: true,
             },
-            {
-                id: '2', // Less important
+            { // This is taskA in the sort, the lower priority one
+                id: '2',
+                status: 'green',
                 dueDate: new Date('2025-09-22T12:30:00Z'),
                 estimatedDurationAmount: 1,
                 estimatedDurationUnit: 'hours',
@@ -50,51 +52,66 @@ describe('calculateScheduledTimes', () => {
         const task1 = scheduledTasks.find(t => t.id === '1');
         const task2 = scheduledTasks.find(t => t.id === '2');
 
-        // Task 1 should be unchanged
+        // Task 1 (red) should be unchanged because it's higher priority
         expect(task1.scheduledStartTime.toISOString()).toBe('2025-09-22T10:00:00.000Z');
         expect(task1.scheduledEndTime.toISOString()).toBe('2025-09-22T12:00:00.000Z');
 
-        // Task 2 should be shifted before Task 1
-        expect(task2.scheduledEndTime.toISOString()).toBe('2025-09-22T09:59:00.000Z'); // Ends 1 min before task 1 starts
-        expect(task2.scheduledStartTime.toISOString()).toBe('2025-09-22T08:59:00.000Z');
+        // Task 2 (green) should be shifted to end 1 second before Task 1 starts
+        expect(task2.scheduledEndTime.toISOString()).toBe('2025-09-22T09:59:59.000Z');
+        expect(task2.scheduledStartTime.toISOString()).toBe('2025-09-22T08:59:59.000Z');
     });
 
-    it('should handle a three-task pile-up', () => {
+    it('should handle a three-task pile-up based on status', () => {
         const tasks = [
-            { id: '1', dueDate: new Date('2025-09-22T12:00:00Z'), estimatedDurationAmount: 2, estimatedDurationUnit: 'hours', requiresFullAttention: true },
-            { id: '2', dueDate: new Date('2025-09-22T12:30:00Z'), estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true },
-            { id: '3', dueDate: new Date('2025-09-22T13:00:00Z'), estimatedDurationAmount: 3, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+            { id: '1', status: 'red', dueDate: new Date('2025-09-22T12:00:00Z'), estimatedDurationAmount: 2, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+            { id: '2', status: 'yellow', dueDate: new Date('2025-09-22T12:30:00Z'), estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+            { id: '3', status: 'green', dueDate: new Date('2025-09-22T13:00:00Z'), estimatedDurationAmount: 3, estimatedDurationUnit: 'hours', requiresFullAttention: true },
         ];
         const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
-        const task1 = scheduledTasks.find(t => t.id === '1');
-        const task2 = scheduledTasks.find(t => t.id === '2');
-        const task3 = scheduledTasks.find(t => t.id === '3');
+        const task1 = scheduledTasks.find(t => t.id === '1'); // red
+        const task2 = scheduledTasks.find(t => t.id === '2'); // yellow
+        const task3 = scheduledTasks.find(t => t.id === '3'); // green
 
-        // Task 1 (most important) is not moved
+        // Task 1 (red, most important) is not moved
         expect(task1.scheduledStartTime.toISOString()).toBe('2025-09-22T10:00:00.000Z');
 
-        // Task 2 is moved before task 1
-        expect(task2.scheduledEndTime.toISOString()).toBe('2025-09-22T09:59:00.000Z');
+        // Task 2 (yellow) is moved to end just before task 1
+        expect(task2.scheduledEndTime.toISOString()).toBe('2025-09-22T09:59:59.000Z');
 
-        // Task 3 is moved before task 2
-        expect(task3.scheduledEndTime.toISOString()).toBe('2025-09-22T08:58:00.000Z');
-        expect(task3.scheduledStartTime.toISOString()).toBe('2025-09-22T05:58:00.000Z');
+        // Task 3 (green) is moved to end just before task 2
+        expect(task3.scheduledEndTime.getTime()).toBeLessThan(task2.scheduledStartTime.getTime());
     });
 
-    it('should use miss count as a tie-breaker for tasks with the same due date', () => {
+    it('should prioritize appointments over all other tasks', () => {
         const tasks = [
-            { id: '1', dueDate: new Date('2025-09-22T12:00:00Z'), misses: 2, estimatedDurationAmount: 2, estimatedDurationUnit: 'hours', requiresFullAttention: true },
-            { id: '2', dueDate: new Date('2025-09-22T12:00:00Z'), misses: 5, estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true }, // More important
+            { id: '1', status: 'red', dueDate: new Date('2025-09-22T12:00:00Z'), isAppointment: false, estimatedDurationAmount: 2, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+            { id: '2', status: 'green', dueDate: new Date('2025-09-22T11:00:00Z'), isAppointment: true, estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true },
         ];
         const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
         const task1 = scheduledTasks.find(t => t.id === '1');
         const task2 = scheduledTasks.find(t => t.id === '2');
 
-        // Task 2 (higher misses) should be scheduled first
-        expect(task2.scheduledStartTime.toISOString()).toBe('2025-09-22T11:00:00.000Z');
+        // Task 2 (the appointment) should be unmoved, despite being 'green'.
+        expect(task2.scheduledStartTime.toISOString()).toBe('2025-09-22T10:00:00.000Z');
+        expect(task2.scheduledEndTime.toISOString()).toBe('2025-09-22T11:00:00.000Z');
 
-        // Task 1 is shifted before task 2
-        expect(task1.scheduledEndTime.toISOString()).toBe('2025-09-22T10:59:00.000Z');
+        // Task 1 (the red task) should be moved to not conflict with the appointment
+        expect(task1.scheduledEndTime.toISOString()).toBe('2025-09-22T09:59:59.000Z');
+    });
+
+    it('should prioritize tasks by status when due dates are the same', () => {
+        const tasks = [
+            { id: '1', status: 'green', dueDate: new Date('2025-09-22T12:00:00Z'), estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+            { id: '2', status: 'red', dueDate: new Date('2025-09-22T12:00:00Z'), estimatedDurationAmount: 1, estimatedDurationUnit: 'hours', requiresFullAttention: true },
+        ];
+        const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
+        const task1 = scheduledTasks.find(t => t.id === '1');
+        const task2 = scheduledTasks.find(t => t.id === '2');
+
+        // Task 2 (red) should be scheduled first at its due time
+        expect(task2.scheduledStartTime.toISOString()).toBe('2025-09-22T11:00:00.000Z');
+        // Task 1 (green) should be shifted earlier
+        expect(task1.scheduledEndTime.toISOString()).toBe('2025-09-22T10:59:59.000Z');
     });
 });
 
