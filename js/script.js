@@ -95,7 +95,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
     plannerDefaultCategorySelect, dayNightToggle;
 
 // DOM Element References (Planner)
-let app, weeklyGoalsEl, indicatorListEl, newIndicatorInput, newIndicatorFrequency, addNewKpiBtn,
+let app, weeklyGoalsEl,
     calendarEl, // New element for FullCalendar
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
@@ -1653,22 +1653,6 @@ function renderTaskStats(taskId) {
             }
         });
     }
-
-    if (indicatorListEl) {
-        indicatorListEl.addEventListener('click', e => {
-            if (e.target.matches('[data-action="removeKpi"]')) {
-                const taskId = e.target.dataset.taskId;
-                const task = tasks.find(t => t.id === taskId);
-                if (task) {
-                    task.isKpi = false;
-                    saveData();
-                    renderKpiList();
-                    renderKpiTaskSelect();
-                }
-            }
-        });
-    }
-
 
     const backBtn = taskStatsContent.querySelector('[data-action="backToTaskView"]');
     if (backBtn) {
@@ -3309,7 +3293,6 @@ function scheduleNotification(task, futureStatus, triggerTimestamp) {
     const rateLimitMs = getDurationMs(notificationSettings.rateLimit.amount, notificationSettings.rateLimit.unit);
     const lastNotified = notificationEngine.lastNotificationTimestamps[task.id] || 0;
     if (now - lastNotified < rateLimitMs) {
-        console.log(`Notification for task "${task.name}" suppressed due to rate limit.`);
         return;
     }
 
@@ -3356,14 +3339,12 @@ function calculateAndScheduleAllNotifications() {
         });
     });
 
-    console.log(`Scheduled ${notificationEngine.timeouts.length} potential notifications.`);
 }
 
 /**
  * Starts the notification engine when the page becomes hidden.
  */
 function startNotificationEngine() {
-    console.log("Page hidden. Starting notification engine...");
     // Ensure the engine is clean before starting.
     stopNotificationEngine();
     calculateAndScheduleAllNotifications();
@@ -3373,7 +3354,6 @@ function startNotificationEngine() {
  * Stops the notification engine and clears all scheduled notifications.
  */
 function stopNotificationEngine() {
-    console.log(`Page visible. Stopping notification engine and clearing ${notificationEngine.timeouts.length} scheduled notifications.`);
     notificationEngine.timeouts.forEach(timeoutId => clearTimeout(timeoutId));
     notificationEngine.timeouts = [];
 }
@@ -3440,7 +3420,6 @@ function initializeDOMElements() {
     // Pilot Planner
     app = document.getElementById('app');
     weeklyGoalsEl = document.getElementById('weeklyGoals');
-    indicatorListEl = document.getElementById('indicatorList');
     addNewKpiBtn = document.getElementById('add-new-kpi-btn');
     setKpiBtn = document.getElementById('set-kpi-btn');
     kpiTaskSelect = document.getElementById('kpi-task-select');
@@ -4745,7 +4724,8 @@ function initializeCalendar() {
                     btn.classList.add('active-view-btn');
                 }
             });
-            applyTheme(); // Re-apply theme to update button styles
+            // Use a timeout to ensure this runs after the button classes have been set, avoiding a race condition.
+            setTimeout(() => applyTheme(), 0);
         },
         eventClick: (info) => {
             const taskId = info.event.extendedProps.taskId;
