@@ -96,12 +96,13 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
 
 // DOM Element References (Planner)
 let app, weeklyGoalsEl,
+    addNewKpiBtn, setKpiBtn, kpiTaskSelect,
     calendarEl, // New element for FullCalendar
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
     weekStatusEl, weekDateRangeEl,
     showTaskManagerBtn, showCalendarBtn, showDashboardBtn, taskManagerView, calendarView, dashboardView,
-    taskViewModal, taskViewContent, taskStatsContent, setKpiBtn, kpiTaskSelect;
+    taskViewModal, taskViewContent, taskStatsContent;
 
 // FullCalendar instance
 let calendar;
@@ -762,11 +763,9 @@ function HSLToHex(h, s, l) {
     return "#" + r + g + b;
 }
 
-function generateGradientPalette(baseColor) {
+function generateGradientPalette(baseColor, isDarkMode) {
     const baseHSL = hexToHSL(baseColor);
-    const isDarkMode = theming.mode !== 'light'; // Night or Auto are considered dark
 
-    // Define the gradient stops from dark to light
     const stops = [
         { l: -45, s: 0 },   // Black
         { l: -30, s: 25 },  // Red
@@ -775,7 +774,6 @@ function generateGradientPalette(baseColor) {
         { l: 15, s: 10 }    // Blue
     ];
 
-    // If in light mode, reverse the stops to go from light to dark
     if (!isDarkMode) {
         stops.reverse();
     }
@@ -791,47 +789,35 @@ function generateGradientPalette(baseColor) {
     return palette;
 }
 
-function generateComplementaryPalette(baseColor) {
+function generateComplementaryPalette(baseColor, isDarkMode) {
     const baseHSL = hexToHSL(baseColor);
-    const isDarkMode = theming.mode !== 'light';
 
-    // 1. Main Background Color
-    // Adjust lightness based on the base color's lightness and the theme mode
     let mainBgLightness;
     if (isDarkMode) {
-        // For dark mode, if the color is light, make it much darker. If it's already dark, make it slightly darker.
         mainBgLightness = baseHSL.l > 50 ? 20 : Math.max(10, baseHSL.l - 10);
     } else {
-        // For light mode, ensure the background is always light.
         mainBgLightness = baseHSL.l < 70 ? 95 : Math.min(100, baseHSL.l + 20);
     }
-    const main = HSLToHex(baseHSL.h, baseHSL.s * 0.8, mainBgLightness); // Desaturate slightly for background
+    const main = HSLToHex(baseHSL.h, baseHSL.s * 0.8, mainBgLightness);
 
-    // 2. Secondary Color (Main Buttons) - This is now the role of the original 'primary'
     const secondaryLightness = isDarkMode ? Math.max(40, baseHSL.l) : Math.min(60, baseHSL.l);
     const secondary = HSLToHex(baseHSL.h, baseHSL.s, secondaryLightness);
 
-    // 3. Tertiary Color (Accent Buttons)
-    // A complementary or triadic color for high contrast
-    const tertiaryHue = (baseHSL.h + 150) % 360; // Use a shifted complementary
+    const tertiaryHue = (baseHSL.h + 150) % 360;
     const tertiaryLightness = isDarkMode ? Math.max(50, baseHSL.l) : Math.min(55, baseHSL.l);
     const tertiary = HSLToHex(tertiaryHue, Math.min(100, baseHSL.s * 1.1), tertiaryLightness);
 
-    // Accent colors for other things, like new categories
     const accent1 = HSLToHex((baseHSL.h + 60) % 360, baseHSL.s - 10, isDarkMode ? 60 : 40);
     const accent2 = HSLToHex((baseHSL.h + 180) % 360, baseHSL.s - 10, isDarkMode ? 65 : 35);
     const accent3 = HSLToHex((baseHSL.h + 300) % 360, baseHSL.s, isDarkMode ? 55 : 45);
 
-    // 4. Selected/Active Gradient for Main Buttons
     const secondarySelectedLightness = isDarkMode ? secondaryLightness + 10 : secondaryLightness - 10;
     const secondary_highlight = HSLToHex(baseHSL.h, baseHSL.s, Math.max(0, Math.min(100, secondarySelectedLightness)));
     const secondary_selected = `linear-gradient(to bottom, ${secondary}, ${secondary_highlight})`;
 
-    // 5. Gradient for Modal Backgrounds
     const mainGradientLightness2 = isDarkMode ? mainBgLightness + 5 : mainBgLightness - 5;
     const main_gradient_color2 = HSLToHex(baseHSL.h, baseHSL.s * 0.8, Math.max(0, Math.min(100, mainGradientLightness2)));
     const main_gradient = `linear-gradient(180deg, ${main}, ${main_gradient_color2})`;
-
 
     return { main, secondary, tertiary, accent1, accent2, accent3, secondary_selected, main_gradient };
 }
@@ -860,18 +846,23 @@ function setAppTitle(newTitle) {
 }
 
 function applyTheme() {
-    applyThemeMode(); // Apply day/night/auto mode first
+    // Determine the effective mode (light/night) even when set to 'auto'
+    let effectiveMode = theming.mode;
+    if (effectiveMode === 'auto') {
+        effectiveMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light';
+    }
+
+    applyThemeMode(); // This function just applies the body classes for CSS targeting
 
     const root = document.documentElement;
+    const headerTitle = document.querySelector('#app header h1');
 
-    // Define a function to set CSS variables for text colors
     const setTextTheme = (textStyles) => {
         for (const [key, value] of Object.entries(textStyles)) {
             root.style.setProperty(key, value);
         }
     };
 
-    // Define a function to style buttons, now setting CSS variables
     const styleButton = (btn, bg, palette) => {
         let baseColorForText;
         if (typeof bg === 'string' && bg.includes('gradient')) {
@@ -880,114 +871,84 @@ function applyTheme() {
         } else {
             baseColorForText = bg;
         }
-
         const textStyles = getContrastingTextColor(baseColorForText);
-        // Set button-specific text styles directly on the button for isolation
         for (const [key, value] of Object.entries(textStyles)) {
             btn.style.setProperty(key, value);
         }
-
-        // Set button-specific CSS variables
         btn.style.setProperty('--btn-bg', bg);
         btn.style.setProperty('--btn-text-color', 'var(--text-color-primary)');
         btn.style.setProperty('--btn-text-shadow', 'var(--text-shadow)');
-
         if (palette) {
-            // Use a generic way to calculate hover/active for any given background
             const baseForInteraction = bg.includes('gradient') ? palette.secondary : bg;
             const hsl = hexToHSL(baseForInteraction);
             const hoverBg = HSLToHex(hsl.h, hsl.s, Math.min(100, hsl.l + 10));
             const activeBg = HSLToHex(hsl.h, hsl.s, Math.max(0, hsl.l - 5));
-
             btn.style.setProperty('--btn-hover-bg', hoverBg);
             btn.style.setProperty('--btn-active-bg', activeBg);
         }
     };
 
     const unstyleButton = (btn) => {
-        btn.style.cssText = ''; // Clear all inline styles
+        btn.style.cssText = '';
     };
 
     if (theming.enabled) {
+        const isDarkMode = effectiveMode === 'night';
+
+        // Pass the effective mode to the palette generator
         if (theming.useThemeForStatus) {
-            const gradientPalette = generateGradientPalette(theming.baseColor);
+            const gradientPalette = generateGradientPalette(theming.baseColor, isDarkMode);
             statusColors = gradientPalette;
         } else {
             statusColors = { ...defaultStatusColors };
         }
 
-        const buttonPalette = generateComplementaryPalette(theming.baseColor);
+        const buttonPalette = generateComplementaryPalette(theming.baseColor, isDarkMode);
         const { main, secondary, tertiary, secondary_selected, main_gradient } = buttonPalette;
 
-        // Set global background and text colors
         document.body.style.backgroundColor = main;
         const mainTextStyles = getContrastingTextColor(main);
         setTextTheme(mainTextStyles);
 
-        // Apply gradient to calendar background
+        // Explicitly set the header title color
+        if (headerTitle) {
+            headerTitle.style.color = mainTextStyles['--text-color-primary'];
+        }
+
         const calendarGradient = `linear-gradient(to bottom, ${statusColors.blue}, ${statusColors.green}, ${statusColors.yellow}, ${statusColors.red}, ${statusColors.black})`;
         root.style.setProperty('--calendar-background', calendarGradient);
 
-        // Theme buttons based on their functional color class
-        document.querySelectorAll('.themed-button-primary, .themed-button-secondary').forEach(btn => {
+        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
             if (btn.classList.contains('themed-button-clear')) {
-                unstyleButton(btn);
-                return;
+                unstyleButton(btn); return;
             }
             const isActive = btn.classList.contains('active-view-btn');
-            let baseColor;
-            if (btn.classList.contains('themed-button-primary')) {
-                baseColor = secondary;
-            } else { // secondary
-                baseColor = tertiary;
-            }
-            // Use the selected gradient for active buttons, otherwise use the base color
+            let baseColor = btn.classList.contains('themed-button-primary') ? secondary : tertiary;
             styleButton(btn, isActive ? secondary_selected : baseColor, buttonPalette);
         });
-        document.querySelectorAll('.themed-button-tertiary').forEach(btn => {
-            if (btn.classList.contains('themed-button-clear')) {
-                unstyleButton(btn);
-                return;
-            }
-            styleButton(btn, tertiary, buttonPalette);
-        });
 
-        // Theme other elements
         document.querySelectorAll('.themed-modal-primary').forEach(modal => {
             modal.style.background = main_gradient;
         });
-        document.querySelectorAll('.themed-modal-tertiary').forEach(modal => {
-            modal.style.backgroundColor = tertiary;
-        });
 
-        // New: Set the background and text color for the current day in FullCalendar
         const todayBgRgb = hexToRgb(secondary);
         if (todayBgRgb) {
             const headerBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.4)`;
             const bodyBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.2)`;
             root.style.setProperty('--fc-today-header-bg', headerBg);
             root.style.setProperty('--fc-today-body-bg', bodyBg);
-
-            // Also set a contrasting text color for the date number
             const todayTextStyles = getContrastingTextColor(secondary);
             root.style.setProperty('--fc-today-text-color', todayTextStyles['--text-color-primary']);
         }
-        // New: Set the color for the now indicator line from the theme's accent color
         root.style.setProperty('--fc-now-indicator-color', tertiary);
 
-
     } else {
-        // Revert to default colors based on the current mode
-        document.body.style.backgroundColor = ''; // Remove inline style to let CSS classes take over
-        root.style.removeProperty('--calendar-background');
-        root.style.removeProperty('--fc-today-header-bg');
-        root.style.removeProperty('--fc-today-body-bg');
-        root.style.removeProperty('--fc-today-text-color');
-        root.style.removeProperty('--fc-now-indicator-color');
+        // Logic for when theming is disabled
+        document.body.style.backgroundColor = '';
+        root.style.cssText = ''; // Clear all root inline styles
         statusColors = { ...defaultStatusColors };
 
-        // Set text colors based on the mode, but don't set background here
-        if (theming.mode === 'light') {
+        if (effectiveMode === 'light') {
             setTextTheme({
                 '--text-color-primary': 'var(--text-color-light-primary)',
                 '--text-color-secondary': 'var(--text-color-light-secondary)',
@@ -995,7 +956,8 @@ function applyTheme() {
                 '--text-color-quaternary': 'var(--text-color-light-quaternary)',
                 '--text-shadow': 'none'
             });
-        } else { // night or auto
+            if (headerTitle) headerTitle.style.color = 'var(--text-color-light-primary)';
+        } else { // night
             setTextTheme({
                 '--text-color-primary': 'var(--text-color-dark-primary)',
                 '--text-color-secondary': 'var(--text-color-dark-secondary)',
@@ -1003,15 +965,16 @@ function applyTheme() {
                 '--text-color-quaternary': 'var(--text-color-dark-quaternary)',
                 '--text-shadow': 'none'
             });
+            if (headerTitle) headerTitle.style.color = 'var(--text-color-dark-primary)';
         }
 
-        // Remove inline styles from all themed buttons to revert to CSS
         document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(unstyleButton);
         document.querySelectorAll('.themed-modal-primary, .themed-modal-tertiary').forEach(modal => {
             modal.style.background = '';
             modal.style.backgroundColor = '';
         });
     }
+
     renderTasks();
     if (calendar) {
         calendar.refetchEvents();
@@ -1196,6 +1159,16 @@ function formatTimeRemaining(ms) {
         return "Error";
     }
 }
+
+function formatMsToTime(ms) {
+    if (isNaN(ms) || ms < 0) return '00:00:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
 function updateCountdown(taskId) {
     try {
         const task = tasks.find(t => t.id === taskId);
@@ -3412,7 +3385,6 @@ function initializeDOMElements() {
     sortDirectionSelect = document.getElementById('sort-direction');
     categoryFilterList = document.getElementById('category-filter-list');
     plannerDefaultCategorySelect = document.getElementById('planner-default-category');
-    dayNightToggle = document.getElementById('day-night-toggle');
     taskViewModal = document.getElementById('task-view-modal');
     taskViewContent = document.getElementById('task-view-content');
     taskStatsContent = document.getElementById('task-stats-content');
@@ -4551,7 +4523,9 @@ function initializeCalendar() {
             const isShort = durationMs < (30 * 60 * 1000); // Less than 30 minutes
 
             if (isShort) {
-                arg.el.classList.add('fc-event-short');
+                // arg.el is not available in eventContent, this was causing a crash.
+                // The fc-event-short class can be moved to eventDidMount if needed,
+                // but for now, we remove the line to fix the critical error.
             }
 
             // Check if the event is in a timegrid view and appears narrow
