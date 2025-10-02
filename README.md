@@ -285,6 +285,28 @@ This update focused on improving the long-term stability and maintainability of 
 *   **Planner View Rendering Overhaul:** Fixed a major visual bug in the **Weekly and Daily** planner views where concurrent tasks would overlap and become unreadable. The rendering logic was re-architected to use a modern **CSS Grid layout**. This replaces the old, brittle positioning logic with a robust system that correctly and automatically handles laying out tasks, ensuring the planner is stable and legible.
 *   **Code Stability:** Refined the JavaScript rendering functions (`renderDailyView`, `renderWeeklyView`) to be simpler and more maintainable, directly supporting the new CSS Grid system.
 
+### 📝 Backlog & To-Do List
+
+Here are the next items on our to-do list.
+
+1.  **Improve Legibility for Small Planner Tasks:** Planner view sometimes will have tasks that are less than 30 minutes and in order for text to be legible on these tasks the font will have to be 50% what it usually is and also the vertical padding will need to be 0. And honestly, we might as well make it so on tasks that are only half width and on week view it should omit the time as well and only show the name of the task. Right now I can't see anything, but these three changes should be enough to make it much much better. :)
+    *   **Implementation Notes:** This will require modifying the FullCalendar `eventContent` render hook in `js/script.js`. We'll need to check the event's duration and the element's rendered width. Based on these conditions, we can add a new CSS class (e.g., `fc-event-short`) to apply smaller fonts and padding, and conditionally render the event title without the time.
+
+2.  **Apply Theming to Import Buttons:** The import data buttons need the clear background class applied to them and anything else so they can update for the night and day correctly while still being legible.
+    *   **Implementation Notes:** In `index.html`, locate the "Import from File" and "Migration Tool" buttons. Remove their existing color classes (`control-button-green`, `control-button-yellow`) and apply the `themed-button-clear` class.
+
+3.  **Theme the "Current Day" Highlight:** The current day is highlighted kind of a dull orange color (at night and a light blue by day) by default, and I want it to more closely match the theme if a theme is chosen. Will you use the appropriate gradient color at the appropriate opacity to be a highlight for the current day on the week and month views please? But it doens't need to be highlighted for the day view as there is no need to differentiate which day it is on here.
+    *   **Implementation Notes:** This involves using the `.fc-day-today` CSS class. In `applyTheme()` in `js/script.js`, we will set a new CSS variable (`--fc-today-bg`) to a semi-transparent version of one of the theme's main colors. The CSS will then be updated to use this variable. We will also add a rule to disable this background specifically for the day view (`.fc-timeGridDay-view .fc-day-today`).
+
+4.  **Add a "Current Time" Indicator:** There needs to be some kind of line (maybe one pixel tall and a ball/dot at the left, is this not standard) showing what time of day it is. Allow it to match to the theme as well as one of the accent colors, maybe the 1st/primary/whatever its called accent color. It will look a little different depending if we are on the day/week view vs the month view, as the month view will only show it on the specific day and it will just be a percentage up or down in the box overlaying (or maybe underlaying would be better) the tasks that are already listed there.
+    *   **Implementation Notes:** FullCalendar has a built-in `nowIndicator` option that can be enabled in the configuration in `js/script.js`. We can style the indicator's line and dot using the `.fc-timegrid-now-indicator-line` and `.fc-timegrid-now-indicator-arrow` CSS classes, using a CSS variable set by the theming engine. The month view implementation is not standard and will require a custom element positioned with JavaScript and updated on a timer.
+
+5.  **Enable Day View Navigation from Week View:** If a date is clicked on the week view (like the actual date at the top) it should take you to that day in day view, just like month view does.
+    *   **Implementation Notes:** This should be achievable by setting `navLinks: true` in the FullCalendar configuration options in `js/script.js`.
+
+6.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
+    *   **Note:** This is a process reminder for us to follow for future updates.
+
 ### **🚀 Future Roadmap: Database & Collaboration**
 
 These are larger, long-term goals for the project that are dependent on migrating the application's backend from `localStorage` to a persistent, server-side database. For a detailed guide on the migration process itself, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
