@@ -71,6 +71,17 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.5) - 10/02/2025
+
+This is a major update that fixes a long-standing, critical bug in the scheduling engine and introduces several significant UI and readability improvements to the calendar.
+
+*   **Corrected Scheduling Rollover Logic:** Fixed a critical bug where tasks that were pushed from a future week into the current week's view by the deconfliction algorithm would fail to render. The event generation pipeline has been refactored, centralizing all scheduling and occurrence logic into a single function. This ensures that the calendar now provides a completely accurate representation of the user's deconflicted schedule, regardless of how far tasks are moved.
+*   **Enhanced Calendar Readability & UI:**
+    *   **Improved Text Handling:** All event titles on the calendar, regardless of duration, now correctly truncate with an ellipsis (`...`) to prevent text from overflowing its container.
+    *   **Consistent Short Task Display:** Tasks under 30 minutes in the Day View now behave like the Week View, hiding the time and showing only the task name for a cleaner look.
+    *   **Improved Legibility:** The font size for all calendar events has been slightly increased for better readability.
+    *   **Night Mode Polish:** The unnecessary white border that appeared around tasks in night mode has been removed, giving events more space and a cleaner appearance.
+
 ### ✅ Recently Completed (Version 4.4) - 10/02/2025
 
 This update focused on resolving critical theme-related bugs and improving the accuracy of the calendar's visual display.
@@ -343,13 +354,10 @@ This update focused on improving the long-term stability and maintainability of 
 
 Here are the next items on our to-do list.
 
-2.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
-    *   **Note for future work:** The attempt to fix this by extending the calendar's lookahead window caused the event rendering to fail. The root cause appears to be in the complex interaction between `getTaskOccurrences` and `calculateScheduledTimes`. This will require a more careful refactoring of the event generation pipeline.
-
-3.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
+1.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
     *   **Note:** This is a process reminder for us to follow for future updates.
 
-4.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
+2.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
     *   **Implementation Ideas:**
         *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
         *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
@@ -357,7 +365,7 @@ Here are the next items on our to-do list.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
 
-5.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
+3.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
     *   **Implementation Ideas:**
         *   Create a new "Journal" view alongside the Task Manager, Calendar, and Dashboard.
         *   Allow users to write entries using a rich-text editor.

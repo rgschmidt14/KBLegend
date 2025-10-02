@@ -1,4 +1,4 @@
-import { getDurationMs, calculateStatus, calculateScheduledTimes } from './task-logic.js';
+import { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences } from './task-logic.js';
 import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
@@ -200,6 +200,7 @@ function calculatePendingCycles(task, nowMs) {
                 cycles = 1;
             }
         } else if (task.repetitionType === 'absolute') {
+            // This now uses the imported `generateAbsoluteOccurrences` function
             try {
                 const occurrences = generateAbsoluteOccurrences(task, new Date(originalDueDate), new Date(nowDate));
                 const missedOccurrences = occurrences.filter(occ =>
@@ -215,112 +216,6 @@ function calculatePendingCycles(task, nowMs) {
         }
     }
     return Math.max(cycles, 0);
-}
-function checkDayOfMonthMatch(date, daysOfMonth) {
-    if (!daysOfMonth || daysOfMonth.length === 0) return false;
-    const day = date.getDate();
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    for (const selectedDay of daysOfMonth) {
-        const selectedDayStr = String(selectedDay);
-        if (selectedDayStr === 'last' && day === daysInMonth) return true;
-        if (selectedDayStr === 'second_last' && day === daysInMonth - 1) return true;
-        if (selectedDayStr === 'third_last' && day === daysInMonth - 2) return true;
-        const selectedDayNum = parseInt(selectedDayStr, 10);
-        if (!isNaN(selectedDayNum) && selectedDayNum === day) {
-            return true;
-        }
-    }
-    return false;
-}
-function checkNthWeekdayMatch(date, occurrences, weekdays) {
-    if (!occurrences || occurrences.length === 0 || !weekdays || weekdays.length === 0) return false;
-    const targetDayOfWeek = date.getDay();
-    if (!weekdays.includes(targetDayOfWeek)) {
-        return false;
-    }
-    const dayOfMonth = date.getDate();
-    const month = date.getMonth();
-    const occurrenceNumber = Math.ceil(dayOfMonth / 7);
-    for (const selectedOcc of occurrences) {
-        const selectedOccStr = String(selectedOcc);
-        if (selectedOccStr === 'last') {
-            let nextWeekDate = new Date(date);
-            nextWeekDate.setDate(dayOfMonth + 7);
-            if (nextWeekDate.getMonth() !== month) return true;
-        } else {
-            const selectedOccNum = parseInt(selectedOccStr, 10);
-            if (!isNaN(selectedOccNum) && selectedOccNum === occurrenceNumber) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-function generateAbsoluteOccurrences(task, startDate, endDate) {
-    if (task.repetitionType !== 'absolute' || !task.repetitionAbsoluteFrequency || !startDate || isNaN(startDate) || !endDate || isNaN(endDate) || endDate < startDate) {
-        console.error(`Invalid input for generateAbsoluteOccurrences for task ${task.id}`);
-        return [];
-    }
-    let occurrences = [];
-    let currentDate = new Date(startDate);
-    currentDate.setHours(0, 0, 0, 0);
-    const maxDaysToScan = 366 * 10;
-    let daysScanned = 0;
-    const applyTime = (date) => {
-        const originalTimeSource = task.dueDate || startDate;
-        if (originalTimeSource && !isNaN(originalTimeSource)) {
-            date.setHours(originalTimeSource.getHours(), originalTimeSource.getMinutes(), originalTimeSource.getSeconds(), originalTimeSource.getMilliseconds());
-        } else {
-            date.setHours(0, 0, 0, 0);
-        }
-        return date;
-    };
-    while (currentDate <= endDate && daysScanned < maxDaysToScan) {
-        daysScanned++;
-        let month = currentDate.getMonth();
-        let dayOfWeek = currentDate.getDay();
-        let isMatch = false;
-        try {
-            switch (task.repetitionAbsoluteFrequency) {
-                case 'weekly':
-                    if (task.repetitionAbsoluteWeeklyDays?.includes(dayOfWeek)) isMatch = true;
-                    break;
-                case 'monthly':
-                    if (task.repetitionAbsoluteMonthlyMode === 'day_number') {
-                        if (checkDayOfMonthMatch(currentDate, task.repetitionAbsoluteDaysOfMonth)) isMatch = true;
-                    } else {
-                        if (checkNthWeekdayMatch(currentDate, task.repetitionAbsoluteNthWeekdayOccurrence, task.repetitionAbsoluteNthWeekdayDays)) isMatch = true;
-                    }
-                    break;
-                case 'yearly':
-                    if (task.repetitionAbsoluteYearlyMonths?.includes(month)) {
-                        if (task.repetitionAbsoluteYearlyMode === 'day_number') {
-                            if (checkDayOfMonthMatch(currentDate, task.repetitionAbsoluteYearlyDaysOfMonth)) isMatch = true;
-                        } else {
-                            if (checkNthWeekdayMatch(currentDate, task.repetitionAbsoluteYearlyNthWeekdayOccurrence, task.repetitionAbsoluteYearlyNthWeekdayDays)) isMatch = true;
-                        }
-                    }
-                    break;
-            }
-        } catch (e) {
-            console.error(`Error checking match for ${task.id} on ${currentDate} in generateAbsoluteOccurrences:`, e);
-        }
-        if (isMatch) {
-            let occurrenceDate = applyTime(new Date(currentDate));
-            if (occurrenceDate.getTime() >= startDate.getTime() && occurrenceDate.getTime() <= endDate.getTime()) {
-                occurrences.push(occurrenceDate);
-            }
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-        currentDate.setHours(0, 0, 0, 0);
-    }
-    if (daysScanned >= maxDaysToScan) {
-        console.warn(`generateAbsoluteOccurrences reached scan limit (${maxDaysToScan} days) for task ${task.id}`);
-    }
-    occurrences.sort((a, b) => a.getTime() - b.getTime());
-    return occurrences;
 }
 function sanitizeAndUpgradeTask(task) {
     const defaults = {
@@ -625,66 +520,6 @@ function getSensitivityParameters() {
     };
 }
 
-
-function getTaskOccurrences(task, viewStartDate, viewEndDate) {
-    if (!task.dueDate) return [];
-
-    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
-
-    // We need to search for due dates in a slightly expanded window to catch tasks that start before the view
-    const expandedViewStartDate = new Date(viewStartDate.getTime() - (24 * MS_PER_HOUR)); // Look back 24h as a safe buffer
-
-    let dueDatesInExpandedWindow = [];
-    const initialDueDate = new Date(task.dueDate);
-
-    if (task.repetitionType === 'none') {
-        dueDatesInExpandedWindow.push(initialDueDate);
-    } else if (task.repetitionType === 'absolute') {
-        // Generate all occurrences in the expanded window
-        dueDatesInExpandedWindow = generateAbsoluteOccurrences(task, expandedViewStartDate, viewEndDate);
-    } else if (task.repetitionType === 'relative') {
-        const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-        if (intervalMs > 0) {
-            let currentDate = new Date(initialDueDate);
-            // Move backward from the initial due date to find the first potential occurrence before our expanded view.
-            while (currentDate.getTime() > expandedViewStartDate.getTime()) {
-                currentDate = new Date(currentDate.getTime() - intervalMs);
-            }
-            // Now, `currentDate` is before or at the start of our search window.
-            // Move forward and collect all due dates that fall within the search window up to the view's end.
-            let i = 0; // Safety break
-            while (currentDate.getTime() < viewEndDate.getTime() && i < 500) {
-                // We only need to add it if it's after the start of our search window.
-                if (currentDate.getTime() >= expandedViewStartDate.getTime()) {
-                    dueDatesInExpandedWindow.push(new Date(currentDate));
-                }
-                currentDate = new Date(currentDate.getTime() + intervalMs);
-                i++;
-            }
-        }
-    }
-
-    // Now, map the candidate due dates to occurrence objects { start, due }
-    // and filter for the ones that actually overlap with the *original* view window.
-    const occurrences = dueDatesInExpandedWindow.map(dueDate => {
-        // If the task has a scheduled time, and this is the first occurrence, use it.
-        if (task.scheduledStartTime && dueDate.getTime() === new Date(task.dueDate).getTime()) {
-            return {
-                occurrenceDueDate: new Date(task.scheduledEndTime),
-                occurrenceStartDate: new Date(task.scheduledStartTime)
-            };
-        }
-        return {
-            occurrenceDueDate: dueDate,
-            occurrenceStartDate: new Date(dueDate.getTime() - durationMs)
-        };
-    }).filter(occ => {
-        // Overlap condition: The task's start is before the view's end, AND the task's end is after the view's start.
-        return occ.occurrenceStartDate < viewEndDate && occ.occurrenceDueDate > viewStartDate;
-    });
-
-    return occurrences;
-}
 
 function processTaskHistoryForChart(history) {
     if (!history || history.length === 0) {
@@ -1279,7 +1114,7 @@ function openModal(taskId = null, options = {}) {
 
             // Set Time Input Type and corresponding date fields
             timeInputTypeSelect.value = task.timeInputType || 'due';
-            const dateToUse = options.occurrenceDate || task.dueDate;
+            const dateToUse = (options.occurrenceDate instanceof Date) ? options.occurrenceDate : (task.dueDate ? new Date(task.dueDate) : null);
 
             // Always populate the main due date input for simplicity
             taskDueDateInput.value = formatDateForInput(dateToUse);
@@ -4556,8 +4391,8 @@ function initializeCalendar() {
             let timeText = arg.timeText;
             let titleText = arg.event.title;
 
-            // In weekly view, if the event is short, omit the time
-            if (view.type === 'timeGridWeek' && isShort) {
+            // In weekly or day view, if the event is short, omit the time
+            if ((view.type === 'timeGridWeek' || view.type === 'timeGridDay') && isShort) {
                 eventEl.innerHTML = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
             } else {
                  eventEl.innerHTML = `<div class="fc-event-time">${timeText}</div><div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
@@ -4569,51 +4404,46 @@ function initializeCalendar() {
             try {
                 const viewStartDate = fetchInfo.start;
                 const viewEndDate = fetchInfo.end;
-                const calendarEvents = [];
+                let calendarEvents = [];
 
-                // Extend the view by one week for the scheduling algorithm to handle rollovers
-                const extendedViewEndDate = new Date(viewEndDate.getTime());
-                extendedViewEndDate.setDate(extendedViewEndDate.getDate() + 7);
+                // 1. Get all scheduled task occurrences from the single source of truth.
+                // The lookahead window is now handled inside calculateScheduledTimes.
+                const scheduledOccurrences = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
 
-                // 1. Process Active Tasks using the extended date range
-                const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, extendedViewEndDate);
-                const filteredTasks = scheduledTasks.filter(task => {
+                const filteredOccurrences = scheduledOccurrences.filter(task => {
                     if (categoryFilter.length === 0) return true;
                     if (!task.categoryId) return categoryFilter.includes(null);
                     return categoryFilter.includes(task.categoryId);
                 });
 
                 const now = new Date();
-                filteredTasks.forEach(task => {
-                    const occurrences = getTaskOccurrences(task, viewStartDate, viewEndDate);
-                    occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
-                        const category = categories.find(c => c.id === task.categoryId);
+                filteredOccurrences.forEach(occurrence => {
+                    const category = categories.find(c => c.id === occurrence.categoryId);
 
-                        // If the main task is overdue (status is red or black), all future occurrences should be 'blue'
-                        let eventStatus = task.status;
-                        if ((task.status === 'red' || task.status === 'black') && occurrenceStartDate > now) {
-                            eventStatus = 'blue';
+                    // Determine the status color for the border
+                    let eventStatus = occurrence.status;
+                    if ((occurrence.status === 'red' || occurrence.status === 'black') && new Date(occurrence.scheduledStartTime) > now) {
+                        eventStatus = 'blue';
+                    }
+                    const borderColor = statusColors[eventStatus] || '#FFFFFF';
+                    const eventColor = category ? category.color : '#374151';
+
+                    calendarEvents.push({
+                        id: occurrence.id, // The ID is now unique per occurrence
+                        title: occurrence.name,
+                        start: occurrence.scheduledStartTime,
+                        end: occurrence.scheduledEndTime,
+                        backgroundColor: eventColor,
+                        borderColor: borderColor,
+                        borderWidth: '2px', // Restore the status border
+                        extendedProps: {
+                            taskId: occurrence.originalId || occurrence.id.split('_')[0], // Get original task ID
+                            occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
+                            isHistorical: false
                         }
-
-                        const eventColor = category ? category.color : '#374151'; // Default to a neutral dark gray if no category
-                        const borderColor = statusColors[eventStatus] || '#FFFFFF';
-
-                        calendarEvents.push({
-                            id: task.id + '_' + occurrenceStartDate.toISOString(),
-                            title: task.name,
-                            start: occurrenceStartDate,
-                            end: occurrenceDueDate,
-                            backgroundColor: eventColor,
-                            borderColor: borderColor,
-                            borderWidth: '2px', // Make the status border more prominent
-                            extendedProps: {
-                                taskId: task.id,
-                                occurrenceDueDate: occurrenceDueDate.toISOString(),
-                                isHistorical: false
-                            }
-                        });
                     });
                 });
+
 
                 // 2. Process Historical Tasks
                 const sevenDaysAgo = new Date();
@@ -4682,7 +4512,7 @@ function initializeCalendar() {
                         start: startDate,
                         end: endDate,
                         backgroundColor: eventColor,
-                        borderColor: borderColor,
+                        borderColor: borderColor, // Use the calculated border color
                         extendedProps: {
                             taskId: ht.originalTaskId,
                             isHistorical: true
