@@ -2760,6 +2760,17 @@ function cleanHistoryAction() {
     }
 }
 
+function deleteAllHistory() {
+    if (confirm("Are you absolutely sure you want to delete ALL task history? This will permanently erase all completion and miss records for all tasks. This action cannot be undone.")) {
+        appState.historicalTasks = [];
+        saveData();
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+        alert("All task history has been deleted.");
+    }
+}
+
 function openDataMigrationModal(tasksData = null) {
     if (!dataMigrationModal) return;
     dataMigrationModal.innerHTML = dataMigrationModalTemplate();
@@ -2776,6 +2787,10 @@ function openDataMigrationModal(tasksData = null) {
     const cleanHistoryBtn = document.getElementById('clean-history-btn');
     if (cleanHistoryBtn) {
         cleanHistoryBtn.addEventListener('click', cleanHistoryAction);
+    }
+    const deleteAllHistoryBtn = document.getElementById('delete-all-history-btn');
+    if (deleteAllHistoryBtn) {
+        deleteAllHistoryBtn.addEventListener('click', deleteAllHistory);
     }
 
     // Step 2 buttons
@@ -4569,12 +4584,21 @@ function initializeCalendar() {
                     return categoryFilter.includes(task.categoryId);
                 });
 
+                const now = new Date();
                 filteredTasks.forEach(task => {
                     const occurrences = getTaskOccurrences(task, viewStartDate, viewEndDate);
                     occurrences.forEach(({ occurrenceStartDate, occurrenceDueDate }) => {
                         const category = categories.find(c => c.id === task.categoryId);
-                        const eventColor = category ? category.color : (statusColors[task.status] || '#374151');
-                        const borderColor = statusColors[task.status] || '#FFFFFF';
+
+                        // If the main task is overdue, all future occurrences should be 'blue'
+                        let eventStatus = task.status;
+                        const mainTaskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+                        if (mainTaskDueDate && mainTaskDueDate < now && occurrenceStartDate > now) {
+                            eventStatus = 'blue';
+                        }
+
+                        const eventColor = category ? category.color : (statusColors[eventStatus] || '#374151');
+                        const borderColor = statusColors[eventStatus] || '#FFFFFF';
 
                         calendarEvents.push({
                             id: task.id + '_' + occurrenceStartDate.toISOString(),
@@ -4593,9 +4617,17 @@ function initializeCalendar() {
                 });
 
                 // 2. Process Historical Tasks
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
                 const filteredHistory = appState.historicalTasks.filter(ht => {
                     const completionDate = new Date(ht.completionDate);
                     if (isNaN(completionDate)) return false;
+
+                    // Only show tasks from the last 7 days to reduce clutter
+                    if (completionDate < sevenDaysAgo) {
+                        return false;
+                    }
 
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
                     const startDate = new Date(completionDate.getTime() - durationMs);

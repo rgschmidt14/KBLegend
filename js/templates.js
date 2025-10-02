@@ -249,7 +249,14 @@ export function dataMigrationModalTemplate() {
                 <button id="clean-history-btn" data-action="cleanHistory" class="control-button control-button-red themed-button-tertiary">Clean Orphaned History</button>
             </div>
 
-            <div id="migration-step-1">
+            <div class="mt-6 pt-4 border-t border-gray-600">
+                <h4 class="font-semibold text-red-500">Danger Zone</h4>
+                <p class="text-sm text-gray-400 my-2">This action is permanent and cannot be undone.</p>
+                <button id="delete-all-history-btn" data-action="deleteAllHistory" class="control-button control-button-red w-full themed-button-tertiary">Delete All Task History</button>
+            </div>
+
+            <div id="migration-step-1" class="mt-6 pt-4 border-t border-gray-200">
+                <h4 class="font-semibold">Migrate from File</h4>
                 <p class="mb-4">Upload an old task data file (JSON format) to migrate tasks.</p>
                 <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
             </div>

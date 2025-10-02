@@ -952,11 +952,28 @@ select {
     font-weight: 500;
 }
 
-.fc-event-short {
-    font-size: 0.6rem !important; /* 50% of 0.75rem is ~0.375rem, but that's too small. Let's use a legible small size. */
+.fc-event-short, .fc-timegrid-event-short {
+    font-size: 0.6rem !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     line-height: 1.2;
+    /* New styles for centering and overflow */
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+}
+
+/* This targets the inner content to handle overflow correctly */
+.fc-event-short .fc-event-title,
+.fc-timegrid-event-short .fc-event-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Remove the default padding from FullCalendar's inner element that user pointed out */
+.fc-timegrid-event-short .fc-event-main {
+    padding: 0 1px !important;
 }
 
 /* --- "Now" Indicator Theming --- */
