@@ -916,7 +916,13 @@ select {
 
 /* --- Today's Date Highlighting --- */
 .fc .fc-day-today {
-    background-color: rgba(59, 130, 246, 0.15); /* Blue-500 with opacity */
+    /* Use the theme variable if it exists, otherwise fall back to the default blueish highlight. */
+    background-color: var(--fc-today-bg, rgba(59, 130, 246, 0.15));
+}
+
+/* As per the README, disable the highlight in the day view where it's not needed. */
+.fc-timeGridDay-view .fc-day-today {
+    background-color: transparent;
 }
 
 /* --- Event Styling --- */

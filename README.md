@@ -60,6 +60,10 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.0) - 10/02/2025
+
+*   **Themed "Current Day" Highlight:** The calendar's highlight for the current day now dynamically adapts to the selected theme. It uses a semi-transparent version of the theme's primary accent color, ensuring a consistent and aesthetically pleasing look. This highlight is applied to the month and week views, but correctly omitted from the day view where it is not needed.
+
 ### ✅ Recently Completed (Version 3.9) - 10/02/2025
 
 This update includes two critical fixes to the task scheduling and data handling logic, improving the stability and correctness of the calendar view.
@@ -303,10 +307,7 @@ This update focused on improving the long-term stability and maintainability of 
 
 Here are the next items on our to-do list.
 
-1.  **Theme the "Current Day" Highlight:** The current day is highlighted kind of a dull orange color (at night and a light blue by day) by default, and I want it to more closely match the theme if a theme is chosen. Will you use the appropriate gradient color at the appropriate opacity to be a highlight for the current day on the week and month views please? But it doens't need to be highlighted for the day view as there is no need to differentiate which day it is on here.
-    *   **Implementation Notes:** This involves using the `.fc-day-today` CSS class. In `applyTheme()` in `js/script.js`, we will set a new CSS variable (`--fc-today-bg`) to a semi-transparent version of one of the theme's main colors. The CSS will then be updated to use this variable. We will also add a rule to disable this background specifically for the day view (`.fc-timeGridDay-view .fc-day-today`).
-
-2.  **Add a "Current Time" Indicator:** There needs to be some kind of line (maybe one pixel tall and a ball/dot at the left, is this not standard) showing what time of day it is. Allow it to match to the theme as well as one of the accent colors, maybe the 1st/primary/whatever its called accent color. It will look a little different depending if we are on the day/week view vs the month view, as the month view will only show it on the specific day and it will just be a percentage up or down in the box overlaying (or maybe underlaying would be better) the tasks that are already listed there.
+1.  **Add a "Current Time" Indicator:** There needs to be some kind of line (maybe one pixel tall and a ball/dot at the left, is this not standard) showing what time of day it is. Allow it to match to the theme as well as one of the accent colors, maybe the 1st/primary/whatever its called accent color. It will look a little different depending if we are on the day/week view vs the month view, as the month view will only show it on the specific day and it will just be a percentage up or down in the box overlaying (or maybe underlaying would be better) the tasks that are already listed there.
     *   **Implementation Notes:** FullCalendar has a built-in `nowIndicator` option that can be enabled in the configuration in `js/script.js`. We can style the indicator's line and dot using the `.fc-timegrid-now-indicator-line` and `.fc-timegrid-now-indicator-arrow` CSS classes, using a CSS variable set by the theming engine. The month view implementation is not standard and will require a custom element positioned with JavaScript and updated on a timer.
 
 3.  **Enable Day View Navigation from Week View:** If a date is clicked on the week view (like the actual date at the top) it should take you to that day in day view, just like month view does.

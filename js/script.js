@@ -960,10 +960,18 @@ function applyTheme() {
             modal.style.backgroundColor = tertiary;
         });
 
+        // New: Set the background for the current day in FullCalendar
+        const todayBgRgb = hexToRgb(secondary);
+        if (todayBgRgb) {
+            const todayBgRgba = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.25)`;
+            root.style.setProperty('--fc-today-bg', todayBgRgba);
+        }
+
     } else {
         // Revert to default colors based on the current mode
         document.body.style.backgroundColor = ''; // Remove inline style to let CSS classes take over
         root.style.removeProperty('--calendar-background');
+        root.style.removeProperty('--fc-today-bg'); // Remove the custom theme variable
         statusColors = { ...defaultStatusColors };
 
         // Set text colors based on the mode, but don't set background here
