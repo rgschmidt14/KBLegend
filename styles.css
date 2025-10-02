@@ -959,6 +959,17 @@ select {
     line-height: 1.2;
 }
 
+/* --- "Now" Indicator Theming --- */
+.fc .fc-timegrid-now-indicator-line {
+    border-color: var(--fc-now-indicator-color, #ff4500); /* Use theme color, fallback to a bright orange */
+    border-width: 2px;
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+    border-top-color: var(--fc-now-indicator-color, #ff4500); /* Match the line color */
+}
+
+
 /* Light Mode Overrides for FullCalendar */
 .light-mode #calendar {
     color: var(--text-color-light-primary);

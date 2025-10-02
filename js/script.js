@@ -972,6 +972,9 @@ function applyTheme() {
             const todayTextStyles = getContrastingTextColor(secondary);
             root.style.setProperty('--fc-today-text-color', todayTextStyles['--text-color-primary']);
         }
+        // New: Set the color for the now indicator line from the theme's accent color
+        root.style.setProperty('--fc-now-indicator-color', tertiary);
+
 
     } else {
         // Revert to default colors based on the current mode
@@ -980,6 +983,7 @@ function applyTheme() {
         root.style.removeProperty('--fc-today-header-bg');
         root.style.removeProperty('--fc-today-body-bg');
         root.style.removeProperty('--fc-today-text-color');
+        root.style.removeProperty('--fc-now-indicator-color');
         statusColors = { ...defaultStatusColors };
 
         // Set text colors based on the mode, but don't set background here
@@ -4550,6 +4554,8 @@ function initializeCalendar() {
         headerToolbar: false,
         editable: true,
         slotEventOverlap: true,
+        nowIndicator: true, // Show the current time indicator
+        navLinks: true, // Allow clicking on day/week numbers to navigate
         eventOrder: (a, b) => {
             const durationA = a.end - a.start;
             const durationB = b.end - b.start;

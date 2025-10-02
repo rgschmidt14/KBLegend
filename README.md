@@ -5,6 +5,16 @@
 
 Welcome to the Dynamic Task & Mission Planner, a powerful, highly customizable application designed to help you organize your life with intelligent, predictive scheduling and integrated planning. This app goes beyond a simple to-do list by analyzing your schedule, tracking your goals, and providing a clear visual interface to manage both your daily tasks and long-term missions.
 
+## **The Three Pillars of the Planner**
+
+This application is built on three core principles that set it apart from standard to-do lists and planners.
+
+*   **1. Intelligent & Predictive Scheduling:** The planner doesn't just show you what's due; it predicts your future workload. The `calculateStatus` engine analyzes the time required for all high-priority tasks and warns you *before* you run out of time to complete them. It's a proactive system designed to prevent crises, not just report on them.
+
+*   **2. Deep Customization & Theming:** Your planner should look and feel the way *you* want. The advanced theming engine allows you to generate a complete, cohesive, and accessible color palette from a single base color. This theme is applied globally, from buttons and backgrounds to calendar highlights and status colors, ensuring a personalized and readable experience.
+
+*   **3. Integrated Task & Goal Management:** The application seamlessly combines a powerful daily task manager with a high-level mission and KPI tracker. You can manage granular to-do items with complex repetition schedules (e.g., "the last Friday of every month") while also tracking your progress on long-term goals and performance indicators, all within a single, unified interface.
+
 ## **In-Depth Features**
 
 This application is built as a comprehensive tool for managing complex schedules and tracking progress towards specific goals. It combines a sophisticated task manager with a weekly mission planner, providing a single interface for all your planning needs.
@@ -35,10 +45,11 @@ The core of the application is a dynamic and intelligent task management system.
   * **Customizable Task Cards:** From the Advanced Options menu, choose exactly which details you want to see on your task cards, such as due date, duration, category, and more.  
   * **Categories:** Create an unlimited number of color-coded categories to organize your tasks.  
   * **Status Names & Colors:** Edit the names and colors for each status (Ready, Overdue, etc.) to match your personal workflow.  
-  *   **Advanced Theming Engine:** The application features a powerful, dynamic theming system that goes beyond simple color changes to ensure readability and a cohesive look.
-    *   **How it Works:** From the "Advanced Options" menu, you can enable the theme and select a single "base color." The application then uses this color to generate a full palette, including complementary colors for backgrounds, buttons, and accents.
-    *   **8-Color Dynamic Text:** To ensure text is always readable, the system automatically calculates the luminance of any given background color. Based on whether the background is light or dark, it selects from a palette of four white shades or four black shades (ranging from 100% pure to 55% gray). This is all handled via CSS custom properties (`--text-color-primary`, `--text-color-secondary`, etc.), which are applied automatically.
-    *   **Applying Themes to New Elements:** To make a new button compatible with the theming engine, simply assign it the class `themed-button-primary`, `themed-button-secondary`, or `themed-button-tertiary`. **Crucially, you must avoid adding any hardcoded color classes** (like `bg-blue-600` or `hover:bg-blue-700`) as these will override the dynamic theme styles. The core logic for this system can be found in the `applyTheme` and `getContrastingTextColor` functions in `js/script.js`.
+  * **Advanced Theming Engine:** The application features a powerful, dynamic theming system that ensures readability and a cohesive look across the entire interface.
+    *   **One-Click Palettes:** From the "Advanced Options" menu, enable the theme and select a single "base color." The application instantly generates a full, complementary palette for backgrounds, buttons, accents, and even the five status colors used for tasks.
+    *   **Dynamic Contrast:** To guarantee text is always readable, the system automatically calculates the luminance of any background color. It then selects from a palette of four white shades or four black shades (ranging from 100% pure to 55% gray) to provide optimal contrast. This is handled via CSS custom properties (`--text-color-primary`, etc.) that are applied automatically.
+    *   **Global Application:** The generated theme is applied everywhere, including the main background, modal windows, all buttons, the "current day" and "current time" indicators on the calendar, and category colors.
+    *   **Easy Integration:** To make a new element compatible with the theming engine, simply assign it the appropriate class (e.g., `themed-button-primary`). Avoid hardcoded color classes (like `bg-blue-600`) as these will override the dynamic theme styles. The core logic can be found in the `applyTheme` and `getContrastingTextColor` functions in `js/script.js`.
 * **Notifications:** Receive desktop notifications when a task's status changes, ensuring you never miss an important deadline. (Currently under development).
 
 ### **The Mission Planner**
@@ -59,6 +70,11 @@ Integrated directly with the task manager, the mission planner provides a high-l
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
+
+### ✅ Recently Completed (Version 4.1) - 10/02/2025
+
+*   **Themed "Current Time" Indicator:** The calendar now features a "current time" indicator line in the day and week views. The color of this indicator is dynamically tied to the application's theme, ensuring it is always visible and matches the user's chosen aesthetic.
+*   **Enhanced Calendar Navigation:** Clicking on a date header in the week view now seamlessly navigates the user to the corresponding day view, improving the ease and speed of schedule navigation.
 
 ### ✅ Recently Completed (Version 4.0) - 10/02/2025
 
@@ -307,28 +323,34 @@ This update focused on improving the long-term stability and maintainability of 
 
 Here are the next items on our to-do list.
 
-1.  **Add a "Current Time" Indicator:** There needs to be some kind of line (maybe one pixel tall and a ball/dot at the left, is this not standard) showing what time of day it is. Allow it to match to the theme as well as one of the accent colors, maybe the 1st/primary/whatever its called accent color. It will look a little different depending if we are on the day/week view vs the month view, as the month view will only show it on the specific day and it will just be a percentage up or down in the box overlaying (or maybe underlaying would be better) the tasks that are already listed there.
-    *   **Implementation Notes:** FullCalendar has a built-in `nowIndicator` option that can be enabled in the configuration in `js/script.js`. We can style the indicator's line and dot using the `.fc-timegrid-now-indicator-line` and `.fc-timegrid-now-indicator-arrow` CSS classes, using a CSS variable set by the theming engine. The month view implementation is not standard and will require a custom element positioned with JavaScript and updated on a timer.
+1.  **Fix Calendar View Button Styling:** There is a persistent UI bug where the "Day," "Week," and "Month" view buttons do not correctly update their style when the view is changed by clicking a `navLink` (e.g., a date in the week or month view). The button for the new view does not become highlighted, and the old one remains highlighted.
+    *   **Current Situation:** Multiple attempts to fix this by managing CSS classes in the `datesSet` and `viewDidMount` callbacks have failed, likely due to a race condition with the `applyTheme` function. The `applyTheme` function itself was also updated to be state-driven based on `calendar.view.type`, but this also did not resolve the issue.
+    *   **Next Step:** A systematic debugging approach is needed. The next attempt should focus on instrumenting the code with extensive `console.log` statements to trace the exact sequence of events during a view change and identify where the button state is being incorrectly reverted.
 
-3.  **Enable Day View Navigation from Week View:** If a date is clicked on the week view (like the actual date at the top) it should take you to that day in day view, just like month view does.
-    *   **Implementation Notes:** This should be achievable by setting `navLinks: true` in the FullCalendar configuration options in `js/script.js`.
-
-4.  **Fix Historical Task Display on Calendar:** The historical tasks are obviously not working right in the calendar view. It needs a possible overhaul but at least a look at. as well as in week view i am seeing red borders for all tasks due close to the time of day i am at, this tells me it is not differentiating which day or time or maybe instance of the task, all future instances of a task should show blue as they are not allowed to be messed with until the current one is addressed, unless with the case of past due tasks since these will can have multiple that are all showing red or black depending when they are overdue. does this make sense?
+2.  **Fix Historical Task Display on Calendar:** The historical tasks are obviously not working right in the calendar view. It needs a possible overhaul but at least a look at. as well as in week view i am seeing red borders for all tasks due close to the time of day i am at, this tells me it is not differentiating which day or time or maybe instance of the task, all future instances of a task should show blue as they are not allowed to be messed with until the current one is addressed, unless with the case of past due tasks since these will can have multiple that are all showing red or black depending when they are overdue. does this make sense?
     *   **Implementation Notes:** The logic in the `events` fetch callback within `initializeCalendar` needs to be reviewed. We need to carefully check how historical task `startDate` and `endDate` are calculated and ensure they are being rendered correctly on the grid. This might involve debugging the `getDurationMs` and date calculation logic for historical items.
 
-5.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
+3.  **Finish Correcting Task Scheduling Logic:** The deconfliction logic is now working correctly, but the calendar does not yet account for tasks that roll over from the next week.
     *   **Note for future work:** The attempt to fix this by extending the calendar's lookahead window caused the event rendering to fail. The root cause appears to be in the complex interaction between `getTaskOccurrences` and `calculateScheduledTimes`. This will require a more careful refactoring of the event generation pipeline.
 
-6.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
+4.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
     *   **Note:** This is a process reminder for us to follow for future updates.
 
-7.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
+5.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
     *   **Implementation Ideas:**
         *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
         *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
         *   **Category-Based Bypass:** In the advanced category settings, add an option to allow certain categories (e.g., "Medication," "Trip Planning") to bypass vacation mode. Tasks in these categories would still appear on the calendar during the vacation.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
+
+6.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
+    *   **Implementation Ideas:**
+        *   Create a new "Journal" view alongside the Task Manager, Calendar, and Dashboard.
+        *   Allow users to write entries using a rich-text editor.
+        *   Entries should be associated with a specific date.
+        *   Users should be able to easily navigate between entries for different days.
+        *   Consider linking tasks or KPIs completed on a given day to that day's journal entry.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
