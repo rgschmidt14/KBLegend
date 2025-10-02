@@ -915,20 +915,34 @@ select {
 }
 
 /* --- Today's Date Highlighting --- */
-.fc .fc-day-today {
-    /* Use the theme variable if it exists, otherwise fall back to the default blueish highlight. */
-    background-color: var(--fc-today-bg, rgba(59, 130, 246, 0.15));
+
+/* Default (Night Mode) Highlight */
+.fc .fc-col-header-cell.fc-day-today {
+    background-color: rgba(88, 155, 255, 0.25); /* A slightly more prominent but still subtle blue */
+}
+.fc .fc-daygrid-day.fc-day-today,
+.fc .fc-timegrid-col.fc-day-today {
+    background-color: rgba(88, 155, 255, 0.1); /* A very subtle blue for the column body */
 }
 
-/* When a theme is active, this variable will be set and override the default header text color for readability. */
+/* --- Themed Highlight Overrides --- */
+/* These variables are set by JS when a theme is active and will override the defaults above. */
+.fc .fc-col-header-cell.fc-day-today {
+    background-color: var(--fc-today-header-bg);
+}
+.fc .fc-daygrid-day.fc-day-today,
+.fc .fc-timegrid-col.fc-day-today {
+    background-color: var(--fc-today-body-bg);
+}
 .fc-day-today .fc-col-header-cell-cushion,
 .fc-day-today .fc-daygrid-day-number {
-    color: var(--fc-today-text-color);
+    color: var(--fc-today-text-color); /* This ensures the date number is readable */
 }
 
-/* As per the README, disable the highlight in the day view where it's not needed. */
-.fc-timeGridDay-view .fc-day-today {
-    background-color: transparent;
+/* As per the README, disable the body highlight in the day view where it's not needed. */
+.fc-timeGridDay-view .fc-daygrid-day.fc-day-today,
+.fc-timeGridDay-view .fc-timegrid-col.fc-day-today {
+    background-color: transparent !important;
 }
 
 /* --- Event Styling --- */
@@ -992,6 +1006,11 @@ select {
     border-color: #E5E7EB; /* Gray-200 */
 }
 
-.light-mode .fc .fc-day-today {
-    background-color: #DBEAFE; /* Blue-100 */
+.light-mode .fc .fc-col-header-cell.fc-day-today {
+    background-color: #BFDBFE; /* Blue-200, slightly darker for header */
+    color: #1E3A8A; /* Blue-800, for readable text */
+}
+.light-mode .fc .fc-daygrid-day.fc-day-today,
+.light-mode .fc .fc-timegrid-col.fc-day-today {
+    background-color: #EFF6FF; /* Blue-50, very subtle for body */
 }

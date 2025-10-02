@@ -62,7 +62,7 @@ This section provides a high-level overview of the project's status, recent upda
 
 ### ✅ Recently Completed (Version 4.0) - 10/02/2025
 
-*   **Themed "Current Day" Highlight:** The calendar's highlight for the current day now dynamically adapts to the selected theme. It uses a semi-transparent version of the theme's primary accent color for the background and automatically selects a high-contrast text color for the date, ensuring readability. This highlight is applied to the month and week views, but correctly omitted from the day view where it is not needed.
+*   **Themed "Current Day" Highlight:** The calendar's highlight for the current day now dynamically adapts to the selected theme. It uses a semi-transparent version of the theme's primary accent color for the background and automatically selects a high-contrast text color for the date, ensuring readability. This highlight is applied to the month and week views, but correctly omitted from the day view where it is not needed. The default day and night mode colors have also been improved for better visual appeal.
 
 ### ✅ Recently Completed (Version 3.9) - 10/02/2025
 

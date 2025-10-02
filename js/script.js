@@ -963,8 +963,10 @@ function applyTheme() {
         // New: Set the background and text color for the current day in FullCalendar
         const todayBgRgb = hexToRgb(secondary);
         if (todayBgRgb) {
-            const todayBgRgba = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.25)`;
-            root.style.setProperty('--fc-today-bg', todayBgRgba);
+            const headerBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.4)`;
+            const bodyBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.2)`;
+            root.style.setProperty('--fc-today-header-bg', headerBg);
+            root.style.setProperty('--fc-today-body-bg', bodyBg);
 
             // Also set a contrasting text color for the date number
             const todayTextStyles = getContrastingTextColor(secondary);
@@ -975,7 +977,8 @@ function applyTheme() {
         // Revert to default colors based on the current mode
         document.body.style.backgroundColor = ''; // Remove inline style to let CSS classes take over
         root.style.removeProperty('--calendar-background');
-        root.style.removeProperty('--fc-today-bg');
+        root.style.removeProperty('--fc-today-header-bg');
+        root.style.removeProperty('--fc-today-body-bg');
         root.style.removeProperty('--fc-today-text-color');
         statusColors = { ...defaultStatusColors };
 
