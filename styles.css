@@ -920,6 +920,12 @@ select {
     background-color: var(--fc-today-bg, rgba(59, 130, 246, 0.15));
 }
 
+/* When a theme is active, this variable will be set and override the default header text color for readability. */
+.fc-day-today .fc-col-header-cell-cushion,
+.fc-day-today .fc-daygrid-day-number {
+    color: var(--fc-today-text-color);
+}
+
 /* As per the README, disable the highlight in the day view where it's not needed. */
 .fc-timeGridDay-view .fc-day-today {
     background-color: transparent;
