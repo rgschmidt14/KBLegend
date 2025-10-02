@@ -926,6 +926,13 @@ select {
     font-weight: 500;
 }
 
+.fc-event-short {
+    font-size: 0.6rem !important; /* 50% of 0.75rem is ~0.375rem, but that's too small. Let's use a legible small size. */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1.2;
+}
+
 /* Light Mode Overrides for FullCalendar */
 .light-mode #calendar {
     color: var(--text-color-light-primary);

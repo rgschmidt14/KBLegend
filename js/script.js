@@ -4542,6 +4542,40 @@ function initializeCalendar() {
             }
             return a.start - b.start;
         },
+        eventContent: function(arg) {
+            let eventEl = document.createElement('div');
+            eventEl.classList.add('fc-event-main-inner');
+
+            const durationMs = arg.event.end - arg.event.start;
+            const isShort = durationMs < (30 * 60 * 1000); // Less than 30 minutes
+
+            if (isShort) {
+                arg.el.classList.add('fc-event-short');
+            }
+
+            // Check if the event is in a timegrid view and appears narrow
+            const view = arg.view;
+            if (view.type.includes('timeGrid')) {
+                 // A simple proxy for "half-width" is to check the element's actual width.
+                 // This is brittle as it runs before the element might be fully rendered and sized.
+                 // A more robust way might be to check for overlapping events, but that's complex.
+                 // Let's try a simple, direct approach first.
+                 // NOTE: arg.el.offsetWidth is not reliable here as the layout might not be complete.
+                 // We will rely on the short duration for now as the primary driver of style change.
+            }
+
+            let timeText = arg.timeText;
+            let titleText = arg.event.title;
+
+            // In weekly view, if the event is short, omit the time
+            if (view.type === 'timeGridWeek' && isShort) {
+                eventEl.innerHTML = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
+            } else {
+                 eventEl.innerHTML = `<div class="fc-event-time">${timeText}</div><div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
+            }
+
+            return { domNodes: [eventEl] };
+        },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
                 const viewStartDate = fetchInfo.start;
