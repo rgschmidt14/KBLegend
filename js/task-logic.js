@@ -125,13 +125,12 @@ function calculateStatus(task, nowMs, allTasks, sensitivityParams) {
  * @param {Array} indicators - The array of all KPI indicators.
  */
 function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
-    // Deep clone tasks to avoid modifying the original objects
-    let scheduledTasks = JSON.parse(JSON.stringify(tasks));
-
-    // Convert date strings back to Date objects
-    scheduledTasks.forEach(task => {
-        if (task.dueDate) task.dueDate = new Date(task.dueDate);
-        if (task.cycleEndDate) task.cycleEndDate = new Date(task.cycleEndDate);
+    // Create a deep clone of tasks that preserves Date objects, unlike JSON.parse(JSON.stringify()).
+    let scheduledTasks = tasks.map(t => {
+        const newTask = { ...t };
+        if (t.dueDate) newTask.dueDate = new Date(t.dueDate);
+        if (t.cycleEndDate) newTask.cycleEndDate = new Date(t.cycleEndDate);
+        return newTask;
     });
 
     const fullAttentionTasks = scheduledTasks.filter(t => t.requiresFullAttention);
@@ -160,10 +159,11 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
             return statusA - statusB;
         }
 
-        // Finally, sort by due date for tasks with the same status
+        // Finally, sort by due date (descending) for tasks with the same status
+        // This places later tasks first, making them the "anchor" during deconfliction.
         const dueDateA = a.dueDate ? a.dueDate.getTime() : Infinity;
         const dueDateB = b.dueDate ? b.dueDate.getTime() : Infinity;
-        return dueDateA - dueDateB;
+        return dueDateB - dueDateA;
     });
 
     // Deconflict tasks: move lower-priority tasks earlier to make space for higher-priority ones

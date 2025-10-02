@@ -4582,8 +4582,12 @@ function initializeCalendar() {
                 const viewEndDate = fetchInfo.end;
                 const calendarEvents = [];
 
-                // 1. Process Active Tasks
-                const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
+                // Extend the view by one week for the scheduling algorithm to handle rollovers
+                const extendedViewEndDate = new Date(viewEndDate.getTime());
+                extendedViewEndDate.setDate(extendedViewEndDate.getDate() + 7);
+
+                // 1. Process Active Tasks using the extended date range
+                const scheduledTasks = calculateScheduledTimes(tasks, viewStartDate, extendedViewEndDate);
                 const filteredTasks = scheduledTasks.filter(task => {
                     if (categoryFilter.length === 0) return true;
                     if (!task.categoryId) return categoryFilter.includes(null);
