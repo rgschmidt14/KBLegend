@@ -60,6 +60,25 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 3.7) - 10/01/2025
+
+This update overhauls the task history system, ensuring data is never lost, and dramatically improves the calendar's ability to visualize both past performance and future commitments.
+
+*   **Robust Task History Persistence:**
+    *   **Persistence Fix:** Resolved a critical bug where task history could be lost on page reload if the main data object was from an older version. History is now stored in its own dedicated, isolated entry in local storage, making it immune to corruption in other data areas.
+    *   **Automatic Data Migration:** A one-time, automatic migration process has been added. The application now detects if a user has history stored in the old format and seamlessly moves it to the new, safer location, ensuring no data is lost during the update.
+*   **Enhanced Calendar View:**
+    *   **Historical Task Display:** The calendar now displays your completed and missed tasks from the past, providing a complete picture of your activity.
+    *   **New 5-Color Border System:** All tasks on the calendar now feature a colored border to indicate their completion status at a glance:
+        *   **Blue Border:** Completed ahead of schedule.
+        *   **Green Border:** Completed on time.
+        *   **Yellow Border:** Missed, but with over 50% progress made.
+        *   **Red Border:** Missed, with less than 50% progress made.
+        *   **Black Border:** Missed with zero progress.
+    *   **Clearer Visual Distinction:** Historical tasks are now rendered with a duller background color, making it easy to distinguish them from active, upcoming tasks.
+*   **UI & Styling Improvements:**
+    *   **Clear Buttons:** Many secondary buttons (like "Edit," "Delete," and "Save/Cancel" in various forms) now have a clear background with theme-adaptive text, creating a cleaner and more modern user interface.
+
 ### ✅ Recently Completed (Version 3.6) - 10/01/2025
 
 This update introduces a more intelligent calendar scheduling system, giving users finer control over task prioritization and improving the clarity of the calendar view.
