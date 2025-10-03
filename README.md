@@ -71,6 +71,18 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.6) - 10/02/2025
+
+This update introduces several key UI/UX improvements for better task management and fixes a critical bug in how historical data is recorded, ensuring the accuracy of user statistics.
+
+*   **Enhanced Task Management UI:**
+    *   **Direct Deletion:** A "Delete Task" button has been added directly to the task details view, streamlining the workflow for removing tasks without needing to go back to the main list.
+    *   **Consistent Button Styling:** The "View Statistics," "Edit Task," and "Back to Details" buttons have been updated with a clear, theme-adaptive style for a cleaner and more modern user interface.
+    *   **Theme Correction:** Fixed a bug where text in the task statistics and history views would become unreadable. These views now correctly respect the application's theming, ensuring legibility in both light and dark modes.
+*   **Accurate History & Statistics Tracking:**
+    *   **Corrected Confirmation Logic:** Fixed a major bug in how task completions and misses were recorded for overdue repeating tasks. When confirming multiple pending cycles at once, the system now correctly creates a distinct historical entry for *each* individual cycle, whether it was completed or missed.
+    *   **Intelligent Partial Confirmations:** When a user confirms a mix of completions and misses, the logic now correctly assigns completions to the earliest overdue dates and misses to the latest, ensuring the user's history and statistics are accurate.
+
 ### ✅ Recently Completed (Version 4.5) - 10/02/2025
 
 This is a major update that fixes a long-standing, critical bug in the scheduling engine and introduces several significant UI and readability improvements to the calendar.
