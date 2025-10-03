@@ -71,6 +71,16 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.7) - 10/02/2025
+
+This update resolves a long-standing issue with "ghost" events on the calendar and introduces a powerful data integrity tool to give users more control over their data.
+
+*   **Orphaned History Cleanup Tool:**
+    *   **Problem Solved:** Fixed the root cause of non-interactive, un-deletable "ghost" events appearing on the calendar. These were caused by historical records from tasks that had been deleted.
+    *   **Automated Detection:** The application now automatically scans for these orphaned records every time it starts.
+    *   **Interactive Cleanup:** If any orphaned records are found, a new "Orphaned History Cleanup" tool will appear. This tool presents a clear list of all orphaned records, allowing the user to select exactly which ones to delete. This provides fine-grained control and prevents accidental data loss.
+    *   **Improved Data Integrity:** This new feature ensures that the calendar remains clean and that all displayed events correspond to active, editable tasks.
+
 ### ✅ Recently Completed (Version 4.6) - 10/02/2025
 
 This update introduces several key UI/UX improvements for better task management and fixes a critical bug in how historical data is recorded, ensuring the accuracy of user statistics.
