@@ -73,7 +73,8 @@ const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
 let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskIconInput,
-    iconPickerModal, dataMigrationModal,
+    iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
+    journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
     dueDateTypeSelect, relativeDueDateGroup,
     relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
@@ -101,7 +102,7 @@ let app, weeklyGoalsEl,
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
     weekStatusEl, weekDateRangeEl,
-    showTaskManagerBtn, showCalendarBtn, showDashboardBtn, taskManagerView, calendarView, dashboardView,
+    showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView,
     taskViewModal, taskViewContent, taskStatsContent;
 
 // FullCalendar instance
@@ -117,6 +118,7 @@ const appState = {
     weeks: [],
     indicators: [],
     historicalTasks: [],
+    journal: [],
     viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
 };
 
@@ -1831,9 +1833,171 @@ function renderIconPicker() {
     content.innerHTML = iconPickerTemplate(iconCategories);
 }
 
-function openIconPicker() {
+function openIconPicker(context = 'task') {
     renderIconPicker();
+    // A bit of a hack to manage context for the icon picker
+    if (context === 'journal') {
+        iconPickerModal.dataset.context = 'journal';
+    } else {
+        delete iconPickerModal.dataset.context;
+    }
     activateModal(iconPickerModal);
+}
+
+function renderJournalEntry(entry) {
+    return `
+        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" style="background-color: #2d3748;">
+            <div class="flex justify-between items-start">
+                <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${entry.title}</h3>
+                <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
+            </div>
+            <div class="prose prose-invert mt-2 max-w-none">${entry.content}</div>
+            <div class="text-xs text-gray-500 mt-2 text-right">${entry.editedAt ? `(Edited: ${new Date(entry.editedAt).toLocaleString()})` : ''}</div>
+             <div class="flex justify-end space-x-2 mt-2">
+                <button data-action="editJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Edit</button>
+                <button data-action="deleteJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Delete</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderJournal() {
+    const list = document.getElementById('journal-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    if (appState.journal.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
+        return;
+    }
+
+    const sortBy = document.getElementById('journal-sort-by').value;
+    const sortDir = document.getElementById('journal-sort-direction').value;
+
+    if (sortBy === 'date') {
+        const entriesByWeek = {};
+        appState.journal.forEach(entry => {
+            const entryDate = new Date(entry.createdAt);
+            const weekStart = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
+            if (!entriesByWeek[weekStart]) {
+                entriesByWeek[weekStart] = [];
+            }
+            entriesByWeek[weekStart].push(entry);
+        });
+
+        const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
+            const dateA = new Date(a);
+            const dateB = new Date(b);
+            return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+
+        sortedWeeks.forEach(weekStartISO => {
+            const weekData = appState.weeks.find(w => new Date(w.startDate).toISOString() === weekStartISO);
+            const weeklyGoal = weekData ? weekData.weeklyGoals : 'No goal set for this week.';
+
+            const weekStartDate = new Date(weekStartISO);
+            const weekEndDate = new Date(weekStartDate);
+            weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+            const headerHtml = `
+                <div class="journal-week-header my-4 p-3 bg-gray-800 rounded-lg">
+                    <h3 class="text-lg font-bold text-white">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
+                    <div class="prose prose-sm prose-invert mt-2 max-w-none">${weeklyGoal}</div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', headerHtml);
+
+            const entries = entriesByWeek[weekStartISO];
+            entries.sort((a, b) => {
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
+                return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+        });
+
+    } else if (sortBy === 'icon') {
+        const entriesByIcon = {};
+        appState.journal.forEach(entry => {
+            const icon = entry.icon || 'No Icon';
+            if (!entriesByIcon[icon]) {
+                entriesByIcon[icon] = [];
+            }
+            entriesByIcon[icon].push(entry);
+        });
+
+        const sortedIcons = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
+        if (sortDir === 'desc') sortedIcons.reverse();
+
+        sortedIcons.forEach(icon => {
+            const headerHtml = `
+                <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md">
+                    <h3 class="font-bold text-white">${icon === 'No Icon' ? icon : `<i class="${icon} mr-2"></i> ${icon}`}</h3>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', headerHtml);
+
+            const entries = entriesByIcon[icon];
+            entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Always sort by date within icon group
+
+            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+        });
+    }
+}
+
+
+function openJournalModal(entryId = null) {
+    journalForm.reset();
+    if (entryId) {
+        const entry = appState.journal.find(e => e.id === entryId);
+        if (!entry) return;
+        journalModalTitle.textContent = 'Edit Journal Entry';
+        journalEntryIdInput.value = entry.id;
+        journalEntryTitleInput.value = entry.title;
+        journalEntryIconInput.value = entry.icon || '';
+        journalEntryContentInput.value = entry.content;
+    } else {
+        journalModalTitle.textContent = 'New Journal Entry';
+        journalEntryIdInput.value = '';
+    }
+    activateModal(journalModal);
+}
+
+function closeJournalModal() {
+    deactivateModal(journalModal);
+}
+
+function handleJournalFormSubmit(event) {
+    event.preventDefault();
+    const id = journalEntryIdInput.value;
+    const now = new Date().toISOString();
+    const entryData = {
+        title: journalEntryTitleInput.value.trim(),
+        icon: journalEntryIconInput.value.trim(),
+        content: journalEntryContentInput.value,
+    };
+
+    if (id) { // Editing
+        const entryIndex = appState.journal.findIndex(e => e.id === id);
+        if (entryIndex > -1) {
+            appState.journal[entryIndex] = {
+                ...appState.journal[entryIndex],
+                ...entryData,
+                editedAt: now
+            };
+        }
+    } else { // Creating
+        entryData.id = generateId();
+        entryData.createdAt = now;
+        entryData.editedAt = null;
+        appState.journal.push(entryData);
+    }
+
+    savePlannerData();
+    renderJournal();
+    closeJournalModal();
 }
 
 
@@ -1955,8 +2119,9 @@ function handleFormSubmit(event) {
                 const newCategory = {
                     id: newCategoryName,
                     name: newCategoryName,
-                color: getRandomColor(),
-                icon: null
+                    color: getRandomColor(),
+                    icon: null,
+                    applyIconToNewTasks: false
                 };
                 categories.push(newCategory);
                 taskData.categoryId = newCategory.id;
@@ -2437,7 +2602,8 @@ function addCategoryFromInline() {
             id: newCategoryName,
             name: newCategoryName,
             color: getRandomColor(),
-            icon: null
+            icon: null,
+            applyIconToNewTasks: false
         };
         categories.push(newCategory);
         saveData();
@@ -3343,6 +3509,15 @@ function initializeDOMElements() {
     taskViewContent = document.getElementById('task-view-content');
     taskStatsContent = document.getElementById('task-stats-content');
 
+    // Journal
+    journalModal = document.getElementById('journal-modal');
+    journalForm = document.getElementById('journal-form');
+    journalModalTitle = document.getElementById('journal-modal-title');
+    journalEntryIdInput = document.getElementById('journal-entry-id');
+    journalEntryTitleInput = document.getElementById('journal-entry-title');
+    journalEntryIconInput = document.getElementById('journal-entry-icon');
+    journalEntryContentInput = document.getElementById('journal-entry-content');
+
     // Pilot Planner
     app = document.getElementById('app');
     weeklyGoalsEl = document.getElementById('weeklyGoals');
@@ -3366,9 +3541,11 @@ function initializeDOMElements() {
     showTaskManagerBtn = document.getElementById('show-task-manager-btn');
     showCalendarBtn = document.getElementById('show-calendar-btn');
     showDashboardBtn = document.getElementById('show-dashboard-btn');
+    showJournalBtn = document.getElementById('show-journal-btn');
     taskManagerView = document.getElementById('task-manager-view');
     calendarView = document.getElementById('calendar-view');
     dashboardView = document.getElementById('dashboard-view');
+    journalView = document.getElementById('journal-view');
 }
 function setupEventListeners() {
     // Task Manager
@@ -3416,7 +3593,11 @@ function setupEventListeners() {
 
     const openIconPickerBtn = document.getElementById('open-icon-picker');
     if (openIconPickerBtn) {
-        openIconPickerBtn.addEventListener('click', openIconPicker);
+        openIconPickerBtn.addEventListener('click', () => openIconPicker('task'));
+    }
+    const openJournalIconPickerBtn = document.getElementById('open-journal-icon-picker');
+    if(openJournalIconPickerBtn) {
+        openJournalIconPickerBtn.addEventListener('click', () => openIconPicker('journal'));
     }
 
     if (iconPickerModal) {
@@ -3441,7 +3622,9 @@ function setupEventListeners() {
             const iconWrapper = e.target.closest('[data-icon]');
             if (iconWrapper) {
                 const iconClass = iconWrapper.dataset.icon;
-                if (editingCategoryIdForIcon) {
+                if (iconPickerModal.dataset.context === 'journal') {
+                    journalEntryIconInput.value = iconClass;
+                } else if (editingCategoryIdForIcon) {
                     const category = categories.find(c => c.id === editingCategoryIdForIcon);
                     if (category) {
                         category.icon = iconClass;
@@ -3488,10 +3671,16 @@ function setupEventListeners() {
         toggleCompletionFields(e.target.value);
     });
     taskCategorySelect.addEventListener('change', (e) => {
-        const isNew = e.target.value === 'new_category';
+        const categoryId = e.target.value;
+        const isNew = categoryId === 'new_category';
         newCategoryGroup.classList.toggle('hidden', !isNew);
         if (isNew) {
             newCategoryNameInput.focus();
+        } else {
+            const category = categories.find(c => c.id === categoryId);
+            if (category && category.icon && category.applyIconToNewTasks) {
+                taskIconInput.value = category.icon;
+            }
         }
     });
     window.addEventListener('mousedown', (event) => {
@@ -3596,6 +3785,14 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'toggleApplyIcon':
+                    const category = categories.find(c => c.id === categoryId);
+                    if (category) {
+                        category.applyIconToNewTasks = !category.applyIconToNewTasks;
+                        saveData();
+                        renderCategoryManager();
+                    }
+                    break;
                 case 'toggleStatusTheme':
                     theming.useThemeForStatus = !theming.useThemeForStatus;
                     applyTheme();
@@ -3876,10 +4073,10 @@ function setupEventListeners() {
 
     if (weeklyGoalsEl) {
         weeklyGoalsEl.addEventListener('blur', () => {
-            const week = appState.weeks[appState.viewingIndex];
+            // This should always save to the ACTUAL current week, not the one being viewed.
+            const week = appState.weeks[CURRENT_WEEK_INDEX];
             if (week) {
                 const newGoals = weeklyGoalsEl.innerHTML;
-                // Amendment checking removed as it was part of the old planner
                 week.weeklyGoals = newGoals;
                 savePlannerData();
             }
@@ -3901,7 +4098,8 @@ function setupEventListeners() {
             const views = [
                 { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
                 { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
-                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
+                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' },
+                { btn: showJournalBtn, view: journalView, id: 'journal-view' }
             ];
 
             views.forEach(item => {
@@ -3933,6 +4131,41 @@ function setupEventListeners() {
             stopNotificationEngine();
         }
     });
+
+    // Journal Listeners
+    const addJournalEntryBtn = document.getElementById('add-journal-entry-btn');
+    if (addJournalEntryBtn) {
+        addJournalEntryBtn.addEventListener('click', () => openJournalModal());
+    }
+    const journalSortBy = document.getElementById('journal-sort-by');
+    const journalSortDir = document.getElementById('journal-sort-direction');
+    if(journalSortBy) journalSortBy.addEventListener('change', renderJournal);
+    if(journalSortDir) journalSortDir.addEventListener('change', renderJournal);
+    if (journalForm) {
+        journalForm.addEventListener('submit', handleJournalFormSubmit);
+    }
+    const cancelJournalBtn = document.querySelector('.cancel-journal-button');
+    if(cancelJournalBtn) {
+        cancelJournalBtn.addEventListener('click', closeJournalModal);
+    }
+    const journalList = document.getElementById('journal-list');
+    if (journalList) {
+        journalList.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const id = target.dataset.id;
+            if (action === 'editJournal') {
+                openJournalModal(id);
+            } else if (action === 'deleteJournal') {
+                if (confirm('Are you sure you want to delete this journal entry?')) {
+                    appState.journal = appState.journal.filter(entry => entry.id !== id);
+                    savePlannerData();
+                    renderJournal();
+                }
+            }
+        });
+    }
 }
 
 function saveData() {
@@ -4267,7 +4500,8 @@ const savePlannerData = () => {
 
     localStorage.setItem(DATA_KEY, JSON.stringify({
         weeks: appState.weeks,
-        indicators: appState.indicators
+        indicators: appState.indicators,
+        journal: appState.journal
         // historicalTasks is now saved separately
     }));
 };
@@ -4284,6 +4518,7 @@ const loadPlannerData = () => {
             if (week.originalState === undefined) week.originalState = null;
         });
         appState.indicators = parsedData.indicators || appState.indicators;
+        appState.journal = parsedData.journal || [];
 
         // One-time migration for historical tasks from old storage format.
         if (parsedData.historicalTasks && Array.isArray(parsedData.historicalTasks) && parsedData.historicalTasks.length > 0) {
@@ -4422,7 +4657,8 @@ function applyActiveView() {
     const views = [
         { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
         { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
-        { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
+        { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' },
+        { btn: showJournalBtn, view: journalView, id: 'journal-view' }
     ];
 
     const activeViewId = uiSettings.activeView || 'calendar-view'; // Default to calendar
@@ -4762,6 +4998,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(); // Apply theme after state is initialized
         initializeCalendar(); // New function to set up FullCalendar
         applyActiveView(); // Apply the saved view
+        renderJournal(); // Render journal entries on load
         console.log("Mission Planner initialized.");
     } catch (e) {
         console.error("Error during Mission Planner initialization:", e);

@@ -71,6 +71,20 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.9) - 10/03/2025
+
+This update introduces the foundational Journal feature, improves UI/UX by relocating key controls, and fixes a persistent data-saving bug.
+
+*   **New! Journal Feature (Phase 1):**
+    *   **Dedicated View:** A new "Journal" view has been added to the main navigation, providing a dedicated space for daily entries.
+    *   **Create & Edit:** Users can create new journal entries with a title, a rich-text content area, and an optional icon. Existing entries can be edited or deleted.
+    *   **Data Persistence:** All journal entries are saved to `localStorage`, ensuring they persist between sessions. Entries are displayed in reverse chronological order.
+*   **UI/UX Improvements:**
+    *   **Accessible Sorting:** The sorting controls for the Task Manager (Sort By, Direction) have been moved from the Advanced Options modal directly into the Task Manager header, making them immediately accessible.
+    *   **Category Icons:** Categories can now have an icon assigned to them. A new "Auto-apply icon" checkbox in the category settings allows this icon to be automatically populated in the new task form when the category is selected.
+*   **Bug Fixes:**
+    *   **Weekly Goal Saving:** Fixed a critical bug where weekly goals were not being saved to the correct week. Goals are now always saved to the current week, regardless of which week is being viewed on the calendar.
+
 ### ✅ Recently Completed (Version 4.8) - 10/02/2025
 
 This is a comprehensive overhaul of the task history and scheduling engine, resolving critical bugs related to duplicate tasks, incorrect calendar placement, and visual clarity.
@@ -408,13 +422,11 @@ Here are the next items on our to-do list.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
 
-3.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
+3.  **Enhance Journal Feature (Phase 2):** Add advanced features to the new Journal.
     *   **Implementation Ideas:**
-        *   Create a new "Journal" view alongside the Task Manager, Calendar, and Dashboard.
-        *   Allow users to write entries using a rich-text editor.
-        *   Entries should be associated with a specific date.
-        *   Users should be able to easily navigate between entries for different days.
-        *   Consider linking tasks or KPIs completed on a given day to that day's journal entry.
+        *   **Advanced Sorting:** Add controls to sort journal entries by icon or by date (ascending/descending).
+        *   **Edit Tracking:** When an entry is edited, display an "Edited on [date]" timestamp.
+        *   **Weekly Goal Integration:** Display the weekly goal at the top of the journal entries for that week.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
