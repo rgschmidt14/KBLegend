@@ -1366,6 +1366,7 @@ function openTaskView(taskId, occurrenceDate) {
     // Add event listeners for the buttons inside the view
     const viewStatsBtn = taskViewContent.querySelector('[data-action="viewTaskStats"]');
     const editTaskBtn = taskViewContent.querySelector('[data-action="editTaskFromView"]');
+    const deleteBtn = taskViewContent.querySelector('[data-action="triggerDeleteFromView"]');
 
     if (viewStatsBtn) {
         viewStatsBtn.addEventListener('click', () => renderTaskStats(taskId), { once: true });
@@ -1374,6 +1375,12 @@ function openTaskView(taskId, occurrenceDate) {
         editTaskBtn.addEventListener('click', () => {
             deactivateModal(taskViewModal);
             openModal(taskId, { occurrenceDate });
+        });
+    }
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            deactivateModal(taskViewModal);
+            triggerDelete(taskId);
         });
     }
 
@@ -2059,13 +2066,32 @@ function confirmCompletionAction(taskId, confirmed) {
 
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
-            const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
-                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: 1, // Full completion
-                originalDueDate: new Date(baseDate)
-            };
-            appState.historicalTasks.push(historicalTask);
+            let pastDueDates = [];
+            if (cyclesToComplete > 0) {
+                if (task.repetitionType === 'relative') {
+                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+                    if (intervalMs > 0) {
+                        for (let i = 0; i < cyclesToComplete; i++) {
+                            pastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
+                        }
+                    }
+                } else { // absolute
+                    // Look 5 years ahead for safety, then take the number of cycles needed.
+                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
+                    pastDueDates = [baseDate, ...occurrences.slice(0, cyclesToComplete - 1)];
+                }
+            }
+
+            pastDueDates.forEach(dueDate => {
+                const historicalTask = {
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
+                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    progress: 1, // Full completion
+                    originalDueDate: dueDate
+                };
+                appState.historicalTasks.push(historicalTask);
+            });
+
 
             const missesBefore = task.misses || 0;
             task.misses = Math.max(0, missesBefore - cyclesToComplete);
@@ -2179,36 +2205,64 @@ function confirmMissAction(taskId, confirmed) {
         progress = Math.min(1, Math.max(0, progress)); // Clamp between 0 and 1
 
         if (task.repetitionType !== 'none') {
-            // Logic for repeating tasks
-            if (missesToApply > 0) {
-                const historicalTask = {
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
-                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: progress,
-                    originalDueDate: new Date(baseDate)
-                };
-                appState.historicalTasks.push(historicalTask);
-            }
-
-            if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
-            if (missesToApply > 0 && task.trackMisses) {
-                const partialMiss = 1 - progress;
-                const missesToAdd = (missesToApply - 1) + partialMiss;
-
-                if(missesToAdd > 0) {
-                    task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToAdd);
+            // New logic for repeating tasks with partial misses/completions
+            let allPastDueDates = [];
+            if (totalCycles > 0) {
+                if (task.repetitionType === 'relative') {
+                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+                    if (intervalMs > 0) {
+                        for (let i = 0; i < totalCycles; i++) {
+                            allPastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
+                        }
+                    }
+                } else { // absolute
+                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
+                    allPastDueDates = [baseDate, ...occurrences.slice(0, totalCycles - 1)];
                 }
             }
 
-            let nextDueDate = null;
-            if (task.repetitionType === 'relative') {
-                let current = new Date(baseDate);
-                for (let i = 0; i < totalCycles; i++) current = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, current);
-                nextDueDate = current;
-            } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(baseDate.getFullYear() + 5, 0, 1));
-                if (futureOccurrences.length >= totalCycles) nextDueDate = futureOccurrences[totalCycles - 1];
+            const completionDates = allPastDueDates.slice(0, completionsToApply);
+            const missDates = allPastDueDates.slice(completionsToApply);
+
+            // Log all completions
+            completionDates.forEach(dueDate => {
+                appState.historicalTasks.push({
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
+                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    progress: 1, originalDueDate: dueDate
+                });
+            });
+
+            // Log all misses
+            missDates.forEach(dueDate => {
+                appState.historicalTasks.push({
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
+                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    progress: 0, originalDueDate: dueDate // Assuming 0 progress for a full miss
+                });
+            });
+
+            // Update miss count
+            if (completionsToApply > 0) {
+                task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
             }
+            if (missesToApply > 0 && task.trackMisses) {
+                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
+            }
+
+            // Calculate next due date
+            const lastProcessedDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : new Date(baseDate);
+            let nextDueDate = null;
+
+            if (task.repetitionType === 'relative') {
+                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastProcessedDueDate);
+            } else { // absolute
+                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastProcessedDueDate.getTime() + 1), new Date(lastProcessedDueDate.getFullYear() + 5, 0, 1));
+                if (futureOccurrences.length > 0) {
+                    nextDueDate = futureOccurrences[0];
+                }
+            }
+
             task.dueDate = nextDueDate;
             task.cycleEndDate = null;
             task.currentProgress = 0;

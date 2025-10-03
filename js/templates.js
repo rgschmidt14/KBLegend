@@ -222,16 +222,17 @@ export function taskViewTemplate(task, { categories, appSettings }) {
 
     return `
         <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
-        <div class="space-y-3 text-gray-700">
+        <div class="space-y-3">
             <p><strong>Status:</strong> <span class="font-semibold">${task.status.charAt(0).toUpperCase() + task.status.slice(1)}</span></p>
             <p><strong>Category:</strong> ${categoryName}</p>
             <p><strong>Due Date:</strong> ${dueDateStr}</p>
             <p><strong>Estimated Duration:</strong> ${durationStr}</p>
             <p><strong>Repetition:</strong> ${repetitionStr}</p>
         </div>
-        <div class="mt-6 flex justify-end space-x-3">
-            <button data-action="viewTaskStats" class="control-button control-button-blue themed-button-secondary">View Statistics</button>
-            <button data-action="editTaskFromView" class="control-button control-button-yellow themed-button-secondary">Edit Task</button>
+        <div class="mt-6 flex justify-start space-x-3">
+            <button data-action="triggerDeleteFromView" class="themed-button-clear">Delete Task</button>
+            <button data-action="viewTaskStats" class="themed-button-clear">View Statistics</button>
+            <button data-action="editTaskFromView" class="themed-button-clear">Edit Task</button>
         </div>
     `;
 }
@@ -338,7 +339,7 @@ export function bulkEditFormTemplate(categoryId, settings) {
 export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
     const chartHtml = hasChartData
         ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>`
-        : '<p class="text-gray-500 italic mt-4">Not enough history to display a chart.</p>';
+        : '<p class="italic mt-4">Not enough history to display a chart.</p>';
 
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
@@ -352,11 +353,11 @@ export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
         ${chartHtml}
 
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
-        <ul class="list-disc list-inside max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
+        <ul class="list-disc list-inside max-h-48 overflow-y-auto border rounded p-2">
             ${historyHtml}
         </ul>
 
-        <button data-action="backToTaskView" class="control-button control-button-gray mt-6 themed-button-secondary">Back to Details</button>
+        <button data-action="backToTaskView" class="themed-button-clear mt-6">Back to Details</button>
     `;
 }
 
