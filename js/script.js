@@ -25,7 +25,7 @@ let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minu
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
 let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true };
 let appSettings = { title: "Task & Mission Planner", use24HourFormat: false };
-let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek' };
+let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek', allowCreationOnClick: false };
 let lastBulkEditSettings = {};
 let oldTasksData = [];
 let editingTaskId = null;
@@ -1299,6 +1299,11 @@ function renderCategoryManager() {
 function renderPlannerSettings() {
     if (!plannerDefaultCategorySelect) return;
 
+    const creationOnClickToggle = document.getElementById('allow-creation-on-click-toggle');
+    if (creationOnClickToggle) {
+        creationOnClickToggle.checked = calendarSettings.allowCreationOnClick;
+    }
+
     plannerDefaultCategorySelect.innerHTML = '';
     const defaultOption = document.createElement('option');
     defaultOption.value = 'Planner';
@@ -1353,7 +1358,7 @@ function openAdvancedOptionsModal() {
 function openTaskView(taskId, occurrenceDate) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
-        console.error("Task not found for view:", taskId);
+        // Task not found, do not open view. This can happen with orphaned historical events.
         return;
     }
 
@@ -3637,6 +3642,10 @@ function setupEventListeners() {
                 case 'openMigrationTool':
                     openDataMigrationModal();
                     break;
+                case 'toggleCreationOnClick':
+                    calendarSettings.allowCreationOnClick = event.target.checked;
+                    saveData();
+                    break;
             }
         });
 
@@ -4625,6 +4634,9 @@ function initializeCalendar() {
             openTaskView(taskId, occurrenceDueDate);
         },
         dateClick: (info) => {
+            if (!calendarSettings.allowCreationOnClick) {
+                return;
+            }
             const taskStartDate = new Date(info.date);
             const taskDueDate = new Date(taskStartDate.getTime() + (60 * 60 * 1000)); // Add 1 hour
 
