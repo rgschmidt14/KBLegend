@@ -193,8 +193,7 @@ function calculatePendingCycles(task, nowMs) {
         if (task.repetitionType === 'relative' && task.repetitionAmount && task.repetitionUnit) {
             const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
             if (intervalMs > 0) {
-                cycles = Math.floor((nowMs - originalDueDateMs) / intervalMs);
-                cycles = Math.max(0, cycles) + 1;
+                    cycles = Math.floor((nowMs - originalDueDateMs) / intervalMs) + 1;
             } else {
                 console.warn(`Invalid relative interval for task ${task.id}. Defaulting to 1 cycle.`);
                 cycles = 1;
@@ -1276,6 +1275,24 @@ function toggleCompletionFields(type) {
         }
     }
 }
+
+function archiveNonRepeatingTask(task, status, progress = 1) {
+    const originalDueDate = new Date(task.originalDueDate || task.dueDate);
+    const historicalTask = {
+        originalTaskId: task.id,
+        name: task.name,
+        completionDate: originalDueDate, // The time for calendar placement
+        actionDate: new Date(),         // The actual time of action
+        status: status,
+        categoryId: task.categoryId,
+        durationAmount: task.estimatedDurationAmount,
+        durationUnit: task.estimatedDurationUnit,
+        progress: progress,
+        originalDueDate: originalDueDate // The scheduled due date
+    };
+    appState.historicalTasks.push(historicalTask);
+    tasks = tasks.filter(t => t.id !== task.id); // Remove from active tasks
+}
 function toggleAbsoluteRepetitionFields(frequency) {
     absoluteWeeklyOptions.classList.toggle('hidden', frequency !== 'weekly');
     absoluteMonthlyOptions.classList.toggle('hidden', frequency !== 'monthly');
@@ -2062,87 +2079,66 @@ function confirmCompletionAction(taskId, confirmed) {
     if (taskIndex === -1) return;
 
     let task = tasks[taskIndex];
+    const now = new Date();
     const cyclesToComplete = task.pendingCycles || 1;
     const wasOverdue = !!task.overdueStartDate;
-    const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+    const baseDate = wasOverdue ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
     if (confirmed) {
         stopTaskTimer(taskId);
 
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
-            let pastDueDates = [];
-            if (cyclesToComplete > 0) {
-                if (task.repetitionType === 'relative') {
-                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-                    if (intervalMs > 0) {
-                        for (let i = 0; i < cyclesToComplete; i++) {
-                            pastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
-                        }
-                    }
-                } else { // absolute
-                    // Look 5 years ahead for safety, then take the number of cycles needed.
-                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
-                    pastDueDates = [baseDate, ...occurrences.slice(0, cyclesToComplete - 1)];
-                }
-            }
+            const pastDueDates = getAllPastDueDates(task, baseDate, now, cyclesToComplete);
 
             pastDueDates.forEach(dueDate => {
+                const originalDueDate = new Date(dueDate);
                 const historicalTask = {
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
-                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 1, // Full completion
-                    originalDueDate: dueDate
+                    originalTaskId: task.id, name: task.name,
+                    completionDate: originalDueDate, // For calendar placement
+                    actionDate: new Date(),        // The actual time of action
+                    status: 'completed',
+                    categoryId: task.categoryId,
+                    durationAmount: task.estimatedDurationAmount,
+                    durationUnit: task.estimatedDurationUnit,
+                    progress: 1,
+                    originalDueDate: originalDueDate
                 };
                 appState.historicalTasks.push(historicalTask);
             });
 
-
             const missesBefore = task.misses || 0;
             task.misses = Math.max(0, missesBefore - cyclesToComplete);
-            let missCountReduced = task.misses < missesBefore;
+            task.completionReducedMisses = task.misses < missesBefore;
 
+            const lastDueDate = pastDueDates.length > 0 ? pastDueDates[pastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
             if (task.repetitionType === 'relative') {
-                let current = new Date(baseDate);
-                for (let i = 0; i < cyclesToComplete; i++) current = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, current);
-                nextDueDate = current;
+                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
             } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(baseDate.getFullYear() + 5, 0, 1));
-                if (futureOccurrences.length >= cyclesToComplete) nextDueDate = futureOccurrences[cyclesToComplete - 1];
+                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
+                if (futureOccurrences.length > 0) {
+                    nextDueDate = futureOccurrences[0];
+                }
             }
+            task.dueDate = nextDueDate;
 
-            const sensitivityParams = getSensitivityParameters();
-            if (nextDueDate) {
-                task.dueDate = nextDueDate;
-                task.status = wasOverdue ? calculateStatus(task, Date.now(), tasks, sensitivityParams).name : 'blue';
-                task.cycleEndDate = wasOverdue ? null : baseDate;
-                task.completionReducedMisses = missCountReduced;
-            } else {
-                task.status = calculateStatus(task, Date.now(), tasks, sensitivityParams).name;
-                delete task.completionReducedMisses;
-            }
-            task.currentProgress = 0;
-            task.completed = false;
-            task.confirmationState = null;
-            delete task.pendingCycles;
-            delete task.overdueStartDate;
-            saveData();
-            updateAllTaskStatuses(true);
+            task.status = 'blue';
+            task.cycleEndDate = wasOverdue ? null : new Date(now);
 
-        } else { // Logic for non-repeating tasks
-            const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
-                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: 1,
-                originalDueDate: new Date(baseDate)
-            };
-            appState.historicalTasks.push(historicalTask);
-            tasks = tasks.filter(t => t.id !== taskId);
-            saveData();
-            updateAllTaskStatuses(true);
-            return;
+        } else {
+            // Logic for non-repeating tasks using the new helper
+            task.originalDueDate = new Date(baseDate); // Ensure originalDueDate is set for the archive function
+            archiveNonRepeatingTask(task, 'completed', 1);
         }
+
+        // Common cleanup for both types
+        task.currentProgress = 0;
+        task.completed = false;
+        task.confirmationState = null;
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
+
     } else { // User clicked "No"
         if (wasOverdue) {
             task.confirmationState = 'awaiting_overdue_input';
@@ -2155,14 +2151,40 @@ function confirmCompletionAction(taskId, confirmed) {
         }
         delete task.pendingCycles;
         delete task.overdueStartDate;
-        // Do not nullify confirmationState here if it was just set
         if (task.confirmationState !== 'awaiting_overdue_input') {
             task.confirmationState = null;
         }
-        saveData();
-        updateAllTaskStatuses(true);
     }
+
+    saveData();
+    updateAllTaskStatuses(true);
 }
+function getAllPastDueDates(task, baseDate, now, cycles) {
+    const pastDueDates = [];
+    if (cycles <= 0) return pastDueDates;
+
+    // Start with the base date, as it's the first overdue instance.
+    pastDueDates.push(baseDate);
+
+    if (task.repetitionType === 'relative') {
+        const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+        if (intervalMs > 0) {
+            let nextDueDate = new Date(baseDate.getTime() + intervalMs);
+            while (nextDueDate <= now && pastDueDates.length < cycles) {
+                pastDueDates.push(nextDueDate);
+                nextDueDate = new Date(nextDueDate.getTime() + intervalMs);
+            }
+        }
+    } else if (task.repetitionType === 'absolute') {
+        // Find occurrences *after* the base date up to now.
+        const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), now);
+        pastDueDates.push(...occurrences);
+    }
+
+    // Return the correct number of cycles, sorted just in case.
+    return pastDueDates.sort((a, b) => a - b).slice(0, cycles);
+}
+
 function confirmUndoAction(taskId, confirmed) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -2190,111 +2212,85 @@ function confirmMissAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
     let task = tasks[taskIndex];
+    const now = new Date();
 
     if (confirmed) {
         const totalCycles = task.pendingCycles || 1;
         const inputEl = document.getElementById(`miss-count-input-${taskId}`);
         const missesToApply = (inputEl && totalCycles > 1) ? parseInt(inputEl.value, 10) : totalCycles;
         const completionsToApply = totalCycles - missesToApply;
-        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
         let progress = 0;
         if (task.completionType === 'count' && task.countTarget > 0) {
             progress = (task.currentProgress || 0) / task.countTarget;
         } else if (task.completionType === 'time') {
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-            if (targetMs > 0) {
-                progress = (task.currentProgress || 0) / targetMs;
-            }
+            if (targetMs > 0) progress = (task.currentProgress || 0) / targetMs;
         }
-        progress = Math.min(1, Math.max(0, progress)); // Clamp between 0 and 1
+        progress = Math.min(1, Math.max(0, progress));
 
         if (task.repetitionType !== 'none') {
-            // New logic for repeating tasks with partial misses/completions
-            let allPastDueDates = [];
-            if (totalCycles > 0) {
-                if (task.repetitionType === 'relative') {
-                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-                    if (intervalMs > 0) {
-                        for (let i = 0; i < totalCycles; i++) {
-                            allPastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
-                        }
-                    }
-                } else { // absolute
-                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
-                    allPastDueDates = [baseDate, ...occurrences.slice(0, totalCycles - 1)];
-                }
-            }
+            const allPastDueDates = getAllPastDueDates(task, baseDate, now, totalCycles);
 
             const completionDates = allPastDueDates.slice(0, completionsToApply);
             const missDates = allPastDueDates.slice(completionsToApply);
 
-            // Log all completions
             completionDates.forEach(dueDate => {
+                const originalDueDate = new Date(dueDate);
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'completed',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 1, originalDueDate: dueDate
+                    progress: 1, originalDueDate: originalDueDate
                 });
             });
 
-            // Log all misses
-            missDates.forEach(dueDate => {
+            missDates.forEach((dueDate, index) => {
+                const originalDueDate = new Date(dueDate);
+                const isFinalMiss = index === missDates.length - 1;
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'missed',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 0, originalDueDate: dueDate // Assuming 0 progress for a full miss
+                    progress: isFinalMiss ? progress : 0, // Only apply partial progress to the last miss
+                    originalDueDate: originalDueDate
                 });
             });
 
-            // Update miss count
-            if (completionsToApply > 0) {
-                task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
-            }
-            if (missesToApply > 0 && task.trackMisses) {
-                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
-            }
+            if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
+            if (missesToApply > 0 && task.trackMisses) task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
 
-            // Calculate next due date
-            const lastProcessedDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : new Date(baseDate);
+            const lastDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
-
             if (task.repetitionType === 'relative') {
-                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastProcessedDueDate);
+                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
             } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastProcessedDueDate.getTime() + 1), new Date(lastProcessedDueDate.getFullYear() + 5, 0, 1));
+                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
                 if (futureOccurrences.length > 0) {
                     nextDueDate = futureOccurrences[0];
                 }
             }
-
             task.dueDate = nextDueDate;
-            task.cycleEndDate = null;
-            task.currentProgress = 0;
-            task.confirmationState = null;
-            delete task.pendingCycles;
-            delete task.overdueStartDate;
-        } else { // Logic for non-repeating tasks
-            const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
-                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: progress,
-                originalDueDate: new Date(baseDate)
-            };
-            appState.historicalTasks.push(historicalTask);
-            tasks = tasks.filter(t => t.id !== taskId);
-            // Save and render immediately, then exit function.
-            saveData();
-            updateAllTaskStatuses(true);
-            return;
+
+        } else {
+            task.originalDueDate = new Date(baseDate);
+            archiveNonRepeatingTask(task, 'missed', progress);
         }
+
+        task.cycleEndDate = null;
+        task.currentProgress = 0;
+        task.confirmationState = null;
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
+
     } else {
         task.confirmationState = 'awaiting_overdue_input';
         delete task.pendingCycles;
         delete task.overdueStartDate;
     }
 
-    task.confirmationState = null;
+    if (task.confirmationState !== 'awaiting_overdue_input') {
+        task.confirmationState = null;
+    }
     saveData();
     updateAllTaskStatuses(true);
 }
@@ -4124,10 +4120,15 @@ function loadData() {
     }
     if (storedTasks) {
         try {
-            let wasUpgraded = false;
+            let needsMigration = false;
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
-                const originalTaskJSON = JSON.stringify(task);
+                // A more robust check for an "old" task. The `requiresFullAttention` field
+                // replaced the old `countsAsBusy` field. Its absence is a reliable indicator.
+                if (task.requiresFullAttention === undefined) {
+                    needsMigration = true;
+                }
+
                 let tempTask = { ...task };
                 tempTask.dueDate = task.dueDate ? new Date(task.dueDate) : null;
                 tempTask.createdAt = task.createdAt ? new Date(task.createdAt) : new Date();
@@ -4138,16 +4139,12 @@ function loadData() {
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
 
-                const sanitizedTask = sanitizeAndUpgradeTask(tempTask);
-                if (JSON.stringify(sanitizedTask) !== originalTaskJSON) {
-                    wasUpgraded = true;
-                }
-                return sanitizedTask;
+                return sanitizeAndUpgradeTask(tempTask);
             });
 
             const lastCheck = localStorage.getItem('lastMigrationCheck');
             const today = new Date().toDateString();
-            if (wasUpgraded && lastCheck !== today) {
+            if (needsMigration && lastCheck !== today) {
                 // Pass the original parsed tasks to the migration tool automatically
                 openDataMigrationModal(parsedTasks);
                 localStorage.setItem('lastMigrationCheck', today);
@@ -4593,30 +4590,31 @@ function initializeCalendar() {
                     const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
                     const eventColor = adjustColor(baseColor, dullFactor);
 
-                    let borderColor = statusColors.green; // Default to green
+                    let borderColor = statusColors.green; // Default
                     if (ht.status === 'completed') {
+                        const actionDate = new Date(ht.actionDate);
                         const originalDueDate = new Date(ht.originalDueDate);
-                        const completionDate = new Date(ht.completionDate);
-                        if (!isNaN(originalDueDate) && !isNaN(completionDate) && completionDate < originalDueDate) {
-                            borderColor = statusColors.blue; // Ahead of schedule
+                        if (!isNaN(actionDate) && !isNaN(originalDueDate) && actionDate < originalDueDate) {
+                            borderColor = statusColors.blue; // Completed ahead of schedule
                         } else {
-                            borderColor = statusColors.green; // On time
+                            borderColor = statusColors.green; // Completed on or after due date
                         }
                     } else if (ht.status === 'missed') {
-                        // Handle cases where progress might be undefined/null for older data
-                        if (ht.progress === 0) {
+                        const progress = ht.progress ?? 0;
+                        if (progress === 0) {
                             borderColor = statusColors.black; // Complete miss
-                        } else if (ht.progress > 0 && ht.progress <= 0.5) {
-                            borderColor = statusColors.red; // Partial miss
-                        } else if (ht.progress > 0.5) {
-                            borderColor = statusColors.yellow; // Partial completion
+                        } else if (progress > 0 && progress < 0.5) {
+                            borderColor = statusColors.red; // Mostly missed
+                        } else if (progress >= 0.5 && progress < 1) {
+                            borderColor = statusColors.yellow; // Partially completed
                         } else {
                             borderColor = statusColors.black; // Default for miss with no progress data
                         }
                     }
 
+                    // The event is placed on the calendar based on its original due date
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                    const endDate = new Date(ht.completionDate);
+                    const endDate = new Date(ht.completionDate); // This is the original due date
                     const startDate = new Date(endDate.getTime() - durationMs);
 
                     calendarEvents.push({
@@ -4625,7 +4623,8 @@ function initializeCalendar() {
                         start: startDate,
                         end: endDate,
                         backgroundColor: eventColor,
-                        borderColor: borderColor, // Use the calculated border color
+                        borderColor: borderColor,
+                        borderWidth: '2px',
                         extendedProps: {
                             taskId: ht.originalTaskId,
                             isHistorical: true

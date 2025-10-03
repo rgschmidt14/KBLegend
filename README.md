@@ -71,6 +71,27 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 4.8) - 10/02/2025
+
+This is a comprehensive overhaul of the task history and scheduling engine, resolving critical bugs related to duplicate tasks, incorrect calendar placement, and visual clarity.
+
+*   **Corrected Task History Logic:**
+    *   **No More Duplicates:** Fixed the root cause of task duplication. Non-repeating tasks are now correctly moved to a separate `historicalTasks` array upon completion or miss, permanently removing them from the active task list.
+    *   **Accurate Calendar Placement:** Historical tasks now appear on the calendar on the day they were *due*, not the day they were marked as completed. This provides a true and intuitive reflection of past schedules.
+    *   **Clean Future Projections:** The calendar no longer projects active tasks into the past. The scheduling view is now exclusively for upcoming events, eliminating visual clutter.
+
+*   **Enhanced Historical Task Styling:**
+    *   **At-a-Glance Status:** Historical tasks on the calendar now feature a detailed, color-coded border to indicate their exact outcome:
+        *   `Blue`: Completed ahead of schedule.
+        *   `Green`: Completed on or after the due date.
+        *   `Yellow`: Partially completed (e.g., more than 50% of a timed task).
+        *   `Red`: Mostly missed (e.g., less than 50% of a timed task).
+        *   `Black`: A complete miss (0% progress).
+    *   **Improved Data Granularity:** The history system now stores both the time a task was due (`originalDueDate`) and the time the user took action (`actionDate`) to enable this precise styling.
+
+*   **Robust Repetition Handling:**
+    *   **Accurate Cycle Tracking:** The logic for handling overdue repeating tasks has been completely refactored. When a user confirms multiple pending cycles at once, the system now correctly creates a distinct and accurately dated historical entry for *every single* cycle, whether it was completed or missed. This ensures perfect data integrity for user statistics.
+
 ### ✅ Recently Completed (Version 4.7) - 10/02/2025
 
 This update resolves a long-standing issue with "ghost" events on the calendar and introduces a powerful data integrity tool to give users more control over their data.
@@ -404,6 +425,14 @@ These are larger, long-term goals for the project that are dependent on migratin
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
 *   **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list.
 *   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, providing deep insights into productivity trends over time.
+
+### **AI Suggestions & Future Improvements**
+
+This section is maintained by the AI assistant to log potential improvements and ideas for future development cycles that are identified during coding sessions.
+
+*   **Consolidate Repetition Logic:** The `generateAbsoluteOccurrences` function in `task-logic.js` and the new `getAllPastDueDates` in `script.js` have overlapping responsibilities for calculating date sequences. In a future refactor, their logic could be merged into a single, comprehensive date-generation utility within `task-logic.js` to reduce code duplication and centralize all scheduling calculations.
+*   **Historical View Performance:** As the `historicalTasks` array grows, loading and filtering it on every calendar view change could become a performance bottleneck. For a future update, consider implementing a more sophisticated caching or indexing strategy. For example, pre-process historical events into a structure grouped by week or month to speed up retrieval for the calendar's `events` function.
+*   **Undo Action Robustness:** The "Undo" functionality currently only removes the last completed history item. It does not account for the more complex scenarios handled by the new history logic (e.g., undoing one action out of a bulk confirmation). A future improvement would be to make the undo system more granular, perhaps by showing a list of recent actions that can be individually reverted.
 
 ### **🔩 Ongoing Development**
 
