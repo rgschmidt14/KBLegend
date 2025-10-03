@@ -243,11 +243,17 @@ export function dataMigrationModalTemplate() {
             <h3 class="text-xl font-semibold mb-4">Task Data Migration & Integrity Tool</h3>
             <button class="close-button">&times;</button>
 
-            <div id="history-analysis-section" class="hidden mb-4 p-3 border rounded border-red-400 bg-red-50">
-                <h4 class="font-semibold text-red-800">History Issues Detected</h4>
-                <p id="history-issues-summary" class="text-sm text-red-700 my-2"></p>
-                <p class="text-xs text-gray-600 mb-3">This can happen if tasks are deleted. Cleaning removes history records that no longer link to a valid task. This action cannot be undone.</p>
-                <button id="clean-history-btn" data-action="cleanHistory" class="control-button control-button-red themed-button-tertiary">Clean Orphaned History</button>
+            <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded border-yellow-400 bg-yellow-50">
+                <h4 class="font-semibold text-yellow-800">Orphaned History Cleanup</h4>
+                <p id="orphan-summary" class="text-sm text-yellow-700 my-2"></p>
+                <p class="text-xs text-gray-600 mb-3">The following history records belong to tasks that have been deleted. You can select and remove them to clean up your calendar view.</p>
+                <div id="orphan-list-container" class="max-h-60 overflow-y-auto border rounded bg-white p-2 space-y-2">
+                    <!-- Orphaned tasks will be listed here -->
+                </div>
+                <div class="mt-3 flex justify-between items-center">
+                    <label class="text-xs flex items-center"><input type="checkbox" id="select-all-orphans-checkbox" class="mr-2">Select All</label>
+                    <button id="delete-selected-orphans-btn" data-action="deleteSelectedOrphans" class="control-button control-button-red themed-button-tertiary">Delete Selected</button>
+                </div>
             </div>
 
             <div class="mt-6 pt-4 border-t border-gray-600">

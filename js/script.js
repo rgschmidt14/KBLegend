@@ -2625,33 +2625,66 @@ function confirmRestoreDefaultsAction(confirmed) {
 
 // --- Data Migration Tool Functions ---
 
-function analyzeAndPrepareMigrationModal() {
-    const historyAnalysisSection = document.getElementById('history-analysis-section');
-    const historyIssuesSummary = document.getElementById('history-issues-summary');
-    if (!historyAnalysisSection || !historyIssuesSummary) return;
+// Refactored to accept the modal element directly, preventing race conditions.
+function analyzeAndPrepareMigrationModal(modalElement) {
+    const orphanCleanupSection = modalElement.querySelector('#orphan-cleanup-section');
+    const orphanSummary = modalElement.querySelector('#orphan-summary');
+    const orphanListContainer = modalElement.querySelector('#orphan-list-container');
+    if (!orphanCleanupSection || !orphanSummary || !orphanListContainer) {
+        return;
+    }
 
     const taskIds = new Set(tasks.map(t => t.id));
-    const orphanedHistory = appState.historicalTasks.filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
+    const orphanedHistory = appState.historicalTasks
+        .map((h, index) => ({ ...h, historyId: index })) // Assign a temporary unique ID
+        .filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
 
     if (orphanedHistory.length > 0) {
-        historyIssuesSummary.textContent = `Found ${orphanedHistory.length} orphaned history record(s). These are records from tasks that no longer exist.`;
-        historyAnalysisSection.classList.remove('hidden');
+        orphanSummary.textContent = `Found ${orphanedHistory.length} orphaned history record(s).`;
+
+        orphanListContainer.innerHTML = orphanedHistory.map(orphan => {
+            const completionDate = new Date(orphan.completionDate).toLocaleString();
+            return `
+                <div class="flex items-center justify-between text-sm text-gray-800">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" class="orphan-checkbox" data-history-id="${orphan.historyId}">
+                        <span><strong>${orphan.name || 'Unnamed Task'}</strong> (${orphan.status})</span>
+                    </label>
+                    <span class="text-xs text-gray-500">${completionDate}</span>
+                </div>
+            `;
+        }).join('');
+
+        orphanCleanupSection.classList.remove('hidden');
     } else {
-        historyAnalysisSection.classList.add('hidden');
+        orphanListContainer.innerHTML = '';
+        orphanCleanupSection.classList.add('hidden');
     }
 }
 
-function cleanHistoryAction() {
-    if (confirm("Are you sure you want to remove all orphaned history records? This cannot be undone.")) {
-        const taskIds = new Set(tasks.map(t => t.id));
+function deleteSelectedOrphansAction() {
+    const selectedIds = new Set();
+    dataMigrationModal.querySelectorAll('.orphan-checkbox:checked').forEach(checkbox => {
+        selectedIds.add(parseInt(checkbox.dataset.historyId, 10));
+    });
+
+    if (selectedIds.size === 0) {
+        alert("No records selected for deletion.");
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} selected history record(s)? This cannot be undone.`)) {
         const originalCount = appState.historicalTasks.length;
-        appState.historicalTasks = appState.historicalTasks.filter(h => h.originalTaskId && taskIds.has(h.originalTaskId));
+        appState.historicalTasks = appState.historicalTasks.filter((_, index) => !selectedIds.has(index));
         const removedCount = originalCount - appState.historicalTasks.length;
+
         saveData();
-        analyzeAndPrepareMigrationModal(); // Re-run analysis to update the UI
-        alert(`${removedCount} orphaned history record(s) have been cleaned.`);
+        analyzeAndPrepareMigrationModal(dataMigrationModal); // Re-run analysis to update the UI
+        if (calendar) calendar.refetchEvents();
+        alert(`${removedCount} orphaned history record(s) have been deleted.`);
     }
 }
+
 
 function deleteAllHistory() {
     if (confirm("Are you absolutely sure you want to delete ALL task history? This will permanently erase all completion and miss records for all tasks. This action cannot be undone.")) {
@@ -2668,6 +2701,12 @@ function openDataMigrationModal(tasksData = null) {
     if (!dataMigrationModal) return;
     dataMigrationModal.innerHTML = dataMigrationModalTemplate();
 
+    // Force a solid background to fix theme-related transparency issues.
+    const modalContent = dataMigrationModal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.backgroundColor = '#2d3748';
+    }
+
     // Add event listeners for the new modal
     const closeButton = dataMigrationModal.querySelector('.close-button');
     if (closeButton) {
@@ -2677,10 +2716,21 @@ function openDataMigrationModal(tasksData = null) {
     if (fileInput) {
         fileInput.addEventListener('change', handleMigrationFileSelect);
     }
-    const cleanHistoryBtn = document.getElementById('clean-history-btn');
-    if (cleanHistoryBtn) {
-        cleanHistoryBtn.addEventListener('click', cleanHistoryAction);
+
+    const deleteSelectedBtn = document.getElementById('delete-selected-orphans-btn');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', deleteSelectedOrphansAction);
     }
+
+    const selectAllCheckbox = document.getElementById('select-all-orphans-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            dataMigrationModal.querySelectorAll('.orphan-checkbox').forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
+    }
+
     const deleteAllHistoryBtn = document.getElementById('delete-all-history-btn');
     if (deleteAllHistoryBtn) {
         deleteAllHistoryBtn.addEventListener('click', deleteAllHistory);
@@ -2706,7 +2756,7 @@ function openDataMigrationModal(tasksData = null) {
         runConfirmBtn.addEventListener('click', runMigration);
     }
 
-    analyzeAndPrepareMigrationModal();
+    analyzeAndPrepareMigrationModal(dataMigrationModal);
 
     if (tasksData) {
         prepareMigrationUI(tasksData);
@@ -4687,6 +4737,17 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeDOMElements(); // From Task Manager
         setupEventListeners();   // From Task Manager
         loadData();              // From Task Manager
+
+        // Automatically check for and prompt user to clean orphaned history on startup.
+        const taskIds = new Set(tasks.map(t => t.id));
+        const orphanedHistory = appState.historicalTasks.filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
+        if (orphanedHistory.length > 0) {
+            // Use a short timeout to ensure the rest of the UI has a chance to render first
+            setTimeout(() => {
+                openDataMigrationModal();
+            }, 500);
+        }
+
         setAppTitle(appSettings.title); // Set the title on load
         console.log("Task Manager initialized.");
     } catch (e) {
