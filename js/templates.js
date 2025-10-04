@@ -186,9 +186,15 @@ export function categoryManagerTemplate(categories) {
                         <button data-action="deleteCategory" data-category-id="${cat.id}" class="themed-button-clear font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
                     </div>
                 </div>
-                <div class="mt-2 flex justify-end space-x-2">
-                    <button data-action="bulkEdit" data-category-id="${cat.id}" class="themed-button-clear text-xs">Bulk Edit</button>
-                    <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="themed-button-clear text-xs">Delete All Tasks</button>
+                <div class="mt-2 flex justify-between items-center">
+                    <label class="text-xs flex items-center" title="If checked, new tasks created with this category will automatically use this icon.">
+                        <input type="checkbox" data-action="toggleApplyIcon" data-category-id="${cat.id}" class="mr-2" ${cat.applyIconToNewTasks ? 'checked' : ''}>
+                        Auto-apply icon
+                    </label>
+                    <div class="flex justify-end space-x-2">
+                        <button data-action="bulkEdit" data-category-id="${cat.id}" class="themed-button-clear text-xs">Bulk Edit</button>
+                        <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="themed-button-clear text-xs">Delete All Tasks</button>
+                    </div>
                 </div>
                 <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
             </div>

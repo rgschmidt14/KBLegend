@@ -56,13 +56,17 @@ const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
 const iconCategories = {
-    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun'],
-    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap'],
-    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users'],
-    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank'],
-    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope'],
-    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase'],
-    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice'],
+    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun', 'fa-solid fa-fire', 'fa-solid fa-trophy', 'fa-solid fa-shield-halved', 'fa-solid fa-bookmark'],
+    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap', 'fa-solid fa-chart-pie', 'fa-solid fa-magnifying-glass-chart', 'fa-solid fa-paperclip'],
+    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users', 'fa-solid fa-bullhorn', 'fa-solid fa-address-book'],
+    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank', 'fa-solid fa-money-bill-wave', 'fa-solid fa-receipt', 'fa-solid fa-chart-line'],
+    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope', 'fa-solid fa-brain', 'fa-solid fa-weight-scale', 'fa-solid fa-spa'],
+    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase', 'fa-solid fa-passport', 'fa-solid fa-bed'],
+    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice', 'fa-solid fa-burger', 'fa-solid fa-seedling', 'fa-solid fa-carrot'],
+    'Nature & Weather': ['fa-solid fa-tree', 'fa-solid fa-leaf', 'fa-solid fa-mountain-sun', 'fa-solid fa-water', 'fa-solid fa-cloud-sun', 'fa-solid fa-cloud-rain', 'fa-solid fa-snowflake', 'fa-solid fa-wind'],
+    'Animals': ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-fish-fins', 'fa-solid fa-crow', 'fa-solid fa-spider', 'fa-solid fa-otter', 'fa-solid fa-dragon'],
+    'Gaming & Hobbies': ['fa-solid fa-gamepad', 'fa-solid fa-dice-d20', 'fa-solid fa-ghost', 'fa-solid fa-puzzle-piece', 'fa-solid fa-music', 'fa-solid fa-guitar', 'fa-solid fa-paintbrush'],
+    'Symbols & Shapes': ['fa-solid fa-shapes', 'fa-solid fa-diamond', 'fa-solid fa-circle', 'fa-solid fa-square', 'fa-solid fa-bahai', 'fa-solid fa-atom', 'fa-solid fa-certificate', 'fa-solid fa-anchor'],
 };
 
 const MS_PER_MINUTE = 60000;
@@ -73,7 +77,8 @@ const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
 let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskIconInput,
-    iconPickerModal, dataMigrationModal,
+    iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
+    journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
     dueDateTypeSelect, relativeDueDateGroup,
     relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
@@ -101,7 +106,7 @@ let app, weeklyGoalsEl,
     progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
     cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
     weekStatusEl, weekDateRangeEl,
-    showTaskManagerBtn, showCalendarBtn, showDashboardBtn, taskManagerView, calendarView, dashboardView,
+    showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView,
     taskViewModal, taskViewContent, taskStatsContent;
 
 // FullCalendar instance
@@ -117,6 +122,7 @@ const appState = {
     weeks: [],
     indicators: [],
     historicalTasks: [],
+    journal: [],
     viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
 };
 
@@ -193,8 +199,7 @@ function calculatePendingCycles(task, nowMs) {
         if (task.repetitionType === 'relative' && task.repetitionAmount && task.repetitionUnit) {
             const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
             if (intervalMs > 0) {
-                cycles = Math.floor((nowMs - originalDueDateMs) / intervalMs);
-                cycles = Math.max(0, cycles) + 1;
+                    cycles = Math.floor((nowMs - originalDueDateMs) / intervalMs) + 1;
             } else {
                 console.warn(`Invalid relative interval for task ${task.id}. Defaulting to 1 cycle.`);
                 cycles = 1;
@@ -1276,6 +1281,24 @@ function toggleCompletionFields(type) {
         }
     }
 }
+
+function archiveNonRepeatingTask(task, status, progress = 1) {
+    const originalDueDate = new Date(task.originalDueDate || task.dueDate);
+    const historicalTask = {
+        originalTaskId: task.id,
+        name: task.name,
+        completionDate: originalDueDate, // The time for calendar placement
+        actionDate: new Date(),         // The actual time of action
+        status: status,
+        categoryId: task.categoryId,
+        durationAmount: task.estimatedDurationAmount,
+        durationUnit: task.estimatedDurationUnit,
+        progress: progress,
+        originalDueDate: originalDueDate // The scheduled due date
+    };
+    appState.historicalTasks.push(historicalTask);
+    tasks = tasks.filter(t => t.id !== task.id); // Remove from active tasks
+}
 function toggleAbsoluteRepetitionFields(frequency) {
     absoluteWeeklyOptions.classList.toggle('hidden', frequency !== 'weekly');
     absoluteMonthlyOptions.classList.toggle('hidden', frequency !== 'monthly');
@@ -1814,9 +1837,172 @@ function renderIconPicker() {
     content.innerHTML = iconPickerTemplate(iconCategories);
 }
 
-function openIconPicker() {
+function openIconPicker(context = 'task') {
     renderIconPicker();
+    // A bit of a hack to manage context for the icon picker
+    if (context === 'journal') {
+        iconPickerModal.dataset.context = 'journal';
+    } else {
+        delete iconPickerModal.dataset.context;
+    }
     activateModal(iconPickerModal);
+}
+
+function renderJournalEntry(entry) {
+    return `
+        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" style="background-color: #2d3748;">
+            <div class="flex justify-between items-start">
+                <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${entry.title}</h3>
+                <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
+            </div>
+            <div class="prose prose-invert mt-2 max-w-none">${entry.content}</div>
+            <div class="text-xs text-gray-500 mt-2 text-right">${entry.editedAt ? `(Edited: ${new Date(entry.editedAt).toLocaleString()})` : ''}</div>
+             <div class="flex justify-end space-x-2 mt-2">
+                <button data-action="editJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Edit</button>
+                <button data-action="deleteJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Delete</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderJournal() {
+    const list = document.getElementById('journal-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    if (appState.journal.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
+        return;
+    }
+
+    const sortBy = document.getElementById('journal-sort-by').value;
+    const sortDir = document.getElementById('journal-sort-direction').value;
+
+    if (sortBy === 'date') {
+        const entriesByWeek = {};
+        appState.journal.forEach(entry => {
+            const entryDate = new Date(entry.createdAt);
+            const weekStart = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
+            if (!entriesByWeek[weekStart]) {
+                entriesByWeek[weekStart] = [];
+            }
+            entriesByWeek[weekStart].push(entry);
+        });
+
+        const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
+            const dateA = new Date(a);
+            const dateB = new Date(b);
+            return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+
+        sortedWeeks.forEach(weekStartISO => {
+            const weekData = appState.weeks.find(w => new Date(w.startDate).toISOString() === weekStartISO);
+            const weeklyGoal = weekData ? weekData.weeklyGoals : 'No goal set for this week.';
+
+            const weekStartDate = new Date(weekStartISO);
+            const weekEndDate = new Date(weekStartDate);
+            weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+            const headerHtml = `
+                <div class="journal-week-header my-4 p-3 bg-gray-800 rounded-lg">
+                    <h3 class="text-lg font-bold text-white">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
+                    <div class="prose prose-sm prose-invert mt-2 max-w-none">${weeklyGoal}</div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', headerHtml);
+
+            const entries = entriesByWeek[weekStartISO];
+            entries.sort((a, b) => {
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
+                return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+        });
+
+    } else if (sortBy === 'icon') {
+        const entriesByIcon = {};
+        appState.journal.forEach(entry => {
+            const icon = entry.icon || 'No Icon';
+            if (!entriesByIcon[icon]) {
+                entriesByIcon[icon] = [];
+            }
+            entriesByIcon[icon].push(entry);
+        });
+
+        const sortedIcons = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
+        if (sortDir === 'desc') sortedIcons.reverse();
+
+        sortedIcons.forEach(icon => {
+            const displayName = icon.replace('fa-solid', '').replace('fa-brands', '').replace('fa-', '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
+            const headerHtml = `
+                <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md">
+                    <h3 class="font-bold text-white">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', headerHtml);
+
+            const entries = entriesByIcon[icon];
+            entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Always sort by date within icon group
+
+            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+        });
+    }
+}
+
+
+function openJournalModal(entryId = null) {
+    journalForm.reset();
+    if (entryId) {
+        const entry = appState.journal.find(e => e.id === entryId);
+        if (!entry) return;
+        journalModalTitle.textContent = 'Edit Journal Entry';
+        journalEntryIdInput.value = entry.id;
+        journalEntryTitleInput.value = entry.title;
+        journalEntryIconInput.value = entry.icon || '';
+        journalEntryContentInput.value = entry.content;
+    } else {
+        journalModalTitle.textContent = 'New Journal Entry';
+        journalEntryIdInput.value = '';
+    }
+    activateModal(journalModal);
+}
+
+function closeJournalModal() {
+    deactivateModal(journalModal);
+}
+
+function handleJournalFormSubmit(event) {
+    event.preventDefault();
+    const id = journalEntryIdInput.value;
+    const now = new Date().toISOString();
+    const entryData = {
+        title: journalEntryTitleInput.value.trim(),
+        icon: journalEntryIconInput.value.trim(),
+        content: journalEntryContentInput.value,
+    };
+
+    if (id) { // Editing
+        const entryIndex = appState.journal.findIndex(e => e.id === id);
+        if (entryIndex > -1) {
+            appState.journal[entryIndex] = {
+                ...appState.journal[entryIndex],
+                ...entryData,
+                editedAt: now
+            };
+        }
+    } else { // Creating
+        entryData.id = generateId();
+        entryData.createdAt = now;
+        entryData.editedAt = null;
+        appState.journal.push(entryData);
+    }
+
+    savePlannerData();
+    renderJournal();
+    closeJournalModal();
 }
 
 
@@ -1938,8 +2124,9 @@ function handleFormSubmit(event) {
                 const newCategory = {
                     id: newCategoryName,
                     name: newCategoryName,
-                color: getRandomColor(),
-                icon: null
+                    color: getRandomColor(),
+                    icon: null,
+                    applyIconToNewTasks: false
                 };
                 categories.push(newCategory);
                 taskData.categoryId = newCategory.id;
@@ -2062,87 +2249,66 @@ function confirmCompletionAction(taskId, confirmed) {
     if (taskIndex === -1) return;
 
     let task = tasks[taskIndex];
+    const now = new Date();
     const cyclesToComplete = task.pendingCycles || 1;
     const wasOverdue = !!task.overdueStartDate;
-    const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+    const baseDate = wasOverdue ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
     if (confirmed) {
         stopTaskTimer(taskId);
 
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
-            let pastDueDates = [];
-            if (cyclesToComplete > 0) {
-                if (task.repetitionType === 'relative') {
-                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-                    if (intervalMs > 0) {
-                        for (let i = 0; i < cyclesToComplete; i++) {
-                            pastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
-                        }
-                    }
-                } else { // absolute
-                    // Look 5 years ahead for safety, then take the number of cycles needed.
-                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
-                    pastDueDates = [baseDate, ...occurrences.slice(0, cyclesToComplete - 1)];
-                }
-            }
+            const pastDueDates = getAllPastDueDates(task, baseDate, now, cyclesToComplete);
 
             pastDueDates.forEach(dueDate => {
+                const originalDueDate = new Date(dueDate);
                 const historicalTask = {
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
-                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 1, // Full completion
-                    originalDueDate: dueDate
+                    originalTaskId: task.id, name: task.name,
+                    completionDate: originalDueDate, // For calendar placement
+                    actionDate: new Date(),        // The actual time of action
+                    status: 'completed',
+                    categoryId: task.categoryId,
+                    durationAmount: task.estimatedDurationAmount,
+                    durationUnit: task.estimatedDurationUnit,
+                    progress: 1,
+                    originalDueDate: originalDueDate
                 };
                 appState.historicalTasks.push(historicalTask);
             });
 
-
             const missesBefore = task.misses || 0;
             task.misses = Math.max(0, missesBefore - cyclesToComplete);
-            let missCountReduced = task.misses < missesBefore;
+            task.completionReducedMisses = task.misses < missesBefore;
 
+            const lastDueDate = pastDueDates.length > 0 ? pastDueDates[pastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
             if (task.repetitionType === 'relative') {
-                let current = new Date(baseDate);
-                for (let i = 0; i < cyclesToComplete; i++) current = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, current);
-                nextDueDate = current;
+                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
             } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(baseDate.getFullYear() + 5, 0, 1));
-                if (futureOccurrences.length >= cyclesToComplete) nextDueDate = futureOccurrences[cyclesToComplete - 1];
+                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
+                if (futureOccurrences.length > 0) {
+                    nextDueDate = futureOccurrences[0];
+                }
             }
+            task.dueDate = nextDueDate;
 
-            const sensitivityParams = getSensitivityParameters();
-            if (nextDueDate) {
-                task.dueDate = nextDueDate;
-                task.status = wasOverdue ? calculateStatus(task, Date.now(), tasks, sensitivityParams).name : 'blue';
-                task.cycleEndDate = wasOverdue ? null : baseDate;
-                task.completionReducedMisses = missCountReduced;
-            } else {
-                task.status = calculateStatus(task, Date.now(), tasks, sensitivityParams).name;
-                delete task.completionReducedMisses;
-            }
-            task.currentProgress = 0;
-            task.completed = false;
-            task.confirmationState = null;
-            delete task.pendingCycles;
-            delete task.overdueStartDate;
-            saveData();
-            updateAllTaskStatuses(true);
+            task.status = 'blue';
+            task.cycleEndDate = wasOverdue ? null : new Date(now);
 
-        } else { // Logic for non-repeating tasks
-            const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
-                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: 1,
-                originalDueDate: new Date(baseDate)
-            };
-            appState.historicalTasks.push(historicalTask);
-            tasks = tasks.filter(t => t.id !== taskId);
-            saveData();
-            updateAllTaskStatuses(true);
-            return;
+        } else {
+            // Logic for non-repeating tasks using the new helper
+            task.originalDueDate = new Date(baseDate); // Ensure originalDueDate is set for the archive function
+            archiveNonRepeatingTask(task, 'completed', 1);
         }
+
+        // Common cleanup for both types
+        task.currentProgress = 0;
+        task.completed = false;
+        task.confirmationState = null;
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
+
     } else { // User clicked "No"
         if (wasOverdue) {
             task.confirmationState = 'awaiting_overdue_input';
@@ -2155,14 +2321,40 @@ function confirmCompletionAction(taskId, confirmed) {
         }
         delete task.pendingCycles;
         delete task.overdueStartDate;
-        // Do not nullify confirmationState here if it was just set
         if (task.confirmationState !== 'awaiting_overdue_input') {
             task.confirmationState = null;
         }
-        saveData();
-        updateAllTaskStatuses(true);
     }
+
+    saveData();
+    updateAllTaskStatuses(true);
 }
+function getAllPastDueDates(task, baseDate, now, cycles) {
+    const pastDueDates = [];
+    if (cycles <= 0) return pastDueDates;
+
+    // Start with the base date, as it's the first overdue instance.
+    pastDueDates.push(baseDate);
+
+    if (task.repetitionType === 'relative') {
+        const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+        if (intervalMs > 0) {
+            let nextDueDate = new Date(baseDate.getTime() + intervalMs);
+            while (nextDueDate <= now && pastDueDates.length < cycles) {
+                pastDueDates.push(nextDueDate);
+                nextDueDate = new Date(nextDueDate.getTime() + intervalMs);
+            }
+        }
+    } else if (task.repetitionType === 'absolute') {
+        // Find occurrences *after* the base date up to now.
+        const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), now);
+        pastDueDates.push(...occurrences);
+    }
+
+    // Return the correct number of cycles, sorted just in case.
+    return pastDueDates.sort((a, b) => a - b).slice(0, cycles);
+}
+
 function confirmUndoAction(taskId, confirmed) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -2190,111 +2382,85 @@ function confirmMissAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
     let task = tasks[taskIndex];
+    const now = new Date();
 
     if (confirmed) {
         const totalCycles = task.pendingCycles || 1;
         const inputEl = document.getElementById(`miss-count-input-${taskId}`);
         const missesToApply = (inputEl && totalCycles > 1) ? parseInt(inputEl.value, 10) : totalCycles;
         const completionsToApply = totalCycles - missesToApply;
-        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || new Date());
+        const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
         let progress = 0;
         if (task.completionType === 'count' && task.countTarget > 0) {
             progress = (task.currentProgress || 0) / task.countTarget;
         } else if (task.completionType === 'time') {
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-            if (targetMs > 0) {
-                progress = (task.currentProgress || 0) / targetMs;
-            }
+            if (targetMs > 0) progress = (task.currentProgress || 0) / targetMs;
         }
-        progress = Math.min(1, Math.max(0, progress)); // Clamp between 0 and 1
+        progress = Math.min(1, Math.max(0, progress));
 
         if (task.repetitionType !== 'none') {
-            // New logic for repeating tasks with partial misses/completions
-            let allPastDueDates = [];
-            if (totalCycles > 0) {
-                if (task.repetitionType === 'relative') {
-                    const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-                    if (intervalMs > 0) {
-                        for (let i = 0; i < totalCycles; i++) {
-                            allPastDueDates.push(new Date(baseDate.getTime() + i * intervalMs));
-                        }
-                    }
-                } else { // absolute
-                    const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), new Date(Date.now() + MS_PER_DAY * 365 * 5));
-                    allPastDueDates = [baseDate, ...occurrences.slice(0, totalCycles - 1)];
-                }
-            }
+            const allPastDueDates = getAllPastDueDates(task, baseDate, now, totalCycles);
 
             const completionDates = allPastDueDates.slice(0, completionsToApply);
             const missDates = allPastDueDates.slice(completionsToApply);
 
-            // Log all completions
             completionDates.forEach(dueDate => {
+                const originalDueDate = new Date(dueDate);
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'completed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'completed',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 1, originalDueDate: dueDate
+                    progress: 1, originalDueDate: originalDueDate
                 });
             });
 
-            // Log all misses
-            missDates.forEach(dueDate => {
+            missDates.forEach((dueDate, index) => {
+                const originalDueDate = new Date(dueDate);
+                const isFinalMiss = index === missDates.length - 1;
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'missed',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 0, originalDueDate: dueDate // Assuming 0 progress for a full miss
+                    progress: isFinalMiss ? progress : 0, // Only apply partial progress to the last miss
+                    originalDueDate: originalDueDate
                 });
             });
 
-            // Update miss count
-            if (completionsToApply > 0) {
-                task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
-            }
-            if (missesToApply > 0 && task.trackMisses) {
-                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
-            }
+            if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
+            if (missesToApply > 0 && task.trackMisses) task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
 
-            // Calculate next due date
-            const lastProcessedDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : new Date(baseDate);
+            const lastDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
-
             if (task.repetitionType === 'relative') {
-                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastProcessedDueDate);
+                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
             } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastProcessedDueDate.getTime() + 1), new Date(lastProcessedDueDate.getFullYear() + 5, 0, 1));
+                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
                 if (futureOccurrences.length > 0) {
                     nextDueDate = futureOccurrences[0];
                 }
             }
-
             task.dueDate = nextDueDate;
-            task.cycleEndDate = null;
-            task.currentProgress = 0;
-            task.confirmationState = null;
-            delete task.pendingCycles;
-            delete task.overdueStartDate;
-        } else { // Logic for non-repeating tasks
-            const historicalTask = {
-                originalTaskId: task.id, name: task.name, completionDate: new Date(), status: 'missed',
-                categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: progress,
-                originalDueDate: new Date(baseDate)
-            };
-            appState.historicalTasks.push(historicalTask);
-            tasks = tasks.filter(t => t.id !== taskId);
-            // Save and render immediately, then exit function.
-            saveData();
-            updateAllTaskStatuses(true);
-            return;
+
+        } else {
+            task.originalDueDate = new Date(baseDate);
+            archiveNonRepeatingTask(task, 'missed', progress);
         }
+
+        task.cycleEndDate = null;
+        task.currentProgress = 0;
+        task.confirmationState = null;
+        delete task.pendingCycles;
+        delete task.overdueStartDate;
+
     } else {
         task.confirmationState = 'awaiting_overdue_input';
         delete task.pendingCycles;
         delete task.overdueStartDate;
     }
 
-    task.confirmationState = null;
+    if (task.confirmationState !== 'awaiting_overdue_input') {
+        task.confirmationState = null;
+    }
     saveData();
     updateAllTaskStatuses(true);
 }
@@ -2441,7 +2607,8 @@ function addCategoryFromInline() {
             id: newCategoryName,
             name: newCategoryName,
             color: getRandomColor(),
-            icon: null
+            icon: null,
+            applyIconToNewTasks: false
         };
         categories.push(newCategory);
         saveData();
@@ -3347,6 +3514,15 @@ function initializeDOMElements() {
     taskViewContent = document.getElementById('task-view-content');
     taskStatsContent = document.getElementById('task-stats-content');
 
+    // Journal
+    journalModal = document.getElementById('journal-modal');
+    journalForm = document.getElementById('journal-form');
+    journalModalTitle = document.getElementById('journal-modal-title');
+    journalEntryIdInput = document.getElementById('journal-entry-id');
+    journalEntryTitleInput = document.getElementById('journal-entry-title');
+    journalEntryIconInput = document.getElementById('journal-entry-icon');
+    journalEntryContentInput = document.getElementById('journal-entry-content');
+
     // Pilot Planner
     app = document.getElementById('app');
     weeklyGoalsEl = document.getElementById('weeklyGoals');
@@ -3370,9 +3546,11 @@ function initializeDOMElements() {
     showTaskManagerBtn = document.getElementById('show-task-manager-btn');
     showCalendarBtn = document.getElementById('show-calendar-btn');
     showDashboardBtn = document.getElementById('show-dashboard-btn');
+    showJournalBtn = document.getElementById('show-journal-btn');
     taskManagerView = document.getElementById('task-manager-view');
     calendarView = document.getElementById('calendar-view');
     dashboardView = document.getElementById('dashboard-view');
+    journalView = document.getElementById('journal-view');
 }
 function setupEventListeners() {
     // Task Manager
@@ -3420,7 +3598,11 @@ function setupEventListeners() {
 
     const openIconPickerBtn = document.getElementById('open-icon-picker');
     if (openIconPickerBtn) {
-        openIconPickerBtn.addEventListener('click', openIconPicker);
+        openIconPickerBtn.addEventListener('click', () => openIconPicker('task'));
+    }
+    const openJournalIconPickerBtn = document.getElementById('open-journal-icon-picker');
+    if(openJournalIconPickerBtn) {
+        openJournalIconPickerBtn.addEventListener('click', () => openIconPicker('journal'));
     }
 
     if (iconPickerModal) {
@@ -3445,7 +3627,9 @@ function setupEventListeners() {
             const iconWrapper = e.target.closest('[data-icon]');
             if (iconWrapper) {
                 const iconClass = iconWrapper.dataset.icon;
-                if (editingCategoryIdForIcon) {
+                if (iconPickerModal.dataset.context === 'journal') {
+                    journalEntryIconInput.value = iconClass;
+                } else if (editingCategoryIdForIcon) {
                     const category = categories.find(c => c.id === editingCategoryIdForIcon);
                     if (category) {
                         category.icon = iconClass;
@@ -3492,10 +3676,16 @@ function setupEventListeners() {
         toggleCompletionFields(e.target.value);
     });
     taskCategorySelect.addEventListener('change', (e) => {
-        const isNew = e.target.value === 'new_category';
+        const categoryId = e.target.value;
+        const isNew = categoryId === 'new_category';
         newCategoryGroup.classList.toggle('hidden', !isNew);
         if (isNew) {
             newCategoryNameInput.focus();
+        } else {
+            const category = categories.find(c => c.id === categoryId);
+            if (category && category.icon && category.applyIconToNewTasks) {
+                taskIconInput.value = category.icon;
+            }
         }
     });
     window.addEventListener('mousedown', (event) => {
@@ -3600,6 +3790,14 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'toggleApplyIcon':
+                    const category = categories.find(c => c.id === categoryId);
+                    if (category) {
+                        category.applyIconToNewTasks = !category.applyIconToNewTasks;
+                        saveData();
+                        renderCategoryManager();
+                    }
+                    break;
                 case 'toggleStatusTheme':
                     theming.useThemeForStatus = !theming.useThemeForStatus;
                     applyTheme();
@@ -3880,10 +4078,10 @@ function setupEventListeners() {
 
     if (weeklyGoalsEl) {
         weeklyGoalsEl.addEventListener('blur', () => {
-            const week = appState.weeks[appState.viewingIndex];
+            // This should always save to the ACTUAL current week, not the one being viewed.
+            const week = appState.weeks[CURRENT_WEEK_INDEX];
             if (week) {
                 const newGoals = weeklyGoalsEl.innerHTML;
-                // Amendment checking removed as it was part of the old planner
                 week.weeklyGoals = newGoals;
                 savePlannerData();
             }
@@ -3905,7 +4103,8 @@ function setupEventListeners() {
             const views = [
                 { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
                 { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
-                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
+                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' },
+                { btn: showJournalBtn, view: journalView, id: 'journal-view' }
             ];
 
             views.forEach(item => {
@@ -3937,6 +4136,41 @@ function setupEventListeners() {
             stopNotificationEngine();
         }
     });
+
+    // Journal Listeners
+    const addJournalEntryBtn = document.getElementById('add-journal-entry-btn');
+    if (addJournalEntryBtn) {
+        addJournalEntryBtn.addEventListener('click', () => openJournalModal());
+    }
+    const journalSortBy = document.getElementById('journal-sort-by');
+    const journalSortDir = document.getElementById('journal-sort-direction');
+    if(journalSortBy) journalSortBy.addEventListener('change', renderJournal);
+    if(journalSortDir) journalSortDir.addEventListener('change', renderJournal);
+    if (journalForm) {
+        journalForm.addEventListener('submit', handleJournalFormSubmit);
+    }
+    const cancelJournalBtn = document.querySelector('.cancel-journal-button');
+    if(cancelJournalBtn) {
+        cancelJournalBtn.addEventListener('click', closeJournalModal);
+    }
+    const journalList = document.getElementById('journal-list');
+    if (journalList) {
+        journalList.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const id = target.dataset.id;
+            if (action === 'editJournal') {
+                openJournalModal(id);
+            } else if (action === 'deleteJournal') {
+                if (confirm('Are you sure you want to delete this journal entry?')) {
+                    appState.journal = appState.journal.filter(entry => entry.id !== id);
+                    savePlannerData();
+                    renderJournal();
+                }
+            }
+        });
+    }
 }
 
 function saveData() {
@@ -4124,10 +4358,15 @@ function loadData() {
     }
     if (storedTasks) {
         try {
-            let wasUpgraded = false;
+            let needsMigration = false;
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
-                const originalTaskJSON = JSON.stringify(task);
+                // A more robust check for an "old" task. The `requiresFullAttention` field
+                // replaced the old `countsAsBusy` field. Its absence is a reliable indicator.
+                if (task.requiresFullAttention === undefined) {
+                    needsMigration = true;
+                }
+
                 let tempTask = { ...task };
                 tempTask.dueDate = task.dueDate ? new Date(task.dueDate) : null;
                 tempTask.createdAt = task.createdAt ? new Date(task.createdAt) : new Date();
@@ -4138,16 +4377,12 @@ function loadData() {
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
 
-                const sanitizedTask = sanitizeAndUpgradeTask(tempTask);
-                if (JSON.stringify(sanitizedTask) !== originalTaskJSON) {
-                    wasUpgraded = true;
-                }
-                return sanitizedTask;
+                return sanitizeAndUpgradeTask(tempTask);
             });
 
             const lastCheck = localStorage.getItem('lastMigrationCheck');
             const today = new Date().toDateString();
-            if (wasUpgraded && lastCheck !== today) {
+            if (needsMigration && lastCheck !== today) {
                 // Pass the original parsed tasks to the migration tool automatically
                 openDataMigrationModal(parsedTasks);
                 localStorage.setItem('lastMigrationCheck', today);
@@ -4270,7 +4505,8 @@ const savePlannerData = () => {
 
     localStorage.setItem(DATA_KEY, JSON.stringify({
         weeks: appState.weeks,
-        indicators: appState.indicators
+        indicators: appState.indicators,
+        journal: appState.journal
         // historicalTasks is now saved separately
     }));
 };
@@ -4287,6 +4523,7 @@ const loadPlannerData = () => {
             if (week.originalState === undefined) week.originalState = null;
         });
         appState.indicators = parsedData.indicators || appState.indicators;
+        appState.journal = parsedData.journal || [];
 
         // One-time migration for historical tasks from old storage format.
         if (parsedData.historicalTasks && Array.isArray(parsedData.historicalTasks) && parsedData.historicalTasks.length > 0) {
@@ -4425,7 +4662,8 @@ function applyActiveView() {
     const views = [
         { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
         { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
-        { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' }
+        { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' },
+        { btn: showJournalBtn, view: journalView, id: 'journal-view' }
     ];
 
     const activeViewId = uiSettings.activeView || 'calendar-view'; // Default to calendar
@@ -4593,30 +4831,31 @@ function initializeCalendar() {
                     const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
                     const eventColor = adjustColor(baseColor, dullFactor);
 
-                    let borderColor = statusColors.green; // Default to green
+                    let borderColor = statusColors.green; // Default
                     if (ht.status === 'completed') {
+                        const actionDate = new Date(ht.actionDate);
                         const originalDueDate = new Date(ht.originalDueDate);
-                        const completionDate = new Date(ht.completionDate);
-                        if (!isNaN(originalDueDate) && !isNaN(completionDate) && completionDate < originalDueDate) {
-                            borderColor = statusColors.blue; // Ahead of schedule
+                        if (!isNaN(actionDate) && !isNaN(originalDueDate) && actionDate < originalDueDate) {
+                            borderColor = statusColors.blue; // Completed ahead of schedule
                         } else {
-                            borderColor = statusColors.green; // On time
+                            borderColor = statusColors.green; // Completed on or after due date
                         }
                     } else if (ht.status === 'missed') {
-                        // Handle cases where progress might be undefined/null for older data
-                        if (ht.progress === 0) {
+                        const progress = ht.progress ?? 0;
+                        if (progress === 0) {
                             borderColor = statusColors.black; // Complete miss
-                        } else if (ht.progress > 0 && ht.progress <= 0.5) {
-                            borderColor = statusColors.red; // Partial miss
-                        } else if (ht.progress > 0.5) {
-                            borderColor = statusColors.yellow; // Partial completion
+                        } else if (progress > 0 && progress < 0.5) {
+                            borderColor = statusColors.red; // Mostly missed
+                        } else if (progress >= 0.5 && progress < 1) {
+                            borderColor = statusColors.yellow; // Partially completed
                         } else {
                             borderColor = statusColors.black; // Default for miss with no progress data
                         }
                     }
 
+                    // The event is placed on the calendar based on its original due date
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                    const endDate = new Date(ht.completionDate);
+                    const endDate = new Date(ht.completionDate); // This is the original due date
                     const startDate = new Date(endDate.getTime() - durationMs);
 
                     calendarEvents.push({
@@ -4625,7 +4864,8 @@ function initializeCalendar() {
                         start: startDate,
                         end: endDate,
                         backgroundColor: eventColor,
-                        borderColor: borderColor, // Use the calculated border color
+                        borderColor: borderColor,
+                        borderWidth: '2px',
                         extendedProps: {
                             taskId: ht.originalTaskId,
                             isHistorical: true
@@ -4763,6 +5003,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(); // Apply theme after state is initialized
         initializeCalendar(); // New function to set up FullCalendar
         applyActiveView(); // Apply the saved view
+        renderJournal(); // Render journal entries on load
         console.log("Mission Planner initialized.");
     } catch (e) {
         console.error("Error during Mission Planner initialization:", e);

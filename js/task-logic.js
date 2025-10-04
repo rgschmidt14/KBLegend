@@ -326,9 +326,15 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
 
     // 5. Combine and filter for the final view
     const finalScheduledTasks = [...fullAttentionOccurrences, ...otherOccurrences];
+    const now = new Date();
 
+    // Final filter:
+    // - Must not be in the past (scheduledEndTime > now).
+    // - Must overlap with the current calendar view.
     return finalScheduledTasks.filter(o =>
-        o.scheduledStartTime < viewEndDate && o.scheduledEndTime > viewStartDate
+        o.scheduledEndTime.getTime() > now.getTime() &&
+        o.scheduledStartTime < viewEndDate &&
+        o.scheduledEndTime > viewStartDate
     );
 }
 

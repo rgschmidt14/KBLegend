@@ -71,6 +71,50 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.0) - 10/03/2025
+
+This update focused on expanding customization options and improving the Journal UI.
+
+*   **Enhanced Icon Library:** Significantly expanded the set of available icons for tasks, categories, and journal entries. Added several new categories ("Nature & Weather," "Animals," "Gaming & Hobbies," "Symbols & Shapes") and populated all categories with many more icon choices from Font Awesome.
+*   **Journal UI/UX Improvements:**
+    *   **Cleaner Icon Sorting:** When sorting the journal by icon, the group headers now display a clean, human-readable name (e.g., "Productivity" or "Star") instead of the raw Font Awesome class name.
+    *   **Conditional Goal Display:** Confirmed that the weekly goal is correctly displayed at the top of the journal entries for the relevant week *only* when sorting by date, as intended.
+
+### ✅ Recently Completed (Version 4.9) - 10/03/2025
+
+This update introduces the foundational Journal feature, improves UI/UX by relocating key controls, and fixes a persistent data-saving bug.
+
+*   **New! Journal Feature (Phase 1):**
+    *   **Dedicated View:** A new "Journal" view has been added to the main navigation, providing a dedicated space for daily entries.
+    *   **Create & Edit:** Users can create new journal entries with a title, a rich-text content area, and an optional icon. Existing entries can be edited or deleted.
+    *   **Data Persistence:** All journal entries are saved to `localStorage`, ensuring they persist between sessions. Entries are displayed in reverse chronological order.
+*   **UI/UX Improvements:**
+    *   **Accessible Sorting:** The sorting controls for the Task Manager (Sort By, Direction) have been moved from the Advanced Options modal directly into the Task Manager header, making them immediately accessible.
+    *   **Category Icons:** Categories can now have an icon assigned to them. A new "Auto-apply icon" checkbox in the category settings allows this icon to be automatically populated in the new task form when the category is selected.
+*   **Bug Fixes:**
+    *   **Weekly Goal Saving:** Fixed a critical bug where weekly goals were not being saved to the correct week. Goals are now always saved to the current week, regardless of which week is being viewed on the calendar.
+
+### ✅ Recently Completed (Version 4.8) - 10/02/2025
+
+This is a comprehensive overhaul of the task history and scheduling engine, resolving critical bugs related to duplicate tasks, incorrect calendar placement, and visual clarity.
+
+*   **Corrected Task History Logic:**
+    *   **No More Duplicates:** Fixed the root cause of task duplication. Non-repeating tasks are now correctly moved to a separate `historicalTasks` array upon completion or miss, permanently removing them from the active task list.
+    *   **Accurate Calendar Placement:** Historical tasks now appear on the calendar on the day they were *due*, not the day they were marked as completed. This provides a true and intuitive reflection of past schedules.
+    *   **Clean Future Projections:** The calendar no longer projects active tasks into the past. The scheduling view is now exclusively for upcoming events, eliminating visual clutter.
+
+*   **Enhanced Historical Task Styling:**
+    *   **At-a-Glance Status:** Historical tasks on the calendar now feature a detailed, color-coded border to indicate their exact outcome:
+        *   `Blue`: Completed ahead of schedule.
+        *   `Green`: Completed on or after the due date.
+        *   `Yellow`: Partially completed (e.g., more than 50% of a timed task).
+        *   `Red`: Mostly missed (e.g., less than 50% of a timed task).
+        *   `Black`: A complete miss (0% progress).
+    *   **Improved Data Granularity:** The history system now stores both the time a task was due (`originalDueDate`) and the time the user took action (`actionDate`) to enable this precise styling.
+
+*   **Robust Repetition Handling:**
+    *   **Accurate Cycle Tracking:** The logic for handling overdue repeating tasks has been completely refactored. When a user confirms multiple pending cycles at once, the system now correctly creates a distinct and accurately dated historical entry for *every single* cycle, whether it was completed or missed. This ensures perfect data integrity for user statistics.
+
 ### ✅ Recently Completed (Version 4.7) - 10/02/2025
 
 This update resolves a long-standing issue with "ghost" events on the calendar and introduces a powerful data integrity tool to give users more control over their data.
@@ -374,26 +418,15 @@ This update focused on improving the long-term stability and maintainability of 
 
 ### 📝 Backlog & To-Do List
 
-Here are the next items on our to-do list.
+Here is the next item on our to-do list.
 
-1.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
-    *   **Note:** This is a process reminder for us to follow for future updates.
-
-2.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
+1.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
     *   **Implementation Ideas:**
         *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
         *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
         *   **Category-Based Bypass:** In the advanced category settings, add an option to allow certain categories (e.g., "Medication," "Trip Planning") to bypass vacation mode. Tasks in these categories would still appear on the calendar during the vacation.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
-
-3.  **Implement Journal Feature:** Add a dedicated view for writing and reviewing daily journal entries.
-    *   **Implementation Ideas:**
-        *   Create a new "Journal" view alongside the Task Manager, Calendar, and Dashboard.
-        *   Allow users to write entries using a rich-text editor.
-        *   Entries should be associated with a specific date.
-        *   Users should be able to easily navigate between entries for different days.
-        *   Consider linking tasks or KPIs completed on a given day to that day's journal entry.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
@@ -404,6 +437,15 @@ These are larger, long-term goals for the project that are dependent on migratin
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
 *   **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list.
 *   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, providing deep insights into productivity trends over time.
+
+### **AI Suggestions & Future Improvements**
+
+This section is maintained by the AI assistant to log potential improvements and ideas for future development cycles that are identified during coding sessions.
+
+*   **Consolidate Repetition Logic:** The `generateAbsoluteOccurrences` function in `task-logic.js` and the new `getAllPastDueDates` in `script.js` have overlapping responsibilities for calculating date sequences. In a future refactor, their logic could be merged into a single, comprehensive date-generation utility within `task-logic.js` to reduce code duplication and centralize all scheduling calculations.
+*   **Historical View Performance:** As the `historicalTasks` array grows, loading and filtering it on every calendar view change could become a performance bottleneck. For a future update, consider implementing a more sophisticated caching or indexing strategy. For example, pre-process historical events into a structure grouped by week or month to speed up retrieval for the calendar's `events` function.
+*   **Undo Action Robustness:** The "Undo" functionality currently only removes the last completed history item. It does not account for the more complex scenarios handled by the new history logic (e.g., undoing one action out of a bulk confirmation). A future improvement would be to make the undo system more granular, perhaps by showing a list of recent actions that can be individually reverted.
+*   **Icon Picker UI Testability:** During development of Version 5.0, Playwright verification scripts consistently timed out when trying to interact with the icon picker modal. The category headers (e.g., "Animals", "Gaming & Hobbies") were difficult to locate reliably, even with explicit waits and scoped locators. This suggests a potential timing or visibility issue in the modal's rendering logic that makes it difficult to test programmatically. Future work on this component should investigate and improve its testability.
 
 ### **🔩 Ongoing Development**
 
