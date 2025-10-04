@@ -71,6 +71,24 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.2) - 10/03/2025
+
+This is a major feature release that introduces a powerful new "Vacation Mode" to prevent task pile-ups during time off, along with several critical bug fixes and developer tool improvements.
+
+*   **New! Vacation Mode:**
+    *   **Schedule Time Off:** From the "Advanced Options" menu, users can now schedule vacation periods with a start and end date.
+    *   **Automatic Task Pushing:** Any task whose due date falls within a scheduled vacation is now automatically pushed to the day after the vacation ends, preserving the original time of day. This prevents users from returning to a mountain of overdue tasks.
+    *   **Category-Based Bypass:** A new "Bypass Vacation" option has been added to each category's settings. Tasks in a category with this option enabled (e.g., "Medication") will ignore vacation mode and remain on their original schedule.
+    *   **Intelligent Repetition:** The logic for calculating the next due date for repeating tasks is now fully vacation-aware, ensuring that the next instance of a task is never scheduled during a vacation period.
+
+*   **Critical Bug Fixes:**
+    *   **Safe Historical Deletion:** Fixed a critical bug where attempting to delete a historical task record from the calendar view would incorrectly delete the active parent task. Clicking on a historical event now provides a safe, context-specific "Delete This Record" option that only removes that single entry.
+    *   **Icon Picker UI:** Resolved a UI bug where the icon picker modal could appear underneath the Advanced Options menu, making it impossible to use. The picker now correctly renders on top of all other modals.
+
+*   **Developer & Theming Tools:**
+    *   **Smarter Contrast Checker:** The internal contrast checking tool has been significantly improved. It now correctly handles elements with transparent backgrounds by checking against the first visible parent background, eliminating false-positive warnings for clear buttons.
+    *   **Contrast Fixes:** Based on the improved checker, several real contrast issues were fixed, including updating the default red status color to a more accessible shade. The tool is no longer run automatically for end-users but is preserved for internal pre-commit checks.
+
 ### ✅ Recently Completed (Version 5.1) - 10/03/2025
 
 This is a major UI/UX and stability update that addresses key user feedback points across the application, from statistics and task management to theming and the journal.
@@ -432,15 +450,7 @@ This update focused on improving the long-term stability and maintainability of 
 
 ### 📝 Backlog & To-Do List
 
-Here is the next item on our to-do list.
-
-1.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
-    *   **Implementation Ideas:**
-        *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
-        *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
-        *   **Category-Based Bypass:** In the advanced category settings, add an option to allow certain categories (e.g., "Medication," "Trip Planning") to bypass vacation mode. Tasks in these categories would still appear on the calendar during the vacation.
-        *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
-        *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
+There are currently no items in the backlog.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
