@@ -71,6 +71,15 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.0) - 10/03/2025
+
+This update focused on expanding customization options and improving the Journal UI.
+
+*   **Enhanced Icon Library:** Significantly expanded the set of available icons for tasks, categories, and journal entries. Added several new categories ("Nature & Weather," "Animals," "Gaming & Hobbies," "Symbols & Shapes") and populated all categories with many more icon choices from Font Awesome.
+*   **Journal UI/UX Improvements:**
+    *   **Cleaner Icon Sorting:** When sorting the journal by icon, the group headers now display a clean, human-readable name (e.g., "Productivity" or "Star") instead of the raw Font Awesome class name.
+    *   **Conditional Goal Display:** Confirmed that the weekly goal is correctly displayed at the top of the journal entries for the relevant week *only* when sorting by date, as intended.
+
 ### ✅ Recently Completed (Version 4.9) - 10/03/2025
 
 This update introduces the foundational Journal feature, improves UI/UX by relocating key controls, and fixes a persistent data-saving bug.
@@ -409,24 +418,15 @@ This update focused on improving the long-term stability and maintainability of 
 
 ### 📝 Backlog & To-Do List
 
-Here are the next items on our to-do list.
+Here is the next item on our to-do list.
 
-1.  **Keep the README Updated:** Remember to update the readme every time for each of the above so by the time we get here we can have erased them all from to-do next and they will be logged in recently completed. Thank you!
-    *   **Note:** This is a process reminder for us to follow for future updates.
-
-2.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
+1.  **Implement "Day Off / Vacation Mode":** This would be a powerful feature to prevent task pile-ups during scheduled time off.
     *   **Implementation Ideas:**
         *   **Scheduling:** Add a feature to schedule "vacation" periods with a start and end date/time. Also include a manual toggle for "Vacation Mode" that starts immediately and ends when toggled off, logging the start/end times.
         *   **Task Pushing:** Any recurring or "pushed" tasks that would land on a vacation day should be moved to the day *before* the vacation starts.
         *   **Category-Based Bypass:** In the advanced category settings, add an option to allow certain categories (e.g., "Medication," "Trip Planning") to bypass vacation mode. Tasks in these categories would still appear on the calendar during the vacation.
         *   **Due Date Calculation:** The logic for calculating new due dates for recurring tasks needs a major overhaul. It must check if a future due date falls within a scheduled vacation. If it does, and the task's category is not set to bypass, the due date should be pushed forward again until it lands on a non-vacation day.
         *   **Miss Tracking:** The system should not count tasks as "missed" if their due date was skipped over due to a vacation period. This prevents a user from returning to a sea of overdue tasks.
-
-3.  **Enhance Journal Feature (Phase 2):** Add advanced features to the new Journal.
-    *   **Implementation Ideas:**
-        *   **Advanced Sorting:** Add controls to sort journal entries by icon or by date (ascending/descending).
-        *   **Edit Tracking:** When an entry is edited, display an "Edited on [date]" timestamp.
-        *   **Weekly Goal Integration:** Display the weekly goal at the top of the journal entries for that week.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
@@ -445,6 +445,7 @@ This section is maintained by the AI assistant to log potential improvements and
 *   **Consolidate Repetition Logic:** The `generateAbsoluteOccurrences` function in `task-logic.js` and the new `getAllPastDueDates` in `script.js` have overlapping responsibilities for calculating date sequences. In a future refactor, their logic could be merged into a single, comprehensive date-generation utility within `task-logic.js` to reduce code duplication and centralize all scheduling calculations.
 *   **Historical View Performance:** As the `historicalTasks` array grows, loading and filtering it on every calendar view change could become a performance bottleneck. For a future update, consider implementing a more sophisticated caching or indexing strategy. For example, pre-process historical events into a structure grouped by week or month to speed up retrieval for the calendar's `events` function.
 *   **Undo Action Robustness:** The "Undo" functionality currently only removes the last completed history item. It does not account for the more complex scenarios handled by the new history logic (e.g., undoing one action out of a bulk confirmation). A future improvement would be to make the undo system more granular, perhaps by showing a list of recent actions that can be individually reverted.
+*   **Icon Picker UI Testability:** During development of Version 5.0, Playwright verification scripts consistently timed out when trying to interact with the icon picker modal. The category headers (e.g., "Animals", "Gaming & Hobbies") were difficult to locate reliably, even with explicit waits and scoped locators. This suggests a potential timing or visibility issue in the modal's rendering logic that makes it difficult to test programmatically. Future work on this component should investigate and improve its testability.
 
 ### **🔩 Ongoing Development**
 

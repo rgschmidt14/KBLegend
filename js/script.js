@@ -56,13 +56,17 @@ const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
 const iconCategories = {
-    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun'],
-    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap'],
-    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users'],
-    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank'],
-    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope'],
-    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase'],
-    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice'],
+    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun', 'fa-solid fa-fire', 'fa-solid fa-trophy', 'fa-solid fa-shield-halved', 'fa-solid fa-bookmark'],
+    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap', 'fa-solid fa-chart-pie', 'fa-solid fa-magnifying-glass-chart', 'fa-solid fa-paperclip'],
+    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users', 'fa-solid fa-bullhorn', 'fa-solid fa-address-book'],
+    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank', 'fa-solid fa-money-bill-wave', 'fa-solid fa-receipt', 'fa-solid fa-chart-line'],
+    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope', 'fa-solid fa-brain', 'fa-solid fa-weight-scale', 'fa-solid fa-spa'],
+    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase', 'fa-solid fa-passport', 'fa-solid fa-bed'],
+    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice', 'fa-solid fa-burger', 'fa-solid fa-seedling', 'fa-solid fa-carrot'],
+    'Nature & Weather': ['fa-solid fa-tree', 'fa-solid fa-leaf', 'fa-solid fa-mountain-sun', 'fa-solid fa-water', 'fa-solid fa-cloud-sun', 'fa-solid fa-cloud-rain', 'fa-solid fa-snowflake', 'fa-solid fa-wind'],
+    'Animals': ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-fish-fins', 'fa-solid fa-crow', 'fa-solid fa-spider', 'fa-solid fa-otter', 'fa-solid fa-dragon'],
+    'Gaming & Hobbies': ['fa-solid fa-gamepad', 'fa-solid fa-dice-d20', 'fa-solid fa-ghost', 'fa-solid fa-puzzle-piece', 'fa-solid fa-music', 'fa-solid fa-guitar', 'fa-solid fa-paintbrush'],
+    'Symbols & Shapes': ['fa-solid fa-shapes', 'fa-solid fa-diamond', 'fa-solid fa-circle', 'fa-solid fa-square', 'fa-solid fa-bahai', 'fa-solid fa-atom', 'fa-solid fa-certificate', 'fa-solid fa-anchor'],
 };
 
 const MS_PER_MINUTE = 60000;
@@ -1932,9 +1936,10 @@ function renderJournal() {
         if (sortDir === 'desc') sortedIcons.reverse();
 
         sortedIcons.forEach(icon => {
+            const displayName = icon.replace('fa-solid', '').replace('fa-brands', '').replace('fa-', '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
             const headerHtml = `
                 <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md">
-                    <h3 class="font-bold text-white">${icon === 'No Icon' ? icon : `<i class="${icon} mr-2"></i> ${icon}`}</h3>
+                    <h3 class="font-bold text-white">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', headerHtml);
