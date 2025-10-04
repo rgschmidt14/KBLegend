@@ -1,5 +1,5 @@
 import { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -336,14 +336,82 @@ function getRandomColor() {
     };
     return hslToHex(hue, 80, 85);
 }
-// New helper function to get the luminance of a color
+// New helper function to get the luminance of a color (WCAG compliant)
 function getLuminance(hexColor) {
-    const rgb = parseInt(hexColor.slice(1), 16);
-    const r = (rgb >> 16) & 0xff;
-    const g = (rgb >> 8) & 0xff;
-    const b = (rgb >> 0) & 0xff;
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    if (!hexColor || hexColor.length < 4) return 0; // Invalid color
+    const rgbInt = parseInt(hexColor.slice(1), 16);
+    let r = (rgbInt >> 16) & 0xff;
+    let g = (rgbInt >> 8) & 0xff;
+    let b = (rgbInt >> 0) & 0xff;
+
+    const sRGB = [r / 255, g / 255, b / 255];
+    const linearRGB = sRGB.map(val => {
+        if (val <= 0.03928) {
+            return val / 12.92;
+        }
+        return Math.pow((val + 0.055) / 1.055, 2.4);
+    });
+
+    return 0.2126 * linearRGB[0] + 0.7152 * linearRGB[1] + 0.0722 * linearRGB[2];
 }
+
+function getContrastRatio(color1, color2) {
+    const lum1 = getLuminance(color1);
+    const lum2 = getLuminance(color2);
+    const lighterLum = Math.max(lum1, lum2);
+    const darkerLum = Math.min(lum1, lum2);
+    return (lighterLum + 0.05) / (darkerLum + 0.05);
+}
+
+function rgbStringToHex(rgbString) {
+    if (!rgbString || !rgbString.startsWith('rgb')) return null;
+    const rgb = rgbString.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return null;
+    const [r, g, b] = rgb.map(Number);
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0');
+}
+
+function checkAllElementsContrast() {
+    console.log("--- Running Theme Contrast Check ---");
+    const elementsToCheck = [
+        ...document.querySelectorAll('.task-item'),
+        ...document.querySelectorAll('.themed-button-primary:not(.themed-button-clear)'),
+        ...document.querySelectorAll('.themed-button-secondary:not(.themed-button-clear)'),
+        ...document.querySelectorAll('.themed-button-tertiary:not(.themed-button-clear)'),
+        ...document.querySelectorAll('.themed-button-clear'),
+        ...document.querySelectorAll('.modal-content'),
+        ...document.querySelectorAll('.collapsible-header'),
+        document.body
+    ];
+
+    elementsToCheck.forEach((el, index) => {
+        if (!el || !el.isConnected) return;
+        const style = window.getComputedStyle(el);
+        const textColor = style.color;
+        const bgColor = style.backgroundColor;
+
+        if (bgColor === 'rgba(0, 0, 0, 0)') return;
+
+        const textColorHex = rgbStringToHex(textColor);
+        const bgColorHex = rgbStringToHex(bgColor);
+
+        if (!textColorHex || !bgColorHex) return;
+
+        const ratio = getContrastRatio(textColorHex, bgColorHex);
+        const minRatio = 4.5; // WCAG AA standard
+
+        if (ratio < minRatio) {
+            console.warn(`Contrast Check FAILED for element #${index}:`, {
+                element: el,
+                textColor: textColor,
+                backgroundColor: bgColor,
+                contrastRatio: ratio.toFixed(2),
+                message: `Ratio is ${ratio.toFixed(2)}:1, which is below the recommended minimum of ${minRatio}:1.`
+            });
+        }
+    });
+}
+
 
 // New helper function to adjust the lightness of a color
 function adjustColor(hex, percent) {
@@ -531,31 +599,32 @@ function processTaskHistoryForChart(history) {
         return { labels: [], completions: [], misses: [] };
     }
 
-    const weeklyData = {}; // Key: YYYY-MM-DD of the start of the week
+    const dailyData = {}; // Key: YYYY-MM-DD of the event
 
     history.forEach(item => {
         const date = new Date(item.completionDate);
         if (isNaN(date)) return;
 
-        const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday start
-        const weekKey = format(weekStart, 'yyyy-MM-dd');
+        // Use the date directly as the key, formatted to 'yyyy-MM-dd'
+        const dayKey = format(date, 'yyyy-MM-dd');
 
-        if (!weeklyData[weekKey]) {
-            weeklyData[weekKey] = { completions: 0, misses: 0 };
+        if (!dailyData[dayKey]) {
+            dailyData[dayKey] = { completions: 0, misses: 0 };
         }
 
         if (item.status === 'completed') {
-            weeklyData[weekKey].completions++;
+            dailyData[dayKey].completions++;
         } else if (item.status === 'missed') {
-            weeklyData[weekKey].misses++;
+            dailyData[dayKey].misses++;
         }
     });
 
-    const sortedWeeks = Object.keys(weeklyData).sort();
+    // Sort the dates chronologically
+    const sortedDays = Object.keys(dailyData).sort();
 
-    const labels = sortedWeeks;
-    const completions = sortedWeeks.map(week => weeklyData[week].completions);
-    const misses = sortedWeeks.map(week => weeklyData[week].misses);
+    const labels = sortedDays;
+    const completions = sortedDays.map(day => dailyData[day].completions);
+    const misses = sortedDays.map(day => dailyData[day].misses);
 
     return { labels, completions, misses };
 }
@@ -797,6 +866,7 @@ function applyTheme() {
             });
             if (headerTitle) headerTitle.style.color = 'var(--text-color-light-primary)';
         } else { // night
+            document.body.style.backgroundColor = '#111827'; // gray-900, a dark background for night mode
             setTextTheme({
                 '--text-color-primary': 'var(--text-color-dark-primary)',
                 '--text-color-secondary': 'var(--text-color-dark-secondary)',
@@ -819,6 +889,8 @@ function applyTheme() {
         calendar.refetchEvents();
         calendar.updateSize();
     }
+    // Run the contrast checker after a short delay to allow the DOM to update.
+    setTimeout(checkAllElementsContrast, 100);
 }
 
 
@@ -1381,44 +1453,73 @@ function openAdvancedOptionsModal() {
 function openTaskView(taskId, occurrenceDate) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
-        // Task not found, do not open view. This can happen with orphaned historical events.
-        return;
+        return; // Task not found, do not open view.
     }
 
-    // Ensure stats content is hidden and view content is visible initially
     taskViewContent.innerHTML = taskViewTemplate(task, { categories, appSettings });
-    taskViewContent.classList.remove('hidden');
+    taskViewContent.classList.remove('hidden', 'task-confirming-delete');
     taskStatsContent.classList.add('hidden');
-    taskStatsContent.innerHTML = ''; // Clear old stats
+    taskStatsContent.innerHTML = '';
 
-    // Add event listeners for the buttons inside the view
-    const viewStatsBtn = taskViewContent.querySelector('[data-action="viewTaskStats"]');
-    const editTaskBtn = taskViewContent.querySelector('[data-action="editTaskFromView"]');
-    const deleteBtn = taskViewContent.querySelector('[data-action="triggerDeleteFromView"]');
+    // Remove previous listener to prevent duplicates
+    const newContentView = taskViewContent.cloneNode(true);
+    taskViewContent.parentNode.replaceChild(newContentView, taskViewContent);
+    taskViewContent = newContentView;
 
-    if (viewStatsBtn) {
-        viewStatsBtn.addEventListener('click', () => renderTaskStats(taskId), { once: true });
-    }
-    if (editTaskBtn) {
-        editTaskBtn.addEventListener('click', () => {
-            deactivateModal(taskViewModal);
-            openModal(taskId, { occurrenceDate });
-        });
-    }
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-            deactivateModal(taskViewModal);
-            triggerDelete(taskId);
-        });
-    }
+    taskViewContent.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
+        const action = target.dataset.action;
+        const currentTaskId = target.dataset.taskId;
+        const confirmationDiv = document.getElementById(`task-view-confirmation-${currentTaskId}`);
+        const actionsDiv = document.getElementById(`task-view-actions-${currentTaskId}`);
+
+        switch (action) {
+            case 'viewTaskStats':
+                renderTaskStats(currentTaskId);
+                break;
+            case 'editTaskFromView':
+                deactivateModal(taskViewModal);
+                openModal(currentTaskId, { occurrenceDate });
+                break;
+            case 'triggerDeleteFromView':
+                if (confirmationDiv && actionsDiv) {
+                    actionsDiv.classList.add('hidden');
+                    confirmationDiv.innerHTML = taskViewDeleteConfirmationTemplate(currentTaskId);
+                    taskViewContent.classList.add('task-confirming-delete');
+                }
+                break;
+            case 'cancelDeleteFromView':
+                if (confirmationDiv && actionsDiv) {
+                    confirmationDiv.innerHTML = '';
+                    actionsDiv.classList.remove('hidden');
+                    taskViewContent.classList.remove('task-confirming-delete');
+                }
+                break;
+            case 'confirmDeleteFromView':
+                stopAllTimers();
+                tasks = tasks.filter(t => t.id !== currentTaskId);
+                saveData();
+                renderTasks();
+                renderKpiTaskSelect();
+                renderKpiList();
+                if (calendar) calendar.refetchEvents();
+                deactivateModal(taskViewModal);
+                break;
+        }
+    });
 
     activateModal(taskViewModal);
 }
 
 function renderTaskStats(taskId) {
     const task = tasks.find(t => t.id === taskId);
-    const history = appState.historicalTasks.filter(ht => ht.originalTaskId === taskId).sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate));
+    // Add a unique, temporary historyId to each item for DOM manipulation
+    const history = appState.historicalTasks
+        .map((h, index) => ({ ...h, historyId: `hist-${index}` }))
+        .filter(ht => ht.originalTaskId === taskId)
+        .sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate));
 
     if (!task) return;
 
@@ -1436,8 +1537,13 @@ function renderTaskStats(taskId) {
     };
 
     const historyHtml = history.length > 0
-        ? history.map(h => `<li>${new Date(h.completionDate).toLocaleDateString()}: <span class="${h.status === 'completed' ? 'text-green-600' : 'text-red-600'} font-semibold">${h.status}</span></li>`).join('')
-        : '<li>No history yet.</li>';
+        ? history.map(h => `
+            <div id="history-item-${h.historyId}" class="flex justify-between items-center text-sm p-1 rounded">
+                <span>${new Date(h.completionDate).toLocaleDateString()}: <span class="${h.status === 'completed' ? 'text-green-400' : 'text-red-400'} font-semibold">${h.status}</span></span>
+                <button data-action="triggerHistoryDelete" data-history-id="${h.historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Delete</button>
+            </div>
+        `).join('')
+        : '<div>No history yet.</div>';
 
     const chartData = processTaskHistoryForChart(history);
     const hasChartData = chartData.labels.length > 0;
@@ -1454,8 +1560,8 @@ function renderTaskStats(taskId) {
                     {
                         label: 'Completions',
                         data: chartData.completions,
-                        backgroundColor: 'rgba(34, 197, 94, 0.2)', // green-500 with lower opacity
-                        borderColor: 'rgba(22, 163, 74, 1)', // green-600
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.1
@@ -1463,8 +1569,8 @@ function renderTaskStats(taskId) {
                     {
                         label: 'Misses',
                         data: chartData.misses,
-                        backgroundColor: 'rgba(220, 38, 38, 0.2)', // red-600 with lower opacity
-                        borderColor: 'rgba(185, 28, 28, 1)', // red-700
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                        borderColor: 'rgba(185, 28, 28, 1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.1
@@ -1473,23 +1579,10 @@ function renderTaskStats(taskId) {
             },
             options: {
                 scales: {
-                    x: {
-                        title: { display: true, text: 'Week Of' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Count' },
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
+                    x: { title: { display: true, text: 'Date' } },
+                    y: { beginAtZero: true, title: { display: true, text: 'Count' }, ticks: { stepSize: 1 } }
                 },
-                plugins: {
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                },
+                plugins: { tooltip: { mode: 'index', intersect: false } },
                 responsive: true,
                 maintainAspectRatio: false
             }
@@ -1499,11 +1592,50 @@ function renderTaskStats(taskId) {
     const backBtn = taskStatsContent.querySelector('[data-action="backToTaskView"]');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
-            taskStatsContent.innerHTML = ''; // Clear content to destroy chart instance
+            taskStatsContent.innerHTML = '';
             taskStatsContent.classList.add('hidden');
             taskViewContent.classList.remove('hidden');
         }, { once: true });
     }
+
+    const historyList = document.getElementById('detailed-history-list');
+    if (historyList) {
+        historyList.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            const historyId = target.dataset.historyId;
+            const taskId = target.dataset.taskId;
+            const historyItemEl = document.getElementById(`history-item-${historyId}`);
+
+            if (action === 'triggerHistoryDelete') {
+                if (historyItemEl) {
+                    historyItemEl.innerHTML = historyDeleteConfirmationTemplate(historyId, taskId);
+                }
+            } else if (action === 'cancelHistoryDelete') {
+                renderTaskStats(taskId); // Re-render to cancel
+            } else if (action === 'confirmHistoryDelete') {
+                confirmHistoryDelete(historyId, taskId, target.dataset.deleteType);
+            }
+        });
+    }
+}
+
+function confirmHistoryDelete(historyId, taskId, deleteType) {
+    if (deleteType === 'single') {
+        // The historyId is in the format `hist-${index}`
+        const indexToDelete = parseInt(historyId.split('-')[1], 10);
+        if (!isNaN(indexToDelete)) {
+            appState.historicalTasks.splice(indexToDelete, 1);
+        }
+    } else if (deleteType === 'all') {
+        appState.historicalTasks = appState.historicalTasks.filter(h => h.originalTaskId !== taskId);
+    }
+
+    saveData();
+    if (calendar) calendar.refetchEvents();
+    renderTaskStats(taskId); // Re-render the stats view to show the change
 }
 function renderCategoryFilters() {
     if (!categoryFilterList) return;

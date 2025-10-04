@@ -235,10 +235,34 @@ export function taskViewTemplate(task, { categories, appSettings }) {
             <p><strong>Estimated Duration:</strong> ${durationStr}</p>
             <p><strong>Repetition:</strong> ${repetitionStr}</p>
         </div>
-        <div class="mt-6 flex justify-start space-x-3">
-            <button data-action="triggerDeleteFromView" class="themed-button-clear">Delete Task</button>
-            <button data-action="viewTaskStats" class="themed-button-clear">View Statistics</button>
-            <button data-action="editTaskFromView" class="themed-button-clear">Edit Task</button>
+        <div id="task-view-actions-${task.id}" class="mt-6 flex justify-start space-x-3">
+            <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="themed-button-clear">Delete Task</button>
+            <button data-action="viewTaskStats" data-task-id="${task.id}" class="themed-button-clear">View Statistics</button>
+            <button data-action="editTaskFromView" data-task-id="${task.id}" class="themed-button-clear">Edit Task</button>
+        </div>
+        <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
+    `;
+}
+
+export function historyDeleteConfirmationTemplate(historyId, taskId) {
+    return `
+        <div class="history-delete-confirmation flex justify-end items-center space-x-2 w-full">
+            <span class="text-sm font-semibold text-red-700">Delete?</span>
+            <button data-action="confirmHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" data-delete-type="single" class="themed-button-clear text-xs">This Entry</button>
+            <button data-action="confirmHistoryDelete" data-task-id="${taskId}" data-delete-type="all" class="themed-button-clear text-xs">All History for Task</button>
+            <button data-action="cancelHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Cancel</button>
+        </div>
+    `;
+}
+
+export function taskViewDeleteConfirmationTemplate(taskId) {
+    return `
+        <div class="p-3 rounded-lg border-2 border-dashed border-red-500 bg-red-50">
+            <p class="text-center text-red-800 font-semibold">Are you sure you want to delete this task?</p>
+            <div class="flex justify-center space-x-4 mt-3">
+                <button data-action="confirmDeleteFromView" data-task-id="${taskId}" class="themed-button-clear text-red-700 font-bold">Yes, Delete</button>
+                <button data-action="cancelDeleteFromView" data-task-id="${taskId}" class="themed-button-clear">No, Cancel</button>
+            </div>
         </div>
     `;
 }
@@ -365,9 +389,9 @@ export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
         ${chartHtml}
 
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
-        <ul class="list-disc list-inside max-h-48 overflow-y-auto border rounded p-2">
+        <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
             ${historyHtml}
-        </ul>
+        </div>
 
         <button data-action="backToTaskView" class="themed-button-clear mt-6">Back to Details</button>
     `;
