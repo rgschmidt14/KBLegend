@@ -1,5 +1,5 @@
-import { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate } from './templates.js';
+import { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences, adjustDateForVacation } from './task-logic.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -17,7 +17,7 @@ Chart.register(...registerables);
 // =================================================================================
 let tasks = [];
 let categories = [];
-const defaultStatusColors = { blue: '#00BFFF', green: '#22c55e', yellow: '#facc15', red: '#dc2626', black: '#4b5563' };
+const defaultStatusColors = { blue: '#00BFFF', green: '#22c55e', yellow: '#facc15', red: '#991b1b', black: '#4b5563' };
 const defaultStatusNames = { blue: 'Locked', green: 'Ready', yellow: 'Start Soon', red: 'Do Right Now', black: 'Overdue' };
 let statusColors = { ...defaultStatusColors };
 let statusNames = { ...defaultStatusNames };
@@ -123,6 +123,7 @@ const appState = {
     indicators: [],
     historicalTasks: [],
     journal: [],
+    vacations: [], // New: To store vacation periods {id, name, startDate, endDate}
     viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
 };
 
@@ -375,25 +376,36 @@ function checkAllElementsContrast() {
     console.log("--- Running Theme Contrast Check ---");
     const elementsToCheck = [
         ...document.querySelectorAll('.task-item'),
-        ...document.querySelectorAll('.themed-button-primary:not(.themed-button-clear)'),
-        ...document.querySelectorAll('.themed-button-secondary:not(.themed-button-clear)'),
-        ...document.querySelectorAll('.themed-button-tertiary:not(.themed-button-clear)'),
+        ...document.querySelectorAll('.themed-button-primary'),
+        ...document.querySelectorAll('.themed-button-secondary'),
+        ...document.querySelectorAll('.themed-button-tertiary'),
         ...document.querySelectorAll('.themed-button-clear'),
         ...document.querySelectorAll('.modal-content'),
         ...document.querySelectorAll('.collapsible-header'),
         document.body
     ];
 
+    const getEffectiveBackgroundColor = (element) => {
+        let current = element;
+        while (current) {
+            const bgColor = window.getComputedStyle(current).backgroundColor;
+            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                return bgColor;
+            }
+            current = current.parentElement;
+        }
+        return 'rgb(255, 255, 255)'; // Default to white if no background is found
+    };
+
     elementsToCheck.forEach((el, index) => {
         if (!el || !el.isConnected) return;
+
         const style = window.getComputedStyle(el);
         const textColor = style.color;
-        const bgColor = style.backgroundColor;
-
-        if (bgColor === 'rgba(0, 0, 0, 0)') return;
+        const effectiveBgColor = getEffectiveBackgroundColor(el);
 
         const textColorHex = rgbStringToHex(textColor);
-        const bgColorHex = rgbStringToHex(bgColor);
+        const bgColorHex = rgbStringToHex(effectiveBgColor);
 
         if (!textColorHex || !bgColorHex) return;
 
@@ -401,10 +413,10 @@ function checkAllElementsContrast() {
         const minRatio = 4.5; // WCAG AA standard
 
         if (ratio < minRatio) {
-            console.warn(`Contrast Check FAILED for element #${index}:`, {
+            console.warn(`Contrast Check FAILED for element:`, {
                 element: el,
                 textColor: textColor,
-                backgroundColor: bgColor,
+                effectiveBackgroundColor: effectiveBgColor,
                 contrastRatio: ratio.toFixed(2),
                 message: `Ratio is ${ratio.toFixed(2)}:1, which is below the recommended minimum of ${minRatio}:1.`
             });
@@ -890,7 +902,7 @@ function applyTheme() {
         calendar.updateSize();
     }
     // Run the contrast checker after a short delay to allow the DOM to update.
-    setTimeout(checkAllElementsContrast, 100);
+    // setTimeout(checkAllElementsContrast, 100);
 }
 
 
@@ -1447,21 +1459,52 @@ function openAdvancedOptionsModal() {
     renderTaskDisplaySettings();
     renderAppSettings();
     renderSensitivityControls();
+    renderVacationManager(); // Added call
     activateModal(advancedOptionsModal);
 }
 
-function openTaskView(taskId, occurrenceDate) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) {
-        return; // Task not found, do not open view.
+function renderVacationManager() {
+    const container = document.getElementById('vacation-manager-content');
+    if (!container) return;
+    if (!appState.vacations) {
+        appState.vacations = [];
+    }
+    // Sort vacations by start date before rendering
+    appState.vacations.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    container.innerHTML = vacationManagerTemplate(appState.vacations, categories);
+
+    const form = document.getElementById('add-vacation-form');
+    if (form) {
+        form.addEventListener('submit', handleAddVacation);
+    }
+}
+
+function openTaskView(eventId, isHistorical, occurrenceDate) {
+    let taskOrHistoryItem;
+    if (isHistorical) {
+        // For historical events, the eventId is like 'hist_taskId_completionDate'
+        // We need to find the matching item in historicalTasks
+        taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
+    } else {
+        // For active tasks, the eventId is the taskId
+        taskOrHistoryItem = tasks.find(t => t.id === eventId);
     }
 
-    taskViewContent.innerHTML = taskViewTemplate(task, { categories, appSettings });
+    if (!taskOrHistoryItem) {
+        console.error("Task or history item not found for opening view:", eventId);
+        return;
+    }
+
+    // The template needs a consistent ID property, so we ensure it exists.
+    if (isHistorical && !taskOrHistoryItem.id) {
+        taskOrHistoryItem.id = eventId;
+    }
+
+    taskViewContent.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
     taskViewContent.classList.remove('hidden', 'task-confirming-delete');
     taskStatsContent.classList.add('hidden');
     taskStatsContent.innerHTML = '';
 
-    // Remove previous listener to prevent duplicates
     const newContentView = taskViewContent.cloneNode(true);
     taskViewContent.parentNode.replaceChild(newContentView, taskViewContent);
     taskViewContent = newContentView;
@@ -1471,22 +1514,24 @@ function openTaskView(taskId, occurrenceDate) {
         if (!target) return;
 
         const action = target.dataset.action;
-        const currentTaskId = target.dataset.taskId;
-        const confirmationDiv = document.getElementById(`task-view-confirmation-${currentTaskId}`);
-        const actionsDiv = document.getElementById(`task-view-actions-${currentTaskId}`);
+        const taskId = target.dataset.taskId; // This will be the original task ID for both historical and active tasks
+        const historyEventId = target.dataset.historyEventId;
+
+        const confirmationDiv = document.getElementById(`task-view-confirmation-${taskOrHistoryItem.id}`);
+        const actionsDiv = document.getElementById(`task-view-actions-${taskOrHistoryItem.id}`);
 
         switch (action) {
             case 'viewTaskStats':
-                renderTaskStats(currentTaskId);
+                renderTaskStats(taskId);
                 break;
             case 'editTaskFromView':
                 deactivateModal(taskViewModal);
-                openModal(currentTaskId, { occurrenceDate });
+                openModal(taskId, { occurrenceDate });
                 break;
             case 'triggerDeleteFromView':
                 if (confirmationDiv && actionsDiv) {
                     actionsDiv.classList.add('hidden');
-                    confirmationDiv.innerHTML = taskViewDeleteConfirmationTemplate(currentTaskId);
+                    confirmationDiv.innerHTML = taskViewDeleteConfirmationTemplate(taskId);
                     taskViewContent.classList.add('task-confirming-delete');
                 }
                 break;
@@ -1499,13 +1544,22 @@ function openTaskView(taskId, occurrenceDate) {
                 break;
             case 'confirmDeleteFromView':
                 stopAllTimers();
-                tasks = tasks.filter(t => t.id !== currentTaskId);
+                tasks = tasks.filter(t => t.id !== taskId);
                 saveData();
                 renderTasks();
                 renderKpiTaskSelect();
                 renderKpiList();
                 if (calendar) calendar.refetchEvents();
                 deactivateModal(taskViewModal);
+                break;
+            case 'deleteSingleHistoryRecord':
+                // New action for deleting only the historical record
+                if (confirm('Are you sure you want to delete this single history record? This cannot be undone.')) {
+                    appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
+                    saveData();
+                    if (calendar) calendar.refetchEvents();
+                    deactivateModal(taskViewModal);
+                }
                 break;
         }
     });
@@ -2137,6 +2191,45 @@ function handleJournalFormSubmit(event) {
     closeJournalModal();
 }
 
+function handleAddVacation(event) {
+    event.preventDefault();
+    const nameInput = document.getElementById('vacation-name');
+    const startDateInput = document.getElementById('vacation-start-date');
+    const endDateInput = document.getElementById('vacation-end-date');
+
+    if (!nameInput || !startDateInput || !endDateInput) return;
+
+    const name = nameInput.value.trim();
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (name && startDate && endDate) {
+        if (new Date(endDate) < new Date(startDate)) {
+            alert('End date cannot be before the start date.');
+            return;
+        }
+
+        const newVacation = {
+            id: generateId(),
+            name,
+            startDate,
+            endDate,
+        };
+
+        appState.vacations.push(newVacation);
+        savePlannerData();
+        renderVacationManager();
+        if (calendar) calendar.refetchEvents(); // Refresh calendar to show changes
+
+        // Clear the form
+        nameInput.value = '';
+        startDateInput.value = '';
+        endDateInput.value = '';
+    } else {
+        alert('Please fill out all fields for the vacation.');
+    }
+}
+
 
 // =================================================================================
 // SECTION 4: User Action Handlers
@@ -2258,7 +2351,8 @@ function handleFormSubmit(event) {
                     name: newCategoryName,
                     color: getRandomColor(),
                     icon: null,
-                    applyIconToNewTasks: false
+                    applyIconToNewTasks: false,
+                    bypassVacation: false
                 };
                 categories.push(newCategory);
                 taskData.categoryId = newCategory.id;
@@ -2268,6 +2362,10 @@ function handleFormSubmit(event) {
         } else if (categoryValue) {
             taskData.categoryId = categoryValue;
         }
+
+        // Adjust due date for vacations after category is determined
+        taskData.dueDate = adjustDateForVacation(taskData.dueDate, appState.vacations, taskData.categoryId, categories);
+
         if (taskData.completionType === 'count') {
             taskData.countTarget = countTargetInput.value ? parseInt(countTargetInput.value, 10) : null;
             taskData.estimatedDurationAmount = estimatedDurationAmountInput.value ? parseInt(estimatedDurationAmountInput.value, 10) : null;
@@ -2423,7 +2521,7 @@ function confirmCompletionAction(taskId, confirmed) {
                     nextDueDate = futureOccurrences[0];
                 }
             }
-            task.dueDate = nextDueDate;
+            task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
             task.status = 'blue';
             task.cycleEndDate = wasOverdue ? null : new Date(now);
@@ -2571,7 +2669,7 @@ function confirmMissAction(taskId, confirmed) {
                     nextDueDate = futureOccurrences[0];
                 }
             }
-            task.dueDate = nextDueDate;
+            task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
         } else {
             task.originalDueDate = new Date(baseDate);
@@ -4026,6 +4124,24 @@ function setupEventListeners() {
                     calendarSettings.allowCreationOnClick = event.target.checked;
                     saveData();
                     break;
+                case 'deleteVacation':
+                    if (confirm('Are you sure you want to delete this vacation period?')) {
+                        const vacationId = target.dataset.id;
+                        appState.vacations = appState.vacations.filter(v => v.id !== vacationId);
+                        savePlannerData();
+                        renderVacationManager();
+                        if (calendar) calendar.refetchEvents();
+                    }
+                    break;
+                case 'toggleVacationBypass':
+                     const catId = target.dataset.categoryId;
+                     const categoryToUpdate = categories.find(c => c.id === catId);
+                     if(categoryToUpdate) {
+                         categoryToUpdate.bypassVacation = target.checked;
+                         saveData();
+                         // No need to re-render anything visually here, just save the data
+                     }
+                    break;
             }
         });
 
@@ -4891,7 +5007,7 @@ function initializeCalendar() {
 
                 // 1. Get all scheduled task occurrences from the single source of truth.
                 // The lookahead window is now handled inside calculateScheduledTimes.
-                const scheduledOccurrences = calculateScheduledTimes(tasks, viewStartDate, viewEndDate);
+                const scheduledOccurrences = calculateScheduledTimes(tasks, viewStartDate, viewEndDate, appState.vacations, categories);
 
                 const filteredOccurrences = scheduledOccurrences.filter(task => {
                     if (categoryFilter.length === 0) return true;
@@ -5051,9 +5167,10 @@ function initializeCalendar() {
             setTimeout(() => applyTheme(), 0);
         },
         eventClick: (info) => {
-            const taskId = info.event.extendedProps.taskId;
-            const occurrenceDueDate = new Date(info.event.extendedProps.occurrenceDueDate);
-            openTaskView(taskId, occurrenceDueDate);
+            const eventId = info.event.id;
+            const isHistorical = info.event.extendedProps.isHistorical;
+            const occurrenceDueDate = info.event.extendedProps.occurrenceDueDate ? new Date(info.event.extendedProps.occurrenceDueDate) : null;
+            openTaskView(eventId, isHistorical, occurrenceDueDate);
         },
         dateClick: (info) => {
             if (!calendarSettings.allowCreationOnClick) {

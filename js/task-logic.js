@@ -236,7 +236,44 @@ function generateAbsoluteOccurrences(task, startDate, endDate) {
 // --- End of Date Generation Helpers ---
 
 
-function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
+function isDateInVacation(date, vacations) {
+    if (!vacations || vacations.length === 0) return false;
+    const checkTime = new Date(date).setHours(0, 0, 0, 0);
+
+    for (const vacation of vacations) {
+        const startTime = new Date(vacation.startDate).setHours(0, 0, 0, 0);
+        const endTime = new Date(vacation.endDate).setHours(23, 59, 59, 999);
+        if (checkTime >= startTime && checkTime <= endTime) {
+            return vacation; // Return the vacation object if found
+        }
+    }
+    return false;
+}
+
+function adjustDateForVacation(date, vacations, taskCategoryId, allCategories) {
+    const category = allCategories.find(c => c.id === taskCategoryId);
+    const canBypassVacation = category ? category.bypassVacation : false;
+
+    if (canBypassVacation || !date) {
+        return date;
+    }
+
+    const originalHours = date.getHours();
+    const originalMinutes = date.getMinutes();
+    const originalSeconds = date.getSeconds();
+
+    let currentDate = new Date(date);
+    let vacation = isDateInVacation(currentDate, vacations);
+    while (vacation) {
+        const vacationEndDate = new Date(vacation.endDate);
+        // Push to the day after vacation, preserving original time
+        currentDate = new Date(vacationEndDate.getFullYear(), vacationEndDate.getMonth(), vacationEndDate.getDate() + 1, originalHours, originalMinutes, originalSeconds);
+        vacation = isDateInVacation(currentDate, vacations);
+    }
+    return currentDate;
+}
+
+function calculateScheduledTimes(tasks, viewStartDate, viewEndDate, vacations = [], categories = []) {
     let allOccurrences = [];
 
     // 1. Generate all occurrences for all tasks within the given timeframe.
@@ -274,7 +311,9 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
             }
         }
 
-        dueDates.forEach(dueDate => {
+        const adjustedDueDates = dueDates.map(dueDate => adjustDateForVacation(dueDate, vacations, task.categoryId, categories));
+
+        adjustedDueDates.forEach(dueDate => {
             allOccurrences.push({
                 ...task, // Copy all original task properties
                 originalId: task.id,
@@ -339,4 +378,4 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate) {
 }
 
 
-export { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences };
+export { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences, adjustDateForVacation };

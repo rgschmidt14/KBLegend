@@ -63,6 +63,10 @@ body.modal-open {
     align-items: center;
 }
 
+#icon-picker-modal {
+    z-index: 1050; /* Ensure icon picker is on top of other modals */
+}
+
 .modal-content {
     background-color: #2d3748; /* Gray 800 */
     color: var(--text-color-primary);

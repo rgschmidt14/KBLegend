@@ -213,18 +213,34 @@ export function categoryManagerTemplate(categories) {
     return content;
 }
 
-export function taskViewTemplate(task, { categories, appSettings }) {
+export function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
     const category = categories.find(c => c.id === task.categoryId);
     const categoryName = category ? category.name : 'Uncategorized';
-    const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
-    const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
+    // For historical tasks, completionDate is the due date. For active tasks, it's dueDate.
+    const dueDate = isHistorical ? new Date(task.completionDate) : (task.dueDate ? new Date(task.dueDate) : null);
+    const dueDateStr = (dueDate && !isNaN(dueDate)) ? formatDateTime(dueDate, appSettings.use24HourFormat) : 'No due date';
+
+    const durationStr = formatDuration(task.durationAmount || task.estimatedDurationAmount, task.durationUnit || task.estimatedDurationUnit);
 
     let repetitionStr = 'Non-Repeating';
-    if (task.repetitionType === 'relative') {
-        repetitionStr = `Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
-    } else if (task.repetitionType === 'absolute') {
-        repetitionStr = getAbsoluteRepetitionString(task);
+    if (!isHistorical && task.repetitionType) {
+        if (task.repetitionType === 'relative') {
+            repetitionStr = `Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
+        } else if (task.repetitionType === 'absolute') {
+            repetitionStr = getAbsoluteRepetitionString(task);
+        }
     }
+
+    // Determine which actions to show
+    const actionsHtml = isHistorical ? `
+        <button data-action="deleteSingleHistoryRecord" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="themed-button-clear">Delete This Record</button>
+        <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="themed-button-clear">View Parent Task Stats</button>
+    ` : `
+        <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="themed-button-clear">Delete Task</button>
+        <button data-action="viewTaskStats" data-task-id="${task.id}" class="themed-button-clear">View Statistics</button>
+        <button data-action="editTaskFromView" data-task-id="${task.id}" class="themed-button-clear">Edit Task</button>
+    `;
 
     return `
         <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
@@ -233,12 +249,10 @@ export function taskViewTemplate(task, { categories, appSettings }) {
             <p><strong>Category:</strong> ${categoryName}</p>
             <p><strong>Due Date:</strong> ${dueDateStr}</p>
             <p><strong>Estimated Duration:</strong> ${durationStr}</p>
-            <p><strong>Repetition:</strong> ${repetitionStr}</p>
+            ${!isHistorical ? `<p><strong>Repetition:</strong> ${repetitionStr}</p>` : '<p><strong>Repetition:</strong> N/A (Historical Record)</p>'}
         </div>
         <div id="task-view-actions-${task.id}" class="mt-6 flex justify-start space-x-3">
-            <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="themed-button-clear">Delete Task</button>
-            <button data-action="viewTaskStats" data-task-id="${task.id}" class="themed-button-clear">View Statistics</button>
-            <button data-action="editTaskFromView" data-task-id="${task.id}" class="themed-button-clear">Edit Task</button>
+            ${actionsHtml}
         </div>
         <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
     `;
@@ -251,6 +265,63 @@ export function historyDeleteConfirmationTemplate(historyId, taskId) {
             <button data-action="confirmHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" data-delete-type="single" class="themed-button-clear text-xs">This Entry</button>
             <button data-action="confirmHistoryDelete" data-task-id="${taskId}" data-delete-type="all" class="themed-button-clear text-xs">All History for Task</button>
             <button data-action="cancelHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Cancel</button>
+        </div>
+    `;
+}
+
+export {
+    taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
+    actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
+    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
+    taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
+    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate
+};
+
+export function vacationManagerTemplate(vacations, categories) {
+    const vacationListHtml = vacations.length > 0 ? vacations.map(v => `
+        <div class="flex items-center justify-between p-2 border-b">
+            <div>
+                <p class="font-medium">${v.name}</p>
+                <p class="text-xs text-gray-400">
+                    ${new Date(v.startDate).toLocaleDateString()} - ${new Date(v.endDate).toLocaleDateString()}
+                </p>
+            </div>
+            <button data-action="deleteVacation" data-id="${v.id}" class="themed-button-clear font-bold text-lg">&times;</button>
+        </div>
+    `).join('') : '<p class="text-sm italic text-gray-500">No vacations scheduled.</p>';
+
+    const categoryBypassHtml = categories.map(cat => `
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" data-action="toggleVacationBypass" data-category-id="${cat.id}" class="category-vacation-bypass-checkbox" ${cat.bypassVacation ? 'checked' : ''}>
+            <span>${cat.name}</span>
+        </label>
+    `).join('');
+
+    return `
+        <div>
+            <h4 class="font-semibold mb-2">Scheduled Vacations</h4>
+            <div id="vacation-list" class="space-y-2 mb-4">${vacationListHtml}</div>
+            <form id="add-vacation-form" class="space-y-3 p-3 border rounded-md">
+                <input type="text" id="vacation-name" placeholder="Vacation Name (e.g., 'Family Trip')" required class="w-full px-3 py-2 border rounded-md">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="vacation-start-date" class="text-sm">Start Date</label>
+                        <input type="date" id="vacation-start-date" required class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label for="vacation-end-date" class="text-sm">End Date</label>
+                        <input type="date" id="vacation-end-date" required class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                </div>
+                <button type="submit" class="w-full themed-button-secondary">Add Vacation</button>
+            </form>
+        </div>
+        <div class="mt-4">
+             <h4 class="font-semibold mb-2">Category Vacation Bypass</h4>
+             <p class="text-xs italic text-gray-400 mb-2">Tasks in checked categories will NOT be pushed by vacations.</p>
+             <div id="category-bypass-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                ${categoryBypassHtml}
+             </div>
         </div>
     `;
 }
