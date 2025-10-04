@@ -673,7 +673,7 @@ export function sensitivityControlsTemplate(settings) {
     `;
 }
 
-export function notificationManagerTemplate(notificationSettings, categories) {
+function notificationManagerTemplate(notificationSettings, categories) {
     const categoryItems = categories.map(cat => {
         // Default to true if not set
         const isEnabled = notificationSettings.categories[cat.id] !== false;
