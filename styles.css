@@ -1025,3 +1025,10 @@ select {
 .light-mode .fc .fc-timegrid-col.fc-day-today {
     background-color: #EFF6FF; /* Blue-50, very subtle for body */
 }
+
+/* Style for the task view modal when confirming delete */
+#task-view-content.task-confirming-delete {
+    border: 2px dashed #ef4444 !important; /* red-500 */
+    padding: 1rem;
+    border-radius: 0.5rem;
+}

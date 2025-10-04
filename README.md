@@ -71,6 +71,20 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.1) - 10/03/2025
+
+This is a major UI/UX and stability update that addresses key user feedback points across the application, from statistics and task management to theming and the journal.
+
+*   **Statistics and History Fixes:**
+    *   **Intuitive Stats Graph:** Fixed a bug in the task statistics chart that was causing confusion. The "Performance Over Time" graph now correctly groups completions and misses by individual day, not by the start of the week, providing a more accurate and intuitive visualization of performance.
+    *   **Historical Task Deletion:** Users can now delete historical task entries directly from the "Detailed History" list in the stats view. A new inline confirmation provides options to delete a single entry, delete *all* historical entries for that specific task, or cancel the action.
+*   **Improved Deletion Workflows:**
+    *   **Inline Calendar Deletion:** The workflow for deleting a task from the calendar view has been completely overhauled. Instead of the old confirmation system, clicking "Delete Task" now shows a clean, inline confirmation UI directly within the task view modal, complete with a dashed red border to indicate a destructive action.
+*   **UI and Theming Enhancements:**
+    *   **Journal Button Styling:** The "New Entry" button in the Journal view has been restyled as a primary action button, making it more prominent and consistent with the "New Task" button.
+    *   **Theme Stability:** Fixed a bug where disabling the gradient theme in "Night" or "Auto" mode would cause the main application background to become bright white. The background now correctly remains dark, ensuring a consistent night mode experience.
+    *   **Automatic Contrast Checking:** A new diagnostic tool has been built into the theming engine. It automatically runs a WCAG-compliant contrast check on key UI elements every time the theme is changed and logs a warning to the console if any element has insufficient text-to-background contrast. This ensures readability is maintained across all themes.
+
 ### ✅ Recently Completed (Version 5.0) - 10/03/2025
 
 This update focused on expanding customization options and improving the Journal UI.
@@ -443,6 +457,7 @@ These are larger, long-term goals for the project that are dependent on migratin
 This section is maintained by the AI assistant to log potential improvements and ideas for future development cycles that are identified during coding sessions.
 
 *   **Consolidate Repetition Logic:** The `generateAbsoluteOccurrences` function in `task-logic.js` and the new `getAllPastDueDates` in `script.js` have overlapping responsibilities for calculating date sequences. In a future refactor, their logic could be merged into a single, comprehensive date-generation utility within `task-logic.js` to reduce code duplication and centralize all scheduling calculations.
+*   **Standardize Inline Confirmations:** Version 5.1 introduced two new inline confirmation patterns: one for deleting historical task entries and another for deleting active tasks from the calendar view. These patterns (using a placeholder `div` and dynamically rendering a confirmation template) should be considered the standard for any future features requiring user confirmation for destructive actions, replacing older, full-modal confirmation dialogs.
 *   **Historical View Performance:** As the `historicalTasks` array grows, loading and filtering it on every calendar view change could become a performance bottleneck. For a future update, consider implementing a more sophisticated caching or indexing strategy. For example, pre-process historical events into a structure grouped by week or month to speed up retrieval for the calendar's `events` function.
 *   **Undo Action Robustness:** The "Undo" functionality currently only removes the last completed history item. It does not account for the more complex scenarios handled by the new history logic (e.g., undoing one action out of a bulk confirmation). A future improvement would be to make the undo system more granular, perhaps by showing a list of recent actions that can be individually reverted.
 *   **Icon Picker UI Testability:** During development of Version 5.0, Playwright verification scripts consistently timed out when trying to interact with the icon picker modal. The category headers (e.g., "Animals", "Gaming & Hobbies") were difficult to locate reliably, even with explicit waits and scoped locators. This suggests a potential timing or visibility issue in the modal's rendering logic that makes it difficult to test programmatically. Future work on this component should investigate and improve its testability.
