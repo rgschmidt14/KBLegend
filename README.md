@@ -71,6 +71,18 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.3) - 10/04/2025
+
+This is a stability and bug-fix release that addresses several key issues related to task completion logic and UI consistency, improving the overall reliability of the planner.
+
+*   **Corrected Early Completion Logic:**
+    *   **"Blue" Lock State:** Fixed a critical bug where completing a repeating task early would incorrectly advance it to the next cycle. The task now correctly enters a "locked" (blue) state and remains that way until its original due date passes, preventing users from accidentally completing future tasks ahead of time.
+    *   **Robust "Undo" Functionality:** The "Undo" action for a completed task has been made more robust. It now correctly restores any partial progress for count- or timer-based tasks, ensuring the task is reverted to its exact pre-completion state.
+
+*   **Critical Bug Fixes:**
+    *   **Calendar Click Error:** Resolved an error where clicking on a recurring task in the calendar would fail to open the task view and log a "Task or history item not found" error. The event handling logic now correctly parses the unique IDs of recurring task instances.
+    *   **UI Contrast Fix:** Fixed a UI bug where the text and input field in the "Confirm Misses" dialog would become unreadable when displayed on tasks with dark (red or black) backgrounds. The text now reliably has high contrast in all situations.
+
 ### ✅ Recently Completed (Version 5.2) - 10/03/2025
 
 This is a major feature release that introduces a powerful new "Vacation Mode" to prevent task pile-ups during time off, along with several critical bug fixes and developer tool improvements.

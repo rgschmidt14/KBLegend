@@ -1479,13 +1479,20 @@ function renderVacationManager() {
 
 function openTaskView(eventId, isHistorical, occurrenceDate) {
     let taskOrHistoryItem;
+
     if (isHistorical) {
-        // For historical events, the eventId is like 'hist_taskId_completionDate'
-        // We need to find the matching item in historicalTasks
+        // For historical events, the eventId is 'hist_taskId_completionDate'
         taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
     } else {
-        // For active tasks, the eventId is the taskId
+        // For active tasks, first try a direct match (for non-repeating tasks).
         taskOrHistoryItem = tasks.find(t => t.id === eventId);
+
+        // If not found, it's likely a recurring event with a composite ID (e.g., 'taskId_date').
+        // We extract the base task ID and find the parent task.
+        if (!taskOrHistoryItem && eventId.includes('_')) {
+            const baseTaskId = eventId.split('_')[0];
+            taskOrHistoryItem = tasks.find(t => t.id === baseTaskId);
+        }
     }
 
     if (!taskOrHistoryItem) {
@@ -2500,6 +2507,16 @@ function confirmCompletionAction(taskId, confirmed) {
             // Logic for repeating tasks
             const pastDueDates = getOccurrences(task, baseDate, now);
 
+            // Capture progress before it's reset
+            let progressToSave = 1; // Default to 100% for simple tasks
+            if (task.completionType === 'count' && task.countTarget > 0) {
+                 progressToSave = (task.currentProgress || 0) / task.countTarget;
+            } else if (task.completionType === 'time') {
+                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+                if (targetMs > 0) progressToSave = (task.currentProgress || 0) / targetMs;
+            }
+            progressToSave = Math.min(1, Math.max(0, progressToSave));
+
             pastDueDates.forEach(dueDate => {
                 const originalDueDate = new Date(dueDate);
                 const historicalTask = {
@@ -2510,7 +2527,7 @@ function confirmCompletionAction(taskId, confirmed) {
                     categoryId: task.categoryId,
                     durationAmount: task.estimatedDurationAmount,
                     durationUnit: task.estimatedDurationUnit,
-                    progress: 1,
+                    progress: progressToSave, // Use the captured progress
                     originalDueDate: originalDueDate
                 };
                 appState.historicalTasks.push(historicalTask);
@@ -2533,7 +2550,8 @@ function confirmCompletionAction(taskId, confirmed) {
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
             task.status = 'blue';
-            task.cycleEndDate = wasOverdue ? null : new Date(now);
+            // Set the lock until the original due date of the completed cycle has passed.
+            task.cycleEndDate = new Date(baseDate);
 
         } else {
             // Logic for non-repeating tasks using the new helper
@@ -2571,22 +2589,47 @@ function confirmCompletionAction(taskId, confirmed) {
 function confirmUndoAction(taskId, confirmed) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+
     if (confirmed) {
         if (task.status !== 'blue' || task.repetitionType === 'none') return;
 
-        // Find and remove the last completed instance from history
-        const lastCompletedIndex = appState.historicalTasks.map(t => t.originalTaskId).lastIndexOf(taskId);
-        if (lastCompletedIndex > -1 && appState.historicalTasks[lastCompletedIndex].status === 'completed') {
+        // Find the last completed instance for this task in history
+        let lastCompletedIndex = -1;
+        for (let i = appState.historicalTasks.length - 1; i >= 0; i--) {
+            if (appState.historicalTasks[i].originalTaskId === taskId && appState.historicalTasks[i].status === 'completed') {
+                lastCompletedIndex = i;
+                break;
+            }
+        }
+
+        if (lastCompletedIndex > -1) {
+            const historyItem = appState.historicalTasks[lastCompletedIndex];
+            const savedProgressRatio = historyItem.progress || 0;
+
+            // Restore the progress
+            if (task.completionType === 'count' && task.countTarget > 0) {
+                task.currentProgress = Math.round(savedProgressRatio * task.countTarget);
+            } else if (task.completionType === 'time') {
+                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+                if (targetMs > 0) {
+                    task.currentProgress = Math.round(savedProgressRatio * targetMs);
+                }
+            }
+
+            // Now, remove the historical item
             appState.historicalTasks.splice(lastCompletedIndex, 1);
         }
 
+
         task.dueDate = task.cycleEndDate ? new Date(task.cycleEndDate) : new Date();
         task.cycleEndDate = null;
+
         if (task.completionReducedMisses && task.trackMisses && task.maxMisses > 0) {
             task.misses = Math.min(task.maxMisses, (task.misses || 0) + 1);
         }
         delete task.completionReducedMisses;
     }
+
     task.confirmationState = null;
     saveData();
     updateAllTaskStatuses(true);
