@@ -57,6 +57,7 @@ let uiSettings = {
     kpiChartDateRange: '8d', // '8d', '30d', etc.
     kpiWeekOffset: 0,
     journalIconCollapseState: {},
+    advancedOptionsCollapseState: {},
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -456,29 +457,32 @@ function getContrastingTextColor(hexcolor) {
         };
     }
 
-    const luminance = getLuminance(hexcolor);
-    const isDark = luminance < 0.5;
+    const black = '#000000';
+    const white = '#FFFFFF';
 
-    // Define the base colors for light and dark text
-    const baseLight = '#FFFFFF';
-    const baseDark = '#000000';
+    const contrastWithBlack = getContrastRatio(hexcolor, black);
+    const contrastWithWhite = getContrastRatio(hexcolor, white);
 
-    // Determine the primary text color and its opposite for adjustments
-    const primaryTextColor = isDark ? baseLight : baseDark;
-    const adjustDirection = isDark ? -1 : 1; // -1 for darkening (making it more gray from white), 1 for lightening (making it more gray from black)
+    // Choose the text color with the highest contrast
+    const primaryTextColor = contrastWithWhite > contrastWithBlack ? white : black;
+    // The background is considered "dark" if white text provides better contrast
+    const isBgDark = primaryTextColor === white;
 
-    // Generate the 4 shades for the determined text color
+    // When text is white (on dark bg), we want to make it darker (more gray) for secondary shades.
+    // When text is black (on light bg), we want to make it lighter (more gray) for secondary shades.
+    const adjustDirection = isBgDark ? -1 : 1;
+
     const shades = {
         '--text-color-primary': primaryTextColor,
-        '--text-color-secondary': adjustColor(primaryTextColor, adjustDirection * 0.15), // 85%
-        '--text-color-tertiary': adjustColor(primaryTextColor, adjustDirection * 0.30), // 70%
-        '--text-color-quaternary': adjustColor(primaryTextColor, adjustDirection * 0.45), // 55%
+        '--text-color-secondary': adjustColor(primaryTextColor, adjustDirection * 0.25), // 75%
+        '--text-color-tertiary': adjustColor(primaryTextColor, adjustDirection * 0.45),  // 55%
+        '--text-color-quaternary': adjustColor(primaryTextColor, adjustDirection * 0.60),// 40%
     };
 
-    // Add a text shadow for mid-range colors to improve readability
-    const distanceFromMiddle = Math.abs(luminance - 0.5);
-    if (distanceFromMiddle < 0.25) { // If the color is in the "danger zone"
-        const shadowColor = isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+    // Add a text shadow for colors with poor contrast against both black and white
+    const maxContrast = Math.max(contrastWithWhite, contrastWithBlack);
+    if (maxContrast < 4.5) { // If even the best option is poor, add a shadow
+        const shadowColor = isBgDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
         shades['--text-shadow'] = `0 0 5px ${shadowColor}`;
     } else {
         shades['--text-shadow'] = 'none';
@@ -932,7 +936,34 @@ function applyTheme() {
             if (headerTitle) headerTitle.style.color = 'var(--text-color-dark-primary)';
         }
 
-        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(unstyleButton);
+        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
+            if (btn.classList.contains('themed-button-clear')) {
+                unstyleButton(btn);
+                return;
+            }
+            unstyleButton(btn); // Clear any previous theme styles first
+
+            let bgColor;
+            const isActive = btn.classList.contains('active-view-btn');
+
+            if (isActive) {
+                // Use a standard blue for active buttons that works in both modes
+                bgColor = '#2563EB'; // blue-600
+            } else {
+                // Default gray buttons depending on the mode
+                bgColor = effectiveMode === 'light' ? '#E5E7EB' : '#4B5563';
+            }
+
+            btn.style.backgroundColor = bgColor;
+            const textStyles = getContrastingTextColor(bgColor);
+            for (const [key, value] of Object.entries(textStyles)) {
+                // Use setProperty on the style object to apply CSS variables
+                btn.style.setProperty(key.substring(2), value, 'important');
+            }
+             // Directly set the color from the calculated primary text color
+            btn.style.color = textStyles['--text-color-primary'];
+        });
+
         document.querySelectorAll('.themed-modal-primary, .themed-modal-tertiary').forEach(modal => {
             modal.style.background = '';
             modal.style.backgroundColor = '';
@@ -1532,6 +1563,17 @@ function openAdvancedOptionsModal() {
     renderSensitivityControls();
     renderVacationManager();
     renderJournalSettings();
+
+    // Apply saved collapse states
+    const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
+    sections.forEach(section => {
+        const key = section.dataset.sectionKey;
+        // A section is open ONLY if its state is explicitly saved as false (i.e., isCollapsed: false).
+        // Otherwise (if the state is true or undefined), it remains collapsed.
+        const shouldBeOpen = uiSettings.advancedOptionsCollapseState[key] === false;
+        section.classList.toggle('open', shouldBeOpen);
+    });
+
     activateModal(advancedOptionsModal);
 }
 
@@ -4298,6 +4340,16 @@ function setupEventListeners() {
     const advancedOptionsContent = document.getElementById('advanced-options-content');
     if (advancedOptionsContent) {
         advancedOptionsContent.addEventListener('click', (event) => {
+                    const header = event.target.closest('.collapsible-header');
+                    if (header) {
+                        const section = header.parentElement;
+                        const key = section.dataset.sectionKey;
+                        const isOpen = section.classList.toggle('open');
+                        uiSettings.advancedOptionsCollapseState[key] = !isOpen; // Store if it's collapsed
+                        saveData();
+                        return; // Prevent other actions from firing
+                    }
+
             const target = event.target.closest('[data-action]');
             if (!target) return;
             const action = target.dataset.action;
@@ -4662,26 +4714,23 @@ function setupEventListeners() {
                 { btn: showJournalBtn, view: journalView, id: 'journal-view' }
             ];
 
+            // Remove active class from all buttons first
+            views.forEach(item => item.btn.classList.remove('active-view-btn'));
+
+            // Then, apply the active class to the correct button and show the correct view
             views.forEach(item => {
                 if (item.btn === target) {
                     item.view.classList.remove('hidden');
-                    item.btn.classList.add('active-view-btn', 'themed-button-primary');
-                    item.btn.classList.remove('themed-button-secondary');
+                    item.btn.classList.add('active-view-btn');
                     uiSettings.activeView = item.id;
-                    // If switching to calendar view, ensure it resizes correctly
-                    if (item.view === calendarView && calendar) {
-                        calendar.updateSize();
-                    }
-                    if (item.id === 'dashboard-view') {
-                        renderDashboardContent();
-                    }
-                    if (item.id === 'journal-view') {
-                        renderJournal();
-                    }
+
+                    // View-specific render calls
+                    if (item.view === calendarView && calendar) calendar.updateSize();
+                    if (item.id === 'dashboard-view') renderDashboardContent();
+                    if (item.id === 'journal-view') renderJournal();
+
                 } else {
                     item.view.classList.add('hidden');
-                    item.btn.classList.remove('active-view-btn', 'themed-button-primary');
-                    item.btn.classList.add('themed-button-secondary');
                 }
             });
             applyTheme(); // Re-apply styles after changing classes
@@ -5276,33 +5325,30 @@ function applyActiveView() {
         { btn: showJournalBtn, view: journalView, id: 'journal-view' }
     ];
 
-    const activeViewId = uiSettings.activeView || 'dashboard-view'; // Default to dashboard
+    const activeViewId = uiSettings.activeView || 'dashboard-view';
     let foundActive = false;
+
+    // Remove active class from all buttons first
+    views.forEach(item => item.btn.classList.remove('active-view-btn'));
 
     views.forEach(item => {
         if (item.id === activeViewId) {
             item.view.classList.remove('hidden');
-            item.btn.classList.add('active-view-btn', 'themed-button-primary');
-            item.btn.classList.remove('themed-button-secondary');
-            if (item.view === calendarView && calendar) {
-                calendar.updateSize();
-            }
-            if (item.id === 'dashboard-view') {
-                renderDashboardContent();
-            }
+            item.btn.classList.add('active-view-btn');
+            if (item.view === calendarView && calendar) calendar.updateSize();
+            if (item.id === 'dashboard-view') renderDashboardContent();
+            if (item.id === 'journal-view') renderJournal();
             foundActive = true;
         } else {
             item.view.classList.add('hidden');
-            item.btn.classList.remove('active-view-btn', 'themed-button-primary');
-            item.btn.classList.add('themed-button-secondary');
         }
     });
 
-    // Fallback if the saved view ID is invalid for some reason
+    // Fallback if the saved view ID is invalid
     if (!foundActive && views.length > 0) {
-        views[2].view.classList.remove('hidden'); // Default to dashboard view
-        views[2].btn.classList.add('active-view-btn', 'themed-button-primary');
-        views[2].btn.classList.remove('themed-button-secondary');
+        views[2].view.classList.remove('hidden'); // Default to dashboard
+        views[2].btn.classList.add('active-view-btn');
+        renderDashboardContent();
     }
 }
 

@@ -79,6 +79,8 @@ body.modal-open {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-height: 90vh;
     overflow-y: auto;
+    --modal-secondary-background-color: #374151; /* gray-700 */
+    --modal-tertiary-background-color: #4b5563; /* gray-600 */
 }
 
 .close-button {
@@ -686,6 +688,8 @@ legend {
     background-color: #FFFFFF;
     border-color: #e2e8f0; /* gray-200 */
     color: var(--text-color-light-primary);
+    --modal-secondary-background-color: #f3f4f6; /* gray-100 */
+    --modal-tertiary-background-color: #e5e7eb; /* gray-200 */
 }
 
 .light-mode .close-button {
@@ -1088,4 +1092,53 @@ select {
     border: 2px dashed #ef4444 !important; /* red-500 */
     padding: 1rem;
     border-radius: 0.5rem;
+}
+
+/* Collapsible Section Styles */
+.collapsible-header {
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background-color: var(--modal-secondary-background-color, #e5e7eb);
+    border-radius: 0.375rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    transition: background-color 0.2s, border-radius 0.2s ease-in-out;
+    color: var(--text-color-primary);
+}
+
+.collapsible-header:hover {
+    background-color: var(--modal-tertiary-background-color, #d1d5db);
+}
+
+.collapsible-header .fas {
+    transition: transform 0.3s ease;
+}
+
+.collapsible-content {
+    padding: 1.5rem;
+    border: 1px solid var(--modal-secondary-background-color, #e5e7eb);
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    display: none; /* Initially hidden */
+    flex-direction: column;
+    gap: 1.5rem; /* Matches the original space-y-6 */
+}
+
+.collapsible-content > fieldset {
+    margin-bottom: 0; /* Remove default margin as gap is used now */
+}
+
+.collapsible-section.open > .collapsible-content {
+    display: flex; /* Show when open */
+}
+
+.collapsible-section.open > .collapsible-header .fas {
+    transform: rotate(180deg);
+}
+
+.collapsible-section.open > .collapsible-header {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
