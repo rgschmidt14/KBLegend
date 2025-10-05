@@ -1,4 +1,4 @@
-import { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences, adjustDateForVacation } from './task-logic.js';
+import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation } from './task-logic.js';
 import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
@@ -206,13 +206,11 @@ function calculatePendingCycles(task, nowMs) {
                 cycles = 1;
             }
         } else if (task.repetitionType === 'absolute') {
-            // This now uses the imported `generateAbsoluteOccurrences` function
             try {
-                const occurrences = generateAbsoluteOccurrences(task, new Date(originalDueDate), new Date(nowDate));
-                const missedOccurrences = occurrences.filter(occ =>
-                    occ.getTime() > originalDueDateMs && occ.getTime() <= nowMs
-                );
-                cycles = missedOccurrences.length + 1;
+                // Use the new, centralized function to find all occurrences between the start and now.
+                const occurrences = getOccurrences(task, new Date(originalDueDate), new Date(nowDate));
+                // The number of cycles is simply the number of dates found.
+                cycles = occurrences.length;
             } catch (e) {
                 console.error(`Error generating occurrences for pending cycles task ${task.id}:`, e);
                 cycles = 1;
@@ -2489,7 +2487,7 @@ function confirmCompletionAction(taskId, confirmed) {
 
         if (task.repetitionType !== 'none') {
             // Logic for repeating tasks
-            const pastDueDates = getAllPastDueDates(task, baseDate, now, cyclesToComplete);
+            const pastDueDates = getOccurrences(task, baseDate, now);
 
             pastDueDates.forEach(dueDate => {
                 const originalDueDate = new Date(dueDate);
@@ -2508,19 +2506,19 @@ function confirmCompletionAction(taskId, confirmed) {
             });
 
             const missesBefore = task.misses || 0;
-            task.misses = Math.max(0, missesBefore - cyclesToComplete);
+            const completedCycles = pastDueDates.length;
+            task.misses = Math.max(0, missesBefore - completedCycles);
             task.completionReducedMisses = task.misses < missesBefore;
 
             const lastDueDate = pastDueDates.length > 0 ? pastDueDates[pastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
-            if (task.repetitionType === 'relative') {
-                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
-            } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
-                if (futureOccurrences.length > 0) {
-                    nextDueDate = futureOccurrences[0];
-                }
+
+            // Find the next occurrence *after* the last completed one.
+            const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
+            if (futureOccurrences.length > 0) {
+                nextDueDate = futureOccurrences[0];
             }
+
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
             task.status = 'blue';
@@ -2559,32 +2557,6 @@ function confirmCompletionAction(taskId, confirmed) {
     saveData();
     updateAllTaskStatuses(true);
 }
-function getAllPastDueDates(task, baseDate, now, cycles) {
-    const pastDueDates = [];
-    if (cycles <= 0) return pastDueDates;
-
-    // Start with the base date, as it's the first overdue instance.
-    pastDueDates.push(baseDate);
-
-    if (task.repetitionType === 'relative') {
-        const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-        if (intervalMs > 0) {
-            let nextDueDate = new Date(baseDate.getTime() + intervalMs);
-            while (nextDueDate <= now && pastDueDates.length < cycles) {
-                pastDueDates.push(nextDueDate);
-                nextDueDate = new Date(nextDueDate.getTime() + intervalMs);
-            }
-        }
-    } else if (task.repetitionType === 'absolute') {
-        // Find occurrences *after* the base date up to now.
-        const occurrences = generateAbsoluteOccurrences(task, new Date(baseDate.getTime() + 1), now);
-        pastDueDates.push(...occurrences);
-    }
-
-    // Return the correct number of cycles, sorted just in case.
-    return pastDueDates.sort((a, b) => a - b).slice(0, cycles);
-}
-
 function confirmUndoAction(taskId, confirmed) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -2631,7 +2603,7 @@ function confirmMissAction(taskId, confirmed) {
         progress = Math.min(1, Math.max(0, progress));
 
         if (task.repetitionType !== 'none') {
-            const allPastDueDates = getAllPastDueDates(task, baseDate, now, totalCycles);
+            const allPastDueDates = getOccurrences(task, baseDate, now).slice(0, totalCycles);
 
             const completionDates = allPastDueDates.slice(0, completionsToApply);
             const missDates = allPastDueDates.slice(completionsToApply);
@@ -2661,13 +2633,9 @@ function confirmMissAction(taskId, confirmed) {
 
             const lastDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
-            if (task.repetitionType === 'relative') {
-                nextDueDate = calculateFutureDate(task.repetitionAmount, task.repetitionUnit, lastDueDate);
-            } else { // absolute
-                const futureOccurrences = generateAbsoluteOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
-                if (futureOccurrences.length > 0) {
-                    nextDueDate = futureOccurrences[0];
-                }
+            const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
+            if (futureOccurrences.length > 0) {
+                nextDueDate = futureOccurrences[0];
             }
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 

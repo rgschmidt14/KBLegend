@@ -235,6 +235,43 @@ function generateAbsoluteOccurrences(task, startDate, endDate) {
 
 // --- End of Date Generation Helpers ---
 
+function getOccurrences(task, startDate, endDate) {
+    const dueDates = [];
+    if (!task.dueDate) return dueDates;
+
+    const initialDueDate = new Date(task.dueDate);
+
+    if (task.repetitionType === 'none') {
+        // Ensure the single due date is within the requested range
+        if (initialDueDate.getTime() >= startDate.getTime() && initialDueDate.getTime() <= endDate.getTime()) {
+             dueDates.push(initialDueDate);
+        }
+    } else if (task.repetitionType === 'absolute') {
+        // For absolute, we just call our existing helper
+        return generateAbsoluteOccurrences(task, startDate, endDate);
+    } else if (task.repetitionType === 'relative') {
+        const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
+        if (intervalMs > 0) {
+            let currentDate = new Date(initialDueDate);
+
+            // Find the first occurrence that is *within or after* the start of our window
+            // This handles tasks that started in the past and repeat into the window.
+            while (currentDate.getTime() < startDate.getTime()) {
+                currentDate = new Date(currentDate.getTime() + intervalMs);
+            }
+
+            // Now, iterate forward from that point until we are past the end date
+            let i = 0; // Safety break
+            while (currentDate.getTime() <= endDate.getTime() && i < 500) {
+                dueDates.push(new Date(currentDate));
+                currentDate = new Date(currentDate.getTime() + intervalMs);
+                i++;
+            }
+        }
+    }
+    return dueDates;
+}
+
 
 function isDateInVacation(date, vacations) {
     if (!vacations || vacations.length === 0) return false;
@@ -284,32 +321,7 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate, vacations = 
         if (!task.dueDate) return;
 
         const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
-        let dueDates = [];
-        const initialDueDate = new Date(task.dueDate);
-
-        if (task.repetitionType === 'none') {
-            if (initialDueDate.getTime() >= schedulingStartDate.getTime() && initialDueDate.getTime() <= viewEndDate.getTime()) {
-                 dueDates.push(initialDueDate);
-            }
-        } else if (task.repetitionType === 'absolute') {
-            dueDates = generateAbsoluteOccurrences(task, schedulingStartDate, viewEndDate);
-        } else if (task.repetitionType === 'relative') {
-            const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
-            if (intervalMs > 0) {
-                let currentDate = new Date(initialDueDate);
-                while (currentDate.getTime() > schedulingStartDate.getTime()) {
-                    currentDate = new Date(currentDate.getTime() - intervalMs);
-                }
-                let i = 0;
-                while (currentDate.getTime() < viewEndDate.getTime() && i < 500) {
-                    if (currentDate.getTime() >= schedulingStartDate.getTime()) {
-                        dueDates.push(new Date(currentDate));
-                    }
-                    currentDate = new Date(currentDate.getTime() + intervalMs);
-                    i++;
-                }
-            }
-        }
+        const dueDates = getOccurrences(task, schedulingStartDate, viewEndDate);
 
         const adjustedDueDates = dueDates.map(dueDate => adjustDateForVacation(dueDate, vacations, task.categoryId, categories));
 
@@ -378,4 +390,4 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate, vacations = 
 }
 
 
-export { getDurationMs, calculateStatus, calculateScheduledTimes, generateAbsoluteOccurrences, adjustDateForVacation };
+export { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation };
