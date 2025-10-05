@@ -104,6 +104,20 @@ The Journal provides a space for free-form entries and serves as a log for your 
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.6) - 10/05/2025
+
+This is a comprehensive UI/UX and feature update focused on fixing core issues with the Journal and Weekly Goals, and adding powerful new customization options.
+
+*   **Fixed Weekly Goal Persistence & Lifecycle:**
+    *   **Reliable Saving:** The "Mission/Goals for this Week" on the dashboard now saves reliably and is correctly reloaded when the page is refreshed or when navigating between views.
+    *   **Seamless Journal Integration:** The journal view now updates immediately when the weekly goal is changed, providing a smoother user experience.
+*   **Corrected Journal Theming:**
+    *   **High-Contrast Day Mode:** Fixed a critical bug where journal entries and controls were unreadable in day mode. All journal components now have proper background and text colors, ensuring high contrast and readability in all themes.
+*   **Improved Journal Display Logic:**
+    *   **Pinned Weekly Goals:** The journal view has been refactored to always "pin" the weekly goal to the top of its corresponding week, regardless of sorting order. A week's goal will now appear even if no other entries have been made for that week.
+*   **New! Application Customization:**
+    *   **Custom Branding:** From the "Advanced Options" menu, you can now customize the application's main **Title**, **Subtitle**, and the **Weekly Goal Label** to personalize your planner. These settings are saved and loaded automatically.
+
 ### ✅ Recently Completed (Version 5.5) - 10/04/2025
 
 This is a critical stability and reliability release that addresses several long-standing bugs related to data persistence and UI interaction, ensuring a smoother and more dependable user experience.
