@@ -609,34 +609,55 @@ function processTaskHistoryForChart(history) {
         return { labels: [], completions: [], misses: [] };
     }
 
-    const dailyData = {}; // Key: YYYY-MM-DD of the event
-
+    // Group history items by day
+    const dailyData = {};
     history.forEach(item => {
         const date = new Date(item.completionDate);
         if (isNaN(date)) return;
 
-        // Use the date directly as the key, formatted to 'yyyy-MM-dd'
         const dayKey = format(date, 'yyyy-MM-dd');
 
         if (!dailyData[dayKey]) {
             dailyData[dayKey] = { completions: 0, misses: 0 };
         }
 
-        if (item.status === 'completed') {
+        // Use new status categories to correctly identify completions and misses
+        const completionStatuses = ['blue', 'green', 'yellow'];
+        const missStatuses = ['red', 'black'];
+
+        if (completionStatuses.includes(item.status)) {
             dailyData[dayKey].completions++;
-        } else if (item.status === 'missed') {
+        } else if (missStatuses.includes(item.status)) {
             dailyData[dayKey].misses++;
         }
     });
 
-    // Sort the dates chronologically
     const sortedDays = Object.keys(dailyData).sort();
+    if (sortedDays.length === 0) {
+        return { labels: [], completions: [], misses: [] };
+    }
 
-    const labels = sortedDays;
-    const completions = sortedDays.map(day => dailyData[day].completions);
-    const misses = sortedDays.map(day => dailyData[day].misses);
+    // Create a continuous timeline from the first to the last event
+    const allLabels = [];
+    const allCompletions = [];
+    const allMisses = [];
 
-    return { labels, completions, misses };
+    const firstDate = new Date(sortedDays[0]);
+    const lastDate = new Date(sortedDays[sortedDays.length - 1]);
+
+    let currentDate = firstDate;
+    while (currentDate <= lastDate) {
+        const dayKey = format(currentDate, 'yyyy-MM-dd');
+        allLabels.push(dayKey);
+
+        const dataForDay = dailyData[dayKey] || { completions: 0, misses: 0 };
+        allCompletions.push(dataForDay.completions);
+        allMisses.push(dataForDay.misses);
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return { labels: allLabels, completions: allCompletions, misses: allMisses };
 }
 
 
@@ -1366,12 +1387,26 @@ function toggleCompletionFields(type) {
 
 function archiveNonRepeatingTask(task, status, progress = 1) {
     const originalDueDate = new Date(task.originalDueDate || task.dueDate);
+
+    let historicalStatus;
+    if (status === 'missed') {
+        // For non-repeating tasks, a miss is 'yellow' if partial, 'black' otherwise.
+        if (progress > 0 && progress < 1) {
+            historicalStatus = 'yellow';
+        } else {
+            historicalStatus = 'black';
+        }
+    } else {
+        // This case should not happen based on current calls, but as a fallback:
+        historicalStatus = status;
+    }
+
     const historicalTask = {
         originalTaskId: task.id,
         name: task.name,
         completionDate: originalDueDate, // The time for calendar placement
         actionDate: new Date(),         // The actual time of action
-        status: status,
+        status: historicalStatus,
         categoryId: task.categoryId,
         durationAmount: task.estimatedDurationAmount,
         durationUnit: task.estimatedDurationUnit,
@@ -1596,8 +1631,10 @@ function renderTaskStats(taskId) {
     taskViewContent.classList.add('hidden');
     taskStatsContent.classList.remove('hidden');
 
-    const completions = history.filter(h => h.status === 'completed').length;
-    const misses = history.filter(h => h.status === 'missed').length;
+    const completionStatuses = ['blue', 'green', 'yellow'];
+    const missStatuses = ['red', 'black'];
+    const completions = history.filter(h => completionStatuses.includes(h.status)).length;
+    const misses = history.filter(h => missStatuses.includes(h.status)).length;
     const total = completions + misses;
     const stats = {
         completions,
@@ -1607,12 +1644,36 @@ function renderTaskStats(taskId) {
     };
 
     const historyHtml = history.length > 0
-        ? history.map(h => `
+        ? history.map(h => {
+            const statusColor = statusColors[h.status] || '#FFFFFF'; // Default to white
+            const formattedDate = new Date(h.completionDate).toLocaleDateString();
+            const originalDueDate = new Date(h.originalDueDate);
+            const actionDate = new Date(h.actionDate);
+
+            let timeDiffText = '';
+            // Only show time difference for completions.
+            if (h.status === 'blue' || h.status === 'green' || h.status === 'yellow') {
+                const diffMs = originalDueDate.getTime() - actionDate.getTime();
+                // A small buffer to not show '0 seconds early/late'
+                if (Math.abs(diffMs) > 1000) {
+                     const timeString = formatTimeRemaining(Math.abs(diffMs));
+                     if (diffMs > 0) { // Early
+                        timeDiffText = ` <span class="text-xs opacity-75">(${timeString} early)</span>`;
+                    } else { // Late
+                        timeDiffText = ` <span class="text-xs opacity-75">(${timeString} late)</span>`;
+                    }
+                }
+            }
+
+            // Capitalize status for display
+            const displayStatus = h.status.charAt(0).toUpperCase() + h.status.slice(1);
+
+            return `
             <div id="history-item-${h.historyId}" class="flex justify-between items-center text-sm p-1 rounded">
-                <span>${new Date(h.completionDate).toLocaleDateString()}: <span class="${h.status === 'completed' ? 'text-green-400' : 'text-red-400'} font-semibold">${h.status}</span></span>
+                <span>${formattedDate}: <span style="color: ${statusColor};" class="font-semibold">${displayStatus}</span>${timeDiffText}</span>
                 <button data-action="triggerHistoryDelete" data-history-id="${h.historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Delete</button>
             </div>
-        `).join('')
+        `}).join('')
         : '<div>No history yet.</div>';
 
     const chartData = processTaskHistoryForChart(history);
@@ -2534,11 +2595,15 @@ function confirmCompletionAction(taskId, confirmed) {
         }
         progressToSave = Math.min(1, Math.max(0, progressToSave));
 
+        // Determine historical status: blue for early, green for on-time/late
+        const isEarly = now < baseDate;
+        const historicalStatus = isEarly ? 'blue' : 'green';
+
         const historicalTask = {
             originalTaskId: task.id, name: task.name,
             completionDate: new Date(baseDate),
             actionDate: now,
-            status: 'completed',
+            status: historicalStatus, // Use the new dynamic status
             categoryId: task.categoryId,
             durationAmount: task.estimatedDurationAmount,
             durationUnit: task.estimatedDurationUnit,
@@ -2672,26 +2737,40 @@ function confirmMissAction(taskId, confirmed) {
 
         if (task.repetitionType !== 'none') {
             const allPastDueDates = getOccurrences(task, baseDate, now).slice(0, totalCycles);
-
             const completionDates = allPastDueDates.slice(0, completionsToApply);
             const missDates = allPastDueDates.slice(completionsToApply);
+            const missesBefore = task.misses || 0;
+            let runningMissesCount = missesBefore;
 
-            completionDates.forEach(dueDate => {
+            // Handle the "catch-up" completions. These are considered 'yellow'.
+            completionDates.forEach((dueDate, index) => {
                 const originalDueDate = new Date(dueDate);
+                const isFinalRecord = (index === completionDates.length - 1) && (missDates.length === 0);
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'completed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'yellow',
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: 1, originalDueDate: originalDueDate
+                    progress: isFinalRecord ? progress : 1, // Full progress, unless it's the last item with partial progress
+                    originalDueDate: originalDueDate
                 });
             });
 
+            // Handle the misses, coloring them red for the first miss and black for subsequent ones.
             missDates.forEach((dueDate, index) => {
                 const originalDueDate = new Date(dueDate);
-                const isFinalMiss = index === missDates.length - 1;
+                const isFinalRecord = index === missDates.length - 1;
+
+                let historicalStatus;
+                if (runningMissesCount === 0 && task.trackMisses) {
+                    historicalStatus = 'red'; // First ever tracked miss.
+                } else {
+                    historicalStatus = 'black'; // Subsequent miss or untracked miss.
+                }
+                runningMissesCount++;
+
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'missed',
+                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: historicalStatus,
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: isFinalMiss ? progress : 0, // Only apply partial progress to the last miss
+                    progress: isFinalRecord ? progress : 0, // Only apply partial progress to the last miss
                     originalDueDate: originalDueDate
                 });
             });
@@ -2707,7 +2786,7 @@ function confirmMissAction(taskId, confirmed) {
             }
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
-        } else {
+        } else { // non-repeating task
             task.originalDueDate = new Date(baseDate);
             archiveNonRepeatingTask(task, 'missed', progress);
         }
@@ -5151,27 +5230,9 @@ function initializeCalendar() {
                     const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
                     const eventColor = adjustColor(baseColor, dullFactor);
 
-                    let borderColor = statusColors.green; // Default
-                    if (ht.status === 'completed') {
-                        const actionDate = new Date(ht.actionDate);
-                        const originalDueDate = new Date(ht.originalDueDate);
-                        if (!isNaN(actionDate) && !isNaN(originalDueDate) && actionDate < originalDueDate) {
-                            borderColor = statusColors.blue; // Completed ahead of schedule
-                        } else {
-                            borderColor = statusColors.green; // Completed on or after due date
-                        }
-                    } else if (ht.status === 'missed') {
-                        const progress = ht.progress ?? 0;
-                        if (progress === 0) {
-                            borderColor = statusColors.black; // Complete miss
-                        } else if (progress > 0 && progress < 0.5) {
-                            borderColor = statusColors.red; // Mostly missed
-                        } else if (progress >= 0.5 && progress < 1) {
-                            borderColor = statusColors.yellow; // Partially completed
-                        } else {
-                            borderColor = statusColors.black; // Default for miss with no progress data
-                        }
-                    }
+                    // The historical task now has a specific status ('blue', 'green', 'yellow', 'red', 'black').
+                    // We can use it directly to set the border color.
+                    const borderColor = statusColors[ht.status] || statusColors.green; // Default to green if status is invalid
 
                     // The event is placed on the calendar based on its original due date
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;

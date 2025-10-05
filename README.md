@@ -7,7 +7,7 @@ Welcome to the Dynamic Task & Mission Planner, a powerful, highly customizable a
 
 ## **The Three Pillars of the Planner**
 
-This application is built on three core principles that set it apart from standard to-do lists and planners.
+This application is built on three core principles that set it apart from standard to-do lists and planners. The overarching goal is to provide users with the feedback they need to make smart decisions, re-evaluate their criteria for tasks, and build smarter goals in general. This philosophy is woven into the following pillars:
 
 *   **1. Intelligent & Predictive Scheduling:** The planner doesn't just show you what's due; it predicts your future workload. The `calculateStatus` engine analyzes the time required for all high-priority tasks and warns you *before* you run out of time to complete them. It's a proactive system designed to prevent crises, not just report on them.
 
@@ -88,6 +88,22 @@ Integrated directly with the task manager, the mission planner provides a high-l
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
+
+### ✅ Recently Completed (Version 5.4) - 10/04/2025
+
+This is a major feature release focused on providing users with a much richer, more intuitive, and actionable feedback loop on their performance. The historical data system has been overhauled to give users a clearer understanding of *how* and *when* they complete their tasks.
+
+*   **New! Advanced Historical Status:** The system now tracks and displays the precise status of every completed or missed task, providing a more nuanced view of your habits.
+    *   **Color-Coded Calendar Borders:** Historical tasks on the calendar now have a colored border indicating their status:
+        *   `Blue`: The task was completed ahead of schedule.
+        *   `Green`: The task was completed on time or after its due date.
+        *   `Yellow`: The task was a "partial miss" (e.g., a late completion of an overdue repeating task).
+        *   `Red`: This was the *first* time a repeating task was missed.
+        *   `Black`: The task was missed and already had previous misses, or it was a non-repeating task that was missed.
+    *   **Detailed History View:** The "Detailed History" in the task statistics modal now reflects this new system. The status of each entry is color-coded, and completed tasks will now show how early or late they were finished (e.g., "2 hours early").
+*   **Improved Performance Chart:** The "Performance Over Time" graph has been fixed and enhanced.
+    *   It now correctly interprets the new, detailed statuses to categorize completions and misses.
+    *   It displays a continuous timeline from the first historical event to the last, filling in any empty days. This provides a much more accurate and useful visualization of performance over time.
 
 ### ✅ Recently Completed (Version 5.3) - 10/04/2025
 
