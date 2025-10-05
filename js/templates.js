@@ -234,7 +234,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
 
     // Determine which actions to show
     const actionsHtml = isHistorical ? `
-        <button data-action="deleteSingleHistoryRecord" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="themed-button-clear">Delete This Record</button>
+        <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="themed-button-clear">Delete This Record</button>
         <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="themed-button-clear">View Parent Task Stats</button>
     ` : `
         <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="themed-button-clear">Delete Task</button>
@@ -274,7 +274,8 @@ export {
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
     editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
-    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate
+    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
+    taskViewHistoryDeleteConfirmationTemplate
 };
 
 function vacationManagerTemplate(vacations, categories) {
@@ -333,6 +334,18 @@ function taskViewDeleteConfirmationTemplate(taskId) {
             <div class="flex justify-center space-x-4 mt-3">
                 <button data-action="confirmDeleteFromView" data-task-id="${taskId}" class="themed-button-clear text-red-700 font-bold">Yes, Delete</button>
                 <button data-action="cancelDeleteFromView" data-task-id="${taskId}" class="themed-button-clear">No, Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskId) {
+    return `
+        <div class="p-3 rounded-lg border-2 border-dashed border-yellow-500 bg-yellow-50">
+            <p class="text-center text-yellow-800 font-semibold">Delete this specific history record?</p>
+            <div class="flex justify-center space-x-4 mt-3">
+                <button data-action="confirmDeleteHistoryRecordFromView" data-history-event-id="${historyEventId}" data-task-id="${originalTaskId}" class="themed-button-clear text-red-700 font-bold">Yes, Delete Record</button>
+                <button data-action="cancelDeleteHistoryRecordFromView" class="themed-button-clear">No, Cancel</button>
             </div>
         </div>
     `;

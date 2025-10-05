@@ -1,5 +1,5 @@
 import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -1550,14 +1550,25 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
                 if (calendar) calendar.refetchEvents();
                 deactivateModal(taskViewModal);
                 break;
-            case 'deleteSingleHistoryRecord':
-                // New action for deleting only the historical record
-                if (confirm('Are you sure you want to delete this single history record? This cannot be undone.')) {
-                    appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
-                    saveData();
-                    if (calendar) calendar.refetchEvents();
-                    deactivateModal(taskViewModal);
+            case 'triggerDeleteHistoryRecordFromView':
+                if (confirmationDiv && actionsDiv) {
+                    actionsDiv.classList.add('hidden');
+                    confirmationDiv.innerHTML = taskViewHistoryDeleteConfirmationTemplate(historyEventId, taskId);
+                    taskViewContent.classList.add('task-confirming-delete');
                 }
+                break;
+            case 'cancelDeleteHistoryRecordFromView':
+                 if (confirmationDiv && actionsDiv) {
+                    confirmationDiv.innerHTML = '';
+                    actionsDiv.classList.remove('hidden');
+                    taskViewContent.classList.remove('task-confirming-delete');
+                }
+                break;
+            case 'confirmDeleteHistoryRecordFromView':
+                appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
+                saveData();
+                if (calendar) calendar.refetchEvents();
+                deactivateModal(taskViewModal);
                 break;
         }
     });
