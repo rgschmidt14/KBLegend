@@ -25,7 +25,12 @@ let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
 let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true };
-let appSettings = { title: "Task & Mission Planner", use24HourFormat: false };
+let appSettings = {
+    title: "Task & Mission Planner",
+    subtitle: "Organize your tasks, plan your week, and track your progress.",
+    weeklyGoalLabel: "Mission/Goals for this Week",
+    use24HourFormat: false
+};
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek', allowCreationOnClick: false };
 let lastBulkEditSettings = {};
 let oldTasksData = [];
@@ -775,16 +780,30 @@ function applyThemeMode(effectiveMode) {
     // For 'night' mode, no class is needed as it's the default. 'auto-theme' is now handled by JS.
 }
 
-function setAppTitle(newTitle) {
-    if (!newTitle || newTitle.trim() === '') {
-        newTitle = "Task & Mission Planner"; // Default title
-    }
-    appSettings.title = newTitle;
+function setAppBranding() {
+    const { title, subtitle, weeklyGoalLabel } = appSettings;
+
+    // Set document title
+    document.title = title || "Task & Mission Planner";
+
+    // Set header title
     const headerTitle = document.querySelector('#app header h1');
     if (headerTitle) {
-        headerTitle.textContent = newTitle;
+        headerTitle.textContent = title || "Task & Mission Planner";
     }
-    document.title = newTitle;
+
+    // Set header subtitle
+    const headerSubtitle = document.querySelector('#app header p');
+    if (headerSubtitle) {
+        headerSubtitle.textContent = subtitle || "Organize your tasks, plan your week, and track your progress.";
+    }
+
+    // Set weekly goal label on the dashboard
+    const goalLabel = document.getElementById('weekly-goal-label');
+    if (goalLabel) {
+        goalLabel.textContent = weeklyGoalLabel || "Mission/Goals for this Week";
+    }
+
     saveData();
 }
 
@@ -1481,6 +1500,14 @@ function renderAppSettings() {
     if (titleInput) {
         titleInput.value = appSettings.title;
     }
+    const subtitleInput = document.getElementById('app-subtitle-input');
+    if (subtitleInput) {
+        subtitleInput.value = appSettings.subtitle;
+    }
+    const goalLabelInput = document.getElementById('app-goal-label-input');
+    if (goalLabelInput) {
+        goalLabelInput.value = appSettings.weeklyGoalLabel;
+    }
     const timeFormatToggle = document.getElementById('time-format-toggle');
     if (timeFormatToggle) {
         timeFormatToggle.checked = appSettings.use24HourFormat;
@@ -2136,6 +2163,16 @@ function renderKpiList() {
     }
 }
 
+function renderDashboardContent() {
+    if (weeklyGoalsEl) {
+        const currentWeek = appState.weeks[CURRENT_WEEK_INDEX];
+        if (currentWeek) {
+            weeklyGoalsEl.innerHTML = currentWeek.weeklyGoals || 'Set new goals for the week...';
+        }
+    }
+    renderKpiList();
+}
+
 function renderIconPicker() {
     const content = document.getElementById('icon-picker-content');
     if (!content) return;
@@ -2162,12 +2199,12 @@ function renderJournalEntry(entry) {
     `;
 
     return `
-        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" style="background-color: #2d3748;">
+        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}">
             <div class="flex justify-between items-start">
                 <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${entry.title}</h3>
                 <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
             </div>
-            <div class="prose prose-invert mt-2 max-w-none">${entry.content}</div>
+            <div class="prose mt-2 max-w-none">${entry.content}</div>
             <div class="text-xs text-gray-500 mt-2 text-right">${entry.editedAt ? `(Edited: ${new Date(entry.editedAt).toLocaleString()})` : ''}</div>
             ${buttonsHtml}
         </div>
@@ -2192,6 +2229,7 @@ function renderJournal() {
     const sortDir = document.getElementById('journal-sort-direction').value;
 
     if (sortBy === 'date') {
+        // Group all journal entries by their week's start date for efficient lookup.
         const entriesByWeek = {};
         appState.journal.forEach(entry => {
             const entryDate = new Date(entry.createdAt);
@@ -2202,35 +2240,49 @@ function renderJournal() {
             entriesByWeek[weekStart].push(entry);
         });
 
-        const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
-            const dateA = new Date(a);
-            const dateB = new Date(b);
+        // Filter and sort the weeks that should be displayed.
+        // A week is displayed if it has a goal or has journal entries.
+        const weeksToDisplay = appState.weeks.filter(week => {
+            const hasGoal = week.weeklyGoals && week.weeklyGoals !== 'Set new goals for the week...';
+            const hasEntries = entriesByWeek[week.startDate] && entriesByWeek[week.startDate].length > 0;
+            return hasGoal || hasEntries;
+        }).sort((a, b) => {
+            const dateA = new Date(a.startDate);
+            const dateB = new Date(b.startDate);
             return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
-        sortedWeeks.forEach(weekStartISO => {
-            const weekData = appState.weeks.find(w => new Date(w.startDate).toISOString() === weekStartISO);
-            const weeklyGoal = weekData ? weekData.weeklyGoals : 'No goal set for this week.';
+        if (weeksToDisplay.length === 0) {
+             list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries or weekly goals yet.</p>';
+             return;
+        }
+
+        weeksToDisplay.forEach(weekData => {
+            const weekStartISO = weekData.startDate;
+            const weeklyGoal = weekData.weeklyGoals || 'No goal set for this week.';
 
             const weekStartDate = new Date(weekStartISO);
             const weekEndDate = new Date(weekStartDate);
             weekEndDate.setDate(weekEndDate.getDate() + 6);
 
+            // Render the header for the week. This is always first.
             const headerHtml = `
-                <div class="journal-week-header my-4 p-3 bg-gray-800 rounded-lg">
-                    <h3 class="text-lg font-bold text-white">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
-                    <div class="prose prose-sm prose-invert mt-2 max-w-none">${weeklyGoal}</div>
+                <div class="journal-week-header my-4 p-3 rounded-lg">
+                    <h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
+                    <div class="prose prose-sm mt-2 max-w-none">${weeklyGoal.replace(/\n/g, '<br>')}</div>
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', headerHtml);
 
-            const entries = entriesByWeek[weekStartISO];
+            // Get and sort the journal entries for this specific week.
+            const entries = entriesByWeek[weekStartISO] || [];
             entries.sort((a, b) => {
                 const dateA = new Date(a.createdAt);
                 const dateB = new Date(b.createdAt);
                 return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
             });
 
+            // Render the sorted entries.
             entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
         });
 
@@ -4410,8 +4462,19 @@ function setupEventListeners() {
         advancedOptionsContent.addEventListener('change', (event) => {
             const target = event.target;
             if (target.id === 'app-title-input') {
-                setAppTitle(target.value);
-                return; // Prevent other handlers from running
+                appSettings.title = target.value.trim();
+                setAppBranding();
+                return;
+            }
+            if (target.id === 'app-subtitle-input') {
+                appSettings.subtitle = target.value.trim();
+                setAppBranding();
+                return;
+            }
+            if (target.id === 'app-goal-label-input') {
+                appSettings.weeklyGoalLabel = target.value.trim();
+                setAppBranding();
+                return;
             }
             if (target.id === 'weekly-goal-icon-input') {
                 journalSettings.weeklyGoalIcon = target.value.trim();
@@ -4568,8 +4631,14 @@ function setupEventListeners() {
             const week = appState.weeks[CURRENT_WEEK_INDEX];
             if (week) {
                 const newGoals = weeklyGoalsEl.innerHTML;
-                week.weeklyGoals = newGoals;
-                savePlannerData();
+                if (week.weeklyGoals !== newGoals) {
+                    week.weeklyGoals = newGoals;
+                    savePlannerData();
+                    // If the journal is the active view, re-render it to show the new goal
+                    if (uiSettings.activeView === 'journal-view') {
+                        renderJournal();
+                    }
+                }
             }
         });
     }
@@ -4602,6 +4671,12 @@ function setupEventListeners() {
                     // If switching to calendar view, ensure it resizes correctly
                     if (item.view === calendarView && calendar) {
                         calendar.updateSize();
+                    }
+                    if (item.id === 'dashboard-view') {
+                        renderDashboardContent();
+                    }
+                    if (item.id === 'journal-view') {
+                        renderJournal();
                     }
                 } else {
                     item.view.classList.add('hidden');
@@ -5212,6 +5287,9 @@ function applyActiveView() {
             if (item.view === calendarView && calendar) {
                 calendar.updateSize();
             }
+            if (item.id === 'dashboard-view') {
+                renderDashboardContent();
+            }
             foundActive = true;
         } else {
             item.view.classList.add('hidden');
@@ -5499,6 +5577,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeDOMElements(); // From Task Manager
         setupEventListeners();   // From Task Manager
         loadData();              // From Task Manager
+        setAppBranding(); // Set the title on load
 
         // Automatically check for and prompt user to clean orphaned history on startup.
         const taskIds = new Set(tasks.map(t => t.id));

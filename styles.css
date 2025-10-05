@@ -851,6 +851,45 @@ select {
     color: #1f2937; /* gray-800 */
 }
 
+/* --- Journal View Styles --- */
+/* Default (Night Mode) styles */
+.journal-entry {
+    background-color: #2d3748; /* gray-800 */
+    color: var(--text-color-primary);
+}
+.journal-entry .prose { color: var(--text-color-secondary); }
+.journal-entry .prose h1, .journal-entry .prose h2, .journal-entry .prose h3, .journal-entry .prose h4, .journal-entry .prose strong { color: var(--text-color-primary); }
+.journal-entry .prose a { color: #93c5fd; } /* blue-300 */
+.journal-entry .prose blockquote { color: var(--text-color-tertiary); border-left-color: var(--text-color-quaternary); }
+
+.journal-week-header, .journal-icon-header {
+    background-color: #1f2937; /* gray-800 */
+    color: var(--text-color-primary);
+}
+.journal-week-header .prose { color: var(--text-color-secondary); }
+.journal-week-header .prose h1, .journal-week-header .prose h2, .journal-week-header .prose h3, .journal-week-header .prose h4, .journal-week-header .prose strong { color: var(--text-color-primary); }
+
+/* Light Mode Overrides for Journal */
+.light-mode .journal-entry {
+    background-color: #ffffff; /* white */
+    border: 1px solid #e5e7eb; /* gray-200 */
+    color: var(--text-color-light-primary);
+}
+.light-mode .journal-entry .prose { color: var(--text-color-light-secondary); }
+.light-mode .journal-entry .prose h1, .light-mode .journal-entry .prose h2, .light-mode .journal-entry .prose h3, .light-mode .journal-entry .prose h4, .light-mode .journal-entry .prose strong { color: var(--text-color-light-primary); }
+.light-mode .journal-entry .prose a { color: #3b82f6; } /* blue-500 */
+.light-mode .journal-entry .prose blockquote { color: var(--text-color-light-tertiary); border-left-color: var(--text-color-light-quaternary); }
+
+.light-mode .journal-week-header, .light-mode .journal-icon-header {
+    background-color: #f3f4f6; /* gray-100 */
+    color: var(--text-color-light-primary);
+    border: 1px solid #e5e7eb; /* gray-200 */
+}
+.light-mode .journal-week-header .prose { color: var(--text-color-light-secondary); }
+.light-mode .journal-week-header .prose h1, .light-mode .journal-week-header .prose h2, .light-mode .journal-week-header .prose h3, .light-mode .journal-week-header .prose h4, .light-mode .journal-week-header .prose strong { color: var(--text-color-light-primary); }
+.light-mode .journal-icon-header h3, .light-mode .journal-icon-header i { color: var(--text-color-light-primary); }
+
+
 /* FullCalendar Customizations */
 #calendar {
     min-height: 70vh;
