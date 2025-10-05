@@ -15,6 +15,7 @@ Chart.register(...registerables);
 // =================================================================================
 // SECTION 1: Global State, Constants, & DOM References
 // =================================================================================
+let isInitializing = true; // Flag to prevent premature saves
 let tasks = [];
 let categories = [];
 const defaultStatusColors = { blue: '#00BFFF', green: '#22c55e', yellow: '#facc15', red: '#991b1b', black: '#4b5563' };
@@ -1514,19 +1515,49 @@ function renderVacationManager() {
 
 function openTaskView(eventId, isHistorical, occurrenceDate) {
     let taskOrHistoryItem;
+    // Helper to robustly get the base task ID from a composite ID
+    const getBaseId = (id) => {
+        if (!id.includes('_')) return id;
+        const lastUnderscoreIndex = id.lastIndexOf('_');
+        return id.substring(0, lastUnderscoreIndex);
+    };
 
     if (isHistorical) {
         // For historical events, the eventId is 'hist_taskId_completionDate'
         taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
     } else {
-        // For active tasks, first try a direct match (for non-repeating tasks).
+        // For active tasks, first try a direct match.
         taskOrHistoryItem = tasks.find(t => t.id === eventId);
 
-        // If not found, it's likely a recurring event with a composite ID (e.g., 'taskId_date').
-        // We extract the base task ID and find the parent task.
+        // If not found, it's likely a recurring event with a composite ID.
         if (!taskOrHistoryItem && eventId.includes('_')) {
-            const baseTaskId = eventId.split('_')[0];
+            const baseTaskId = getBaseId(eventId);
             taskOrHistoryItem = tasks.find(t => t.id === baseTaskId);
+        }
+    }
+
+    // Fallback: If an active task was not found (e.g., completed just before click), check history.
+    if (!taskOrHistoryItem && !isHistorical) {
+        const baseTaskId = getBaseId(eventId);
+        if (baseTaskId) {
+            const matchingHistory = appState.historicalTasks
+                .filter(h => h.originalTaskId === baseTaskId)
+                .sort((a, b) => new Date(b.actionDate) - new Date(a.actionDate));
+
+            if (matchingHistory.length > 0) {
+                // If an occurrenceDate is available, try to find the exact historical match.
+                if (occurrenceDate) {
+                    const exactMatch = matchingHistory.find(h => new Date(h.completionDate).getTime() === occurrenceDate.getTime());
+                    if (exactMatch) {
+                        taskOrHistoryItem = exactMatch;
+                    }
+                }
+                // If no exact match or no date, fall back to the most recent record.
+                if (!taskOrHistoryItem) {
+                    taskOrHistoryItem = matchingHistory[0];
+                }
+                isHistorical = true; // We found it in history, so treat it as such.
+            }
         }
     }
 
@@ -4559,6 +4590,10 @@ function setupEventListeners() {
 }
 
 function saveData() {
+    if (isInitializing) {
+        console.log("Initialization in progress, skipping save data.");
+        return;
+    }
     try {
         localStorage.setItem('tasks', JSON.stringify(tasks));
         localStorage.setItem('categories', JSON.stringify(categories));
@@ -5303,7 +5338,11 @@ function initializeCalendar() {
             const eventId = info.event.id;
             const isHistorical = info.event.extendedProps.isHistorical;
             const occurrenceDueDate = info.event.extendedProps.occurrenceDueDate ? new Date(info.event.extendedProps.occurrenceDueDate) : null;
-            openTaskView(eventId, isHistorical, occurrenceDueDate);
+
+            // Use the explicit taskId from extendedProps for active tasks. This is more reliable.
+            const idToOpen = isHistorical ? eventId : (info.event.extendedProps.taskId || eventId);
+
+            openTaskView(idToOpen, isHistorical, occurrenceDueDate);
         },
         dateClick: (info) => {
             if (!calendarSettings.allowCreationOnClick) {
@@ -5390,4 +5429,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
         console.error("Error during Mission Planner initialization:", e);
     }
+
+    // All initialization is complete. It's now safe to save data.
+    isInitializing = false;
+    console.log("Initialization complete. Data saving is now enabled.");
 });

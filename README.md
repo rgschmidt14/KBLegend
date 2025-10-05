@@ -89,6 +89,13 @@ Integrated directly with the task manager, the mission planner provides a high-l
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.5) - 10/04/2025
+
+This is a critical stability and reliability release that addresses several long-standing bugs related to data persistence and UI interaction, ensuring a smoother and more dependable user experience.
+
+*   **Guaranteed Data Persistence:** Fixed a critical bug that could cause journal entries and weekly goals to be deleted upon reloading the application. This was caused by a race condition where the application would save its state before all data was fully loaded. A new initialization-aware saving mechanism has been implemented to prevent this, guaranteeing that your data is always safe.
+*   **Seamless Calendar Interaction:** Resolved an error where clicking on active or future repeating tasks in the calendar would fail to open the task view. The event handling logic now correctly uses the stored base ID of the task, ensuring that any instance of a task on the calendar can be reliably opened.
+
 ### ✅ Recently Completed (Version 5.4) - 10/04/2025
 
 This is a major feature release focused on providing users with a much richer, more intuitive, and actionable feedback loop on their performance. The historical data system has been overhauled to give users a clearer understanding of *how* and *when* they complete their tasks.
