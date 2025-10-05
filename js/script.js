@@ -1,5 +1,5 @@
 import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -51,6 +51,10 @@ let uiSettings = {
     kpiChartMode: 'single', // 'single' or 'stacked'
     kpiChartDateRange: '8d', // '8d', '30d', etc.
     kpiWeekOffset: 0,
+    journalIconCollapseState: {},
+};
+let journalSettings = {
+    weeklyGoalIcon: 'fa-solid fa-bullseye',
 };
 let sensitivitySettings = { sValue: 0.5, isAdaptive: true };
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -1483,6 +1487,12 @@ function renderAppSettings() {
     }
 }
 
+function renderJournalSettings() {
+    const container = document.getElementById('journal-settings-content');
+    if (!container) return;
+    container.innerHTML = journalSettingsTemplate(journalSettings);
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1493,7 +1503,8 @@ function openAdvancedOptionsModal() {
     renderTaskDisplaySettings();
     renderAppSettings();
     renderSensitivityControls();
-    renderVacationManager(); // Added call
+    renderVacationManager();
+    renderJournalSettings();
     activateModal(advancedOptionsModal);
 }
 
@@ -2143,6 +2154,13 @@ function openIconPicker(context = 'task') {
 }
 
 function renderJournalEntry(entry) {
+    const buttonsHtml = entry.isWeeklyGoal ? '' : `
+        <div class="flex justify-end space-x-2 mt-2">
+            <button data-action="editJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Edit</button>
+            <button data-action="deleteJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Delete</button>
+        </div>
+    `;
+
     return `
         <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" style="background-color: #2d3748;">
             <div class="flex justify-between items-start">
@@ -2151,10 +2169,7 @@ function renderJournalEntry(entry) {
             </div>
             <div class="prose prose-invert mt-2 max-w-none">${entry.content}</div>
             <div class="text-xs text-gray-500 mt-2 text-right">${entry.editedAt ? `(Edited: ${new Date(entry.editedAt).toLocaleString()})` : ''}</div>
-             <div class="flex justify-end space-x-2 mt-2">
-                <button data-action="editJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Edit</button>
-                <button data-action="deleteJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Delete</button>
-            </div>
+            ${buttonsHtml}
         </div>
     `;
 }
@@ -2165,8 +2180,11 @@ function renderJournal() {
 
     list.innerHTML = '';
 
-    if (appState.journal.length === 0) {
-        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
+    const hasJournalEntries = appState.journal.length > 0;
+    const hasWeeklyGoals = appState.weeks.some(w => w.weeklyGoals && w.weeklyGoals !== 'Set new goals for the week...');
+
+    if (!hasJournalEntries && !hasWeeklyGoals) {
+        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries or weekly goals yet.</p>';
         return;
     }
 
@@ -2226,22 +2244,69 @@ function renderJournal() {
             entriesByIcon[icon].push(entry);
         });
 
+        // Gather weekly goals and add them to the 'entriesByIcon' object
+        const weeklyGoalIcon = journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye';
+        if (!entriesByIcon[weeklyGoalIcon]) {
+            entriesByIcon[weeklyGoalIcon] = [];
+        }
+
+        appState.weeks.forEach(week => {
+            if (week.weeklyGoals && week.weeklyGoals !== 'Set new goals for the week...') {
+                const goalEntry = {
+                    id: `weekly-goal-${week.startDate}`,
+                    title: `Weekly Goal`,
+                    content: week.weeklyGoals,
+                    createdAt: week.startDate,
+                    icon: weeklyGoalIcon,
+                    isWeeklyGoal: true
+                };
+                entriesByIcon[weeklyGoalIcon].push(goalEntry);
+            }
+        });
+
+        if (entriesByIcon[weeklyGoalIcon] && entriesByIcon[weeklyGoalIcon].length === 0) {
+            delete entriesByIcon[weeklyGoalIcon];
+        }
+
+        // Cleanup stale collapse states
+        const currentIcons = new Set(Object.keys(entriesByIcon));
+        if (uiSettings.journalIconCollapseState) {
+            for (const iconKey in uiSettings.journalIconCollapseState) {
+                if (!currentIcons.has(iconKey)) {
+                    delete uiSettings.journalIconCollapseState[iconKey];
+                }
+            }
+        } else {
+            uiSettings.journalIconCollapseState = {};
+        }
+
+
         const sortedIcons = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
         if (sortDir === 'desc') sortedIcons.reverse();
 
         sortedIcons.forEach(icon => {
             const displayName = icon.replace('fa-solid', '').replace('fa-brands', '').replace('fa-', '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
-            const headerHtml = `
-                <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md">
-                    <h3 class="font-bold text-white">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
+
+            const isCollapsed = uiSettings.journalIconCollapseState[icon] === true;
+            const chevronClass = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
+            const entriesContainerDisplay = isCollapsed ? 'display: none;' : '';
+
+            const groupHtml = `
+                <div class="journal-icon-group">
+                    <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md flex justify-between items-center cursor-pointer" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
+                        <h3 class="font-bold text-white">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
+                        <i class="fa-solid ${chevronClass} text-white transition-transform"></i>
+                    </div>
+                    <div class="journal-entries-container space-y-4" data-icon-entries="${icon}" style="${entriesContainerDisplay}">
+                        ${entriesByIcon[icon]
+                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Always sort by date within icon group
+                            .map(entry => renderJournalEntry(entry))
+                            .join('')
+                        }
+                    </div>
                 </div>
             `;
-            list.insertAdjacentHTML('beforeend', headerHtml);
-
-            const entries = entriesByIcon[icon];
-            entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Always sort by date within icon group
-
-            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+            list.insertAdjacentHTML('beforeend', groupHtml);
         });
     }
 }
@@ -4348,6 +4413,11 @@ function setupEventListeners() {
                 setAppTitle(target.value);
                 return; // Prevent other handlers from running
             }
+            if (target.id === 'weekly-goal-icon-input') {
+                journalSettings.weeklyGoalIcon = target.value.trim();
+                saveData();
+                return;
+            }
             if (target.classList.contains('category-color-picker')) {
                 const categoryId = target.dataset.categoryId;
                 const newColor = target.value;
@@ -4584,6 +4654,26 @@ function setupEventListeners() {
                     savePlannerData();
                     renderJournal();
                 }
+            } else if (action === 'toggleJournalIconGroup') {
+                const iconGroup = target.dataset.iconGroup;
+                const entriesContainer = journalList.querySelector(`[data-icon-entries="${iconGroup}"]`);
+                const chevron = target.querySelector('.fa-solid');
+
+                if (entriesContainer && chevron) {
+                    const isCollapsed = entriesContainer.style.display === 'none';
+                    if (isCollapsed) {
+                        entriesContainer.style.display = '';
+                        chevron.classList.remove('fa-chevron-right');
+                        chevron.classList.add('fa-chevron-down');
+                        uiSettings.journalIconCollapseState[iconGroup] = false;
+                    } else {
+                        entriesContainer.style.display = 'none';
+                        chevron.classList.remove('fa-chevron-down');
+                        chevron.classList.add('fa-chevron-right');
+                        uiSettings.journalIconCollapseState[iconGroup] = true;
+                    }
+                    saveData();
+                }
             }
         });
     }
@@ -4611,6 +4701,7 @@ function saveData() {
         localStorage.setItem('appSettings', JSON.stringify(appSettings));
         localStorage.setItem('sensitivitySettings', JSON.stringify(sensitivitySettings));
         localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
+        localStorage.setItem('journalSettings', JSON.stringify(journalSettings));
         // New: Explicitly save historical tasks to their own key
         localStorage.setItem('historicalTasksV1', JSON.stringify(appState.historicalTasks));
         savePlannerData();
@@ -4648,6 +4739,7 @@ function loadData() {
     const storedAppSettings = localStorage.getItem('appSettings');
     const storedSensitivitySettings = localStorage.getItem('sensitivitySettings');
     const storedUiSettings = localStorage.getItem('uiSettings');
+    const storedJournalSettings = localStorage.getItem('journalSettings');
 
     tasks = [];
     categories = [];
@@ -4765,6 +4857,15 @@ function loadData() {
             uiSettings = { ...uiSettings, ...parsedSettings };
         } catch (e) {
             console.error("Error parsing UI settings:", e);
+        }
+    }
+
+    if (storedJournalSettings) {
+        try {
+            const parsedSettings = JSON.parse(storedJournalSettings);
+            journalSettings = { ...journalSettings, ...parsedSettings };
+        } catch (e) {
+            console.error("Error parsing Journal settings:", e);
         }
     }
 

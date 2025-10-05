@@ -85,6 +85,21 @@ Integrated directly with the task manager, the mission planner provides a high-l
 * **Amendment Tracking:** If you edit a past week's schedule, goals, or KPIs, the changes are flagged with an asterisk, ensuring an honest record.  
 * **Seamless Week Advancement:** At the end of the week, a single click archives the current week and sets up a fresh week for planning.
 
+### **The Journal**
+
+The Journal provides a space for free-form entries and serves as a log for your weekly goals.
+
+*   **Free-form Entries:** Create, edit, and delete journal entries with a title, content, and an optional icon.
+*   **Weekly Goal Logging:** The journal automatically displays your weekly goals, providing a historical record of your focus over time.
+*   **Flexible Sorting:** View your entries chronologically (grouped by week) or grouped by their assigned icon.
+*   **Customizable Goal Icon:** To better integrate weekly goals into your categorized view, you can now set a custom icon for them.
+    *   In `Advanced Options` > `Journal Settings`, you can specify any Font Awesome icon class (e.g., `fa-solid fa-bullseye`).
+    *   When sorting the journal by icon, all your weekly goals will be grouped under this custom icon.
+*   **Collapsible Icon Groups:** To make the icon-sorted view easier to navigate, icon groups are now collapsible.
+    *   Click the header of any icon group to expand or collapse it.
+    *   The application will remember the state of each group, so your preferences are saved for your next visit.
+    *   The system is dynamic: if you delete all entries for a specific icon, its collapse/expand setting is automatically removed.
+
 ## **Project Updates**
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.

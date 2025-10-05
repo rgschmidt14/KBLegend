@@ -275,7 +275,7 @@ export {
     editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
-    taskViewHistoryDeleteConfirmationTemplate
+    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate
 };
 
 function vacationManagerTemplate(vacations, categories) {
@@ -407,6 +407,16 @@ function dataMigrationModalTemplate() {
                     <button id="run-confirm-btn" class="themed-button-secondary">Confirm Migration</button>
                 </div>
             </div>
+        </div>
+    `;
+}
+
+function journalSettingsTemplate(settings) {
+    return `
+        <div>
+            <label for="weekly-goal-icon-input" class="form-label">Weekly Goal Icon:</label>
+            <input type="text" id="weekly-goal-icon-input" value="${settings.weeklyGoalIcon}" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            <p class="form-hint">Set the Font Awesome icon for weekly goals in the journal view.</p>
         </div>
     `;
 }
