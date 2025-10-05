@@ -480,7 +480,15 @@ This update focused on improving the long-term stability and maintainability of 
 
 ### 📝 Backlog & To-Do List
 
-There are currently no items in the backlog.
+This is the official backlog of tasks to be completed before moving on to the larger database migration.
+
+1.  **Standardize All Confirmation Dialogs:** The application has a mix of old modal pop-ups and newer, cleaner inline confirmations. Audit the entire application and replace all remaining modal confirmations (e.g., for category deletion) with the modern inline pattern found in the task manager and calendar views. This will create a more consistent and less disruptive user experience.
+
+2.  **Optimize Calendar Performance:** The calendar's event loading function currently processes the entire task history on every view change. As the history grows, this will cause performance issues. Refactor the `events` function in `initializeCalendar` to implement a more efficient caching or pre-processing strategy for historical tasks to ensure the calendar remains fast and responsive.
+
+3.  **Enhance "Undo" Functionality:** The current "Undo" action only reverts the single most recent completion. It should be enhanced to handle more complex scenarios, such as undoing a specific action from a bulk confirmation of multiple overdue cycles.
+
+4.  **Improve Icon Picker Testability:** The icon picker modal is difficult to interact with in automated tests, causing them to be flaky. Investigate the modal's rendering logic in `js/script.js` and `js/templates.js` and refactor it to ensure that all elements, particularly the category headers, are rendered in a way that is stable and easily located by testing frameworks like Playwright.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 
@@ -491,15 +499,6 @@ These are larger, long-term goals for the project that are dependent on migratin
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
 *   **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list.
 *   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, providing deep insights into productivity trends over time.
-
-### **AI Suggestions & Future Improvements**
-
-This section is maintained by the AI assistant to log potential improvements and ideas for future development cycles that are identified during coding sessions.
-
-*   **Standardize Inline Confirmations:** Version 5.1 introduced two new inline confirmation patterns: one for deleting historical task entries and another for deleting active tasks from the calendar view. These patterns (using a placeholder `div` and dynamically rendering a confirmation template) should be considered the standard for any future features requiring user confirmation for destructive actions, replacing older, full-modal confirmation dialogs.
-*   **Historical View Performance:** As the `historicalTasks` array grows, loading and filtering it on every calendar view change could become a performance bottleneck. For a future update, consider implementing a more sophisticated caching or indexing strategy. For example, pre-process historical events into a structure grouped by week or month to speed up retrieval for the calendar's `events` function.
-*   **Undo Action Robustness:** The "Undo" functionality currently only removes the last completed history item. It does not account for the more complex scenarios handled by the new history logic (e.g., undoing one action out of a bulk confirmation). A future improvement would be to make the undo system more granular, perhaps by showing a list of recent actions that can be individually reverted.
-*   **Icon Picker UI Testability:** During development of Version 5.0, Playwright verification scripts consistently timed out when trying to interact with the icon picker modal. The category headers (e.g., "Animals", "Gaming & Hobbies") were difficult to locate reliably, even with explicit waits and scoped locators. This suggests a potential timing or visibility issue in the modal's rendering logic that makes it difficult to test programmatically. Future work on this component should investigate and improve its testability.
 
 ### ✅ **Completed AI Suggestions**
 
