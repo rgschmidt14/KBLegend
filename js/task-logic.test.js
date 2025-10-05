@@ -1,4 +1,92 @@
-import { getDurationMs, calculateStatus, calculateScheduledTimes } from './task-logic.js';
+import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences } from './task-logic.js';
+
+describe('getOccurrences', () => {
+    // Test date range: Jan 1, 2025 to Jan 31, 2025
+    const startDate = new Date('2025-01-01T00:00:00Z');
+    const endDate = new Date('2025-01-31T23:59:59Z');
+
+    it('should return a single date for a non-repeating task within the range', () => {
+        const task = {
+            repetitionType: 'none',
+            dueDate: new Date('2025-01-15T10:00:00Z')
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        expect(occurrences.length).toBe(1);
+        expect(occurrences[0].toISOString()).toBe('2025-01-15T10:00:00.000Z');
+    });
+
+    it('should return an empty array for a non-repeating task outside the range', () => {
+        const task = {
+            repetitionType: 'none',
+            dueDate: new Date('2025-02-15T10:00:00Z')
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        expect(occurrences.length).toBe(0);
+    });
+
+    it('should calculate correct occurrences for a simple daily relative task', () => {
+        const task = {
+            repetitionType: 'relative',
+            repetitionAmount: 1,
+            repetitionUnit: 'days',
+            dueDate: new Date('2025-01-02T10:00:00Z') // Starts on the 2nd
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        expect(occurrences.length).toBe(30); // Jan 2 to Jan 31
+        expect(occurrences[0].toISOString()).toBe('2025-01-02T10:00:00.000Z');
+        expect(occurrences[29].toISOString()).toBe('2025-01-31T10:00:00.000Z');
+    });
+
+    it('should calculate correct occurrences for a weekly relative task that started in the past', () => {
+        const task = {
+            repetitionType: 'relative',
+            repetitionAmount: 1,
+            repetitionUnit: 'weeks',
+            dueDate: new Date('2024-12-29T12:00:00Z') // A Sunday in the previous month
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        expect(occurrences.length).toBe(4);
+        expect(occurrences.map(d => d.getDate())).toEqual([5, 12, 19, 26]);
+    });
+
+    it('should calculate correct occurrences for an absolute weekly task (Mon & Fri)', () => {
+        const task = {
+            repetitionType: 'absolute',
+            repetitionAbsoluteFrequency: 'weekly',
+            repetitionAbsoluteWeeklyDays: [1, 5], // Monday, Friday
+            dueDate: new Date('2025-01-03T09:00:00Z') // A Friday to set the time
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        // Jan 2025:
+        // Fridays: 3, 10, 17, 24, 31 (5)
+        // Mondays: 6, 13, 20, 27 (4)
+        expect(occurrences.length).toBe(9);
+        const days = occurrences.map(d => d.getDate());
+        expect(days).toEqual([3, 6, 10, 13, 17, 20, 24, 27, 31]);
+    });
+
+    it('should calculate correct occurrences for an absolute monthly task (last Friday)', () => {
+        const task = {
+            repetitionType: 'absolute',
+            repetitionAbsoluteFrequency: 'monthly',
+            repetitionAbsoluteMonthlyMode: 'day_of_week',
+            repetitionAbsoluteNthWeekdayOccurrence: ['last'],
+            repetitionAbsoluteNthWeekdayDays: [5], // Friday
+            dueDate: new Date('2025-01-31T17:00:00Z')
+        };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        // Last Friday of Jan 2025 is the 31st.
+        expect(occurrences.length).toBe(1);
+        expect(occurrences[0].getDate()).toBe(31);
+    });
+
+     it('should return an empty array if due date is not set', () => {
+        const task = { repetitionType: 'none', dueDate: null };
+        const occurrences = getOccurrences(task, startDate, endDate);
+        expect(occurrences.length).toBe(0);
+    });
+});
+
 
 describe('calculateScheduledTimes', () => {
     // Set a base date far in the future to avoid issues with the current time.

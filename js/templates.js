@@ -97,7 +97,7 @@ function getDurationMs(amount, unit) {
 }
 
 
-export function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings }) {
+function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings }) {
     const category = categories.find(c => c.id === task.categoryId);
     const categoryName = category ? category.name : 'Uncategorized';
 
@@ -169,7 +169,7 @@ export function taskTemplate(task, { categories, taskDisplaySettings, getContras
             </div>`;
 }
 
-export function categoryManagerTemplate(categories) {
+function categoryManagerTemplate(categories) {
     let content = '';
     if (categories.length === 0) {
         content += '<p class="text-gray-500 italic">No categories created yet.</p>';
@@ -213,7 +213,7 @@ export function categoryManagerTemplate(categories) {
     return content;
 }
 
-export function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
+function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
     const category = categories.find(c => c.id === task.categoryId);
     const categoryName = category ? category.name : 'Uncategorized';
 
@@ -258,7 +258,7 @@ export function taskViewTemplate(task, { categories, appSettings, isHistorical }
     `;
 }
 
-export function historyDeleteConfirmationTemplate(historyId, taskId) {
+function historyDeleteConfirmationTemplate(historyId, taskId) {
     return `
         <div class="history-delete-confirmation flex justify-end items-center space-x-2 w-full">
             <span class="text-sm font-semibold text-red-700">Delete?</span>
@@ -277,7 +277,7 @@ export {
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate
 };
 
-export function vacationManagerTemplate(vacations, categories) {
+function vacationManagerTemplate(vacations, categories) {
     const vacationListHtml = vacations.length > 0 ? vacations.map(v => `
         <div class="flex items-center justify-between p-2 border-b">
             <div>
@@ -326,7 +326,7 @@ export function vacationManagerTemplate(vacations, categories) {
     `;
 }
 
-export function taskViewDeleteConfirmationTemplate(taskId) {
+function taskViewDeleteConfirmationTemplate(taskId) {
     return `
         <div class="p-3 rounded-lg border-2 border-dashed border-red-500 bg-red-50">
             <p class="text-center text-red-800 font-semibold">Are you sure you want to delete this task?</p>
@@ -338,7 +338,7 @@ export function taskViewDeleteConfirmationTemplate(taskId) {
     `;
 }
 
-export function dataMigrationModalTemplate() {
+function dataMigrationModalTemplate() {
     return `
         <div class="modal-content">
             <h3 class="text-xl font-semibold mb-4">Task Data Migration & Integrity Tool</h3>
@@ -398,7 +398,7 @@ export function dataMigrationModalTemplate() {
     `;
 }
 
-export function bulkEditFormTemplate(categoryId, settings) {
+function bulkEditFormTemplate(categoryId, settings) {
     const {
         durationAmount = '',
         durationUnit = 'minutes',
@@ -443,7 +443,7 @@ export function bulkEditFormTemplate(categoryId, settings) {
     `;
 }
 
-export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
+function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
     const chartHtml = hasChartData
         ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>`
         : '<p class="italic mt-4">Not enough history to display a chart.</p>';
@@ -468,7 +468,7 @@ export function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
     `;
 }
 
-export function actionAreaTemplate(task) {
+function actionAreaTemplate(task) {
     const cycles = task.pendingCycles || 1;
     switch (task.confirmationState) {
         case 'confirming_complete':
@@ -509,7 +509,7 @@ export function actionAreaTemplate(task) {
     }
 }
 
-export function commonButtonsTemplate(task) {
+function commonButtonsTemplate(task) {
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
 
@@ -524,7 +524,7 @@ export function commonButtonsTemplate(task) {
     `;
 }
 
-export function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
+function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
     const toggleHtml = `
         <div class="flex items-center justify-between mb-4 p-2 border-b">
             <label for="status-theme-toggle" class="form-label mb-0">Use Theme Gradient for Statuses:</label>
@@ -551,7 +551,7 @@ export function statusManagerTemplate(statusNames, statusColors, defaultStatusNa
     return toggleHtml + statusItems;
 }
 
-export function categoryFilterTemplate(categories, categoryFilter) {
+function categoryFilterTemplate(categories, categoryFilter) {
     if (categories.length === 0) {
         return '<p class="text-gray-500 italic">No categories to filter.</p>';
     }
@@ -580,7 +580,7 @@ export function categoryFilterTemplate(categories, categoryFilter) {
     return allLabel + uncategorizedLabel + categoryLabels;
 }
 
-export function iconPickerTemplate(iconCategories) {
+function iconPickerTemplate(iconCategories) {
     let contentHtml = '';
     for (const category in iconCategories) {
         const iconsHtml = iconCategories[category].map(iconClass => `
@@ -604,7 +604,7 @@ export function iconPickerTemplate(iconCategories) {
     return contentHtml;
 }
 
-export function editProgressTemplate(taskId, currentValue, max) {
+function editProgressTemplate(taskId, currentValue, max) {
     return `
         <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
         <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
@@ -612,7 +612,7 @@ export function editProgressTemplate(taskId, currentValue, max) {
     `;
 }
 
-export function editCategoryTemplate(categoryId, currentName) {
+function editCategoryTemplate(categoryId, currentName) {
     return `
         <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
         <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
@@ -620,7 +620,7 @@ export function editCategoryTemplate(categoryId, currentName) {
     `;
 }
 
-export function editStatusNameTemplate(statusKey, currentName) {
+function editStatusNameTemplate(statusKey, currentName) {
     return `
         <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
         <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
@@ -628,7 +628,7 @@ export function editStatusNameTemplate(statusKey, currentName) {
     `;
 }
 
-export function restoreDefaultsConfirmationTemplate() {
+function restoreDefaultsConfirmationTemplate() {
     return `
         <div class="flex flex-col items-center gap-2 text-center">
             <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
@@ -640,7 +640,7 @@ export function restoreDefaultsConfirmationTemplate() {
     `;
 }
 
-export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
+function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
     return `
         <div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
              data-group="${groupName}"
@@ -651,7 +651,7 @@ export function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
     `;
 }
 
-export function sensitivityControlsTemplate(settings) {
+function sensitivityControlsTemplate(settings) {
     const { sValue, isAdaptive } = settings;
     const sliderDisabled = isAdaptive ? 'disabled' : '';
     const containerOpacity = isAdaptive ? 'opacity-50' : '';
