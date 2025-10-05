@@ -46,7 +46,7 @@ let taskDisplaySettings = {
 };
 let uiSettings = {
     isSimpleMode: true,
-    activeView: 'calendar-view', // Default view
+    activeView: 'dashboard-view', // Default view
     kpiChartMode: 'single', // 'single' or 'stacked'
     kpiChartDateRange: '8d', // '8d', '30d', etc.
     kpiWeekOffset: 0,
@@ -2445,7 +2445,15 @@ function triggerDelete(taskId) {
     if (task) {
         task.confirmationState = 'confirming_delete';
         saveData();
-        renderTasks();
+        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            taskElement.classList.add('task-confirming-delete');
+            taskElement.dataset.confirming = 'true';
+            const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
+            if (actionArea) {
+                actionArea.innerHTML = actionAreaTemplate(task);
+            }
+        }
     }
 }
 function triggerUndoConfirmation(taskId) {
@@ -2453,7 +2461,14 @@ function triggerUndoConfirmation(taskId) {
     if (task && task.status === 'blue' && task.repetitionType !== 'none') {
         task.confirmationState = 'confirming_undo';
         saveData();
-        renderTasks();
+        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            taskElement.dataset.confirming = 'true';
+            const commonButtonsArea = taskElement.querySelector(`#common-buttons-${taskId}`);
+            if (commonButtonsArea) {
+                commonButtonsArea.innerHTML = commonButtonsTemplate(task);
+            }
+        }
     }
 }
 function confirmDeleteAction(taskId, confirmed) {
@@ -2488,7 +2503,14 @@ function triggerCompletion(taskId) {
         delete task.overdueStartDate;
     }
     saveData();
-    renderTasks();
+    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+    if (taskElement) {
+        taskElement.dataset.confirming = 'true';
+        const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
+        if (actionArea) {
+            actionArea.innerHTML = actionAreaTemplate(task);
+        }
+    }
 }
 function confirmCompletionAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
@@ -2496,72 +2518,60 @@ function confirmCompletionAction(taskId, confirmed) {
 
     let task = tasks[taskIndex];
     const now = new Date();
-    const cyclesToComplete = task.pendingCycles || 1;
     const wasOverdue = !!task.overdueStartDate;
     const baseDate = wasOverdue ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
     if (confirmed) {
         stopTaskTimer(taskId);
 
+        // --- Create History Record ---
+        let progressToSave = 1;
+        if (task.completionType === 'count' && task.countTarget > 0) {
+            progressToSave = (task.currentProgress || 0) / task.countTarget;
+        } else if (task.completionType === 'time') {
+            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+            if (targetMs > 0) progressToSave = (task.currentProgress || 0) / targetMs;
+        }
+        progressToSave = Math.min(1, Math.max(0, progressToSave));
+
+        const historicalTask = {
+            originalTaskId: task.id, name: task.name,
+            completionDate: new Date(baseDate),
+            actionDate: now,
+            status: 'completed',
+            categoryId: task.categoryId,
+            durationAmount: task.estimatedDurationAmount,
+            durationUnit: task.estimatedDurationUnit,
+            progress: progressToSave,
+            originalDueDate: new Date(baseDate)
+        };
+        appState.historicalTasks.push(historicalTask);
+
+        // --- Update Task State ---
         if (task.repetitionType !== 'none') {
-            // Logic for repeating tasks
+            // Repeating task logic
             const pastDueDates = getOccurrences(task, baseDate, now);
-
-            // Capture progress before it's reset
-            let progressToSave = 1; // Default to 100% for simple tasks
-            if (task.completionType === 'count' && task.countTarget > 0) {
-                 progressToSave = (task.currentProgress || 0) / task.countTarget;
-            } else if (task.completionType === 'time') {
-                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-                if (targetMs > 0) progressToSave = (task.currentProgress || 0) / targetMs;
-            }
-            progressToSave = Math.min(1, Math.max(0, progressToSave));
-
-            pastDueDates.forEach(dueDate => {
-                const originalDueDate = new Date(dueDate);
-                const historicalTask = {
-                    originalTaskId: task.id, name: task.name,
-                    completionDate: originalDueDate, // For calendar placement
-                    actionDate: new Date(),        // The actual time of action
-                    status: 'completed',
-                    categoryId: task.categoryId,
-                    durationAmount: task.estimatedDurationAmount,
-                    durationUnit: task.estimatedDurationUnit,
-                    progress: progressToSave, // Use the captured progress
-                    originalDueDate: originalDueDate
-                };
-                appState.historicalTasks.push(historicalTask);
-            });
+            const completedCycles = pastDueDates.length > 0 ? pastDueDates.length : 1;
 
             const missesBefore = task.misses || 0;
-            const completedCycles = pastDueDates.length;
             task.misses = Math.max(0, missesBefore - completedCycles);
             task.completionReducedMisses = task.misses < missesBefore;
 
             const lastDueDate = pastDueDates.length > 0 ? pastDueDates[pastDueDates.length - 1] : baseDate;
-            let nextDueDate = null;
-
-            // Find the next occurrence *after* the last completed one.
             const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
-            if (futureOccurrences.length > 0) {
-                nextDueDate = futureOccurrences[0];
-            }
-
+            let nextDueDate = futureOccurrences.length > 0 ? futureOccurrences[0] : null;
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
-
-            task.status = 'blue';
-            // Set the lock until the original due date of the completed cycle has passed.
-            task.cycleEndDate = new Date(baseDate);
-
         } else {
-            // Logic for non-repeating tasks using the new helper
-            task.originalDueDate = new Date(baseDate); // Ensure originalDueDate is set for the archive function
-            archiveNonRepeatingTask(task, 'completed', 1);
+            // Non-repeating task logic
+            task.completed = true; // Mark as "done pending removal"
         }
 
-        // Common cleanup for both types
+        // --- Common Logic for Locking ---
+        task.status = 'blue';
+        task.cycleEndDate = new Date(baseDate);
+
+        // --- Common Cleanup ---
         task.currentProgress = 0;
-        task.completed = false;
         task.confirmationState = null;
         delete task.pendingCycles;
         delete task.overdueStartDate;
@@ -2591,12 +2601,13 @@ function confirmUndoAction(taskId, confirmed) {
     if (!task) return;
 
     if (confirmed) {
-        if (task.status !== 'blue' || task.repetitionType === 'none') return;
+        if (task.status !== 'blue') return; // Only blue (locked) tasks can be undone.
 
-        // Find the last completed instance for this task in history
+        // Find the most recent 'completed' history item for this task.
         let lastCompletedIndex = -1;
         for (let i = appState.historicalTasks.length - 1; i >= 0; i--) {
-            if (appState.historicalTasks[i].originalTaskId === taskId && appState.historicalTasks[i].status === 'completed') {
+            const h = appState.historicalTasks[i];
+            if (h.originalTaskId === taskId && h.status === 'completed') {
                 lastCompletedIndex = i;
                 break;
             }
@@ -2606,7 +2617,7 @@ function confirmUndoAction(taskId, confirmed) {
             const historyItem = appState.historicalTasks[lastCompletedIndex];
             const savedProgressRatio = historyItem.progress || 0;
 
-            // Restore the progress
+            // Restore progress from the historical record
             if (task.completionType === 'count' && task.countTarget > 0) {
                 task.currentProgress = Math.round(savedProgressRatio * task.countTarget);
             } else if (task.completionType === 'time') {
@@ -2616,13 +2627,16 @@ function confirmUndoAction(taskId, confirmed) {
                 }
             }
 
-            // Now, remove the historical item
+            // Remove the historical record
             appState.historicalTasks.splice(lastCompletedIndex, 1);
         }
 
-
+        // Restore task state
         task.dueDate = task.cycleEndDate ? new Date(task.cycleEndDate) : new Date();
         task.cycleEndDate = null;
+        if (task.repetitionType === 'none') {
+            task.completed = false; // Make non-repeating task active again
+        }
 
         if (task.completionReducedMisses && task.trackMisses && task.maxMisses > 0) {
             task.misses = Math.min(task.maxMisses, (task.misses || 0) + 1);
@@ -2723,7 +2737,14 @@ function handleOverdueChoice(taskId, choice) {
     task.pendingCycles = calculatePendingCycles(task, Date.now());
     task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
     saveData();
-    renderTasks();
+    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+    if (taskElement) {
+        taskElement.dataset.confirming = 'true';
+        const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
+        if (actionArea) {
+            actionArea.innerHTML = actionAreaTemplate(task);
+        }
+    }
 }
 function incrementCount(taskId) {
     const task = tasks.find(t => t.id === taskId);
@@ -3805,6 +3826,8 @@ function initializeDOMElements() {
     journalView = document.getElementById('journal-view');
 }
 function setupEventListeners() {
+    let mouseDownCoords = null; // Variable to track mouse position for drag detection
+
     // Task Manager
     const addTaskBtn = document.getElementById('add-task-btn');
     if (addTaskBtn) {
@@ -3948,90 +3971,103 @@ function setupEventListeners() {
             deactivateModal(advancedOptionsModal);
         }
     });
-    taskListDiv.addEventListener('click', (event) => {
-        const collapsibleHeader = event.target.closest('.collapsible-header');
-        if (collapsibleHeader) {
-            const group = collapsibleHeader.dataset.group;
-            const tasksToToggle = taskListDiv.querySelectorAll(`.task-item[data-group="${group}"]`);
-            const icon = collapsibleHeader.querySelector('span');
-            collapsibleHeader.classList.toggle('collapsed');
-            if (collapsibleHeader.classList.contains('collapsed')) {
-                icon.style.transform = 'rotate(-90deg)';
-                tasksToToggle.forEach(t => t.style.display = 'none');
-            } else {
-                icon.style.transform = 'rotate(0deg)';
-                tasksToToggle.forEach(t => t.style.display = 'flex');
-            }
-            return;
-        }
 
-        const taskItem = event.target.closest('.task-item');
-        if (!taskItem) return;
+    if (taskListDiv) {
+        taskListDiv.addEventListener('mousedown', (e) => {
+            mouseDownCoords = { x: e.clientX, y: e.clientY };
+        });
 
-        const actionTarget = event.target.closest('[data-action]');
-        const taskId = taskItem.dataset.taskId;
+        taskListDiv.addEventListener('click', (event) => {
+            const wasDrag = mouseDownCoords && (Math.abs(event.clientX - mouseDownCoords.x) > 5 || Math.abs(event.clientY - mouseDownCoords.y) > 5);
+            mouseDownCoords = null; // Reset after use
 
-        if (!actionTarget || actionTarget.dataset.action === 'viewTask') {
-            // If the click is on the task item itself but not on a button, or it's explicitly the view action
-             if (!event.target.closest('button, a, input, .edit-progress-button')) {
-                openTaskView(taskId);
+            const collapsibleHeader = event.target.closest('.collapsible-header');
+            if (collapsibleHeader) {
+                const group = collapsibleHeader.dataset.group;
+                const tasksToToggle = taskListDiv.querySelectorAll(`.task-item[data-group="${group}"]`);
+                const icon = collapsibleHeader.querySelector('span');
+                collapsibleHeader.classList.toggle('collapsed');
+                if (collapsibleHeader.classList.contains('collapsed')) {
+                    icon.style.transform = 'rotate(-90deg)';
+                    tasksToToggle.forEach(t => t.style.display = 'none');
+                } else {
+                    icon.style.transform = 'rotate(0deg)';
+                    tasksToToggle.forEach(t => t.style.display = 'flex');
+                }
                 return;
             }
-        }
 
-        // If an action button was clicked, handle it
-        if (actionTarget) {
-            const action = actionTarget.dataset.action;
-            const taskIdForAction = actionTarget.dataset.taskId; // Use the taskId from the button
-            switch (action) {
-                case 'edit':
-                    editTask(taskIdForAction);
-                    break;
-                case 'triggerDelete':
-                    triggerDelete(taskIdForAction);
-                    break;
-                case 'triggerCompletion':
-                    triggerCompletion(taskIdForAction);
-                    break;
-                case 'confirmCompletion':
-                    confirmCompletionAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                    break;
-                case 'handleOverdue':
-                    handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice);
-                    break;
-                case 'confirmMiss':
-                    confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                    break;
-                case 'confirmDelete':
-                    confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                    break;
-                case 'triggerUndo':
-                    triggerUndoConfirmation(taskIdForAction);
-                    break;
-                case 'confirmUndo':
-                    confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                    break;
-                case 'incrementCount':
-                    incrementCount(taskIdForAction);
-                    break;
-                case 'decrementCount':
-                    decrementCount(taskIdForAction);
-                    break;
-                case 'toggleTimer':
-                    toggleTimer(taskIdForAction);
-                    break;
-                case 'editProgress':
-                    editProgress(taskIdForAction);
-                    break;
-                case 'saveProgress':
-                    saveProgressEdit(taskIdForAction);
-                    break;
-                case 'cancelProgress':
-                    cancelProgressEdit(taskIdForAction);
-                    break;
+            const taskItem = event.target.closest('.task-item');
+            if (!taskItem) return;
+
+            const actionTarget = event.target.closest('[data-action]');
+            const taskId = taskItem.dataset.taskId;
+
+            if (!actionTarget || actionTarget.dataset.action === 'viewTask') {
+                 if (!event.target.closest('button, a, input, .edit-progress-button')) {
+                    if (wasDrag) {
+                        return; // It was a drag, so don't open the modal
+                    }
+                    openTaskView(taskId);
+                    return;
+                }
             }
-        }
-    });
+
+            // If an action button was clicked, handle it
+            if (actionTarget) {
+                const action = actionTarget.dataset.action;
+                const taskIdForAction = actionTarget.dataset.taskId; // Use the taskId from the button
+                switch (action) {
+                    case 'edit':
+                        editTask(taskIdForAction);
+                        break;
+                    case 'triggerDelete':
+                        triggerDelete(taskIdForAction);
+                        break;
+                    case 'triggerCompletion':
+                        triggerCompletion(taskIdForAction);
+                        break;
+                    case 'confirmCompletion':
+                        confirmCompletionAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                        break;
+                    case 'handleOverdue':
+                        handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice);
+                        break;
+                    case 'confirmMiss':
+                        confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                        break;
+                    case 'confirmDelete':
+                        confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                        break;
+                    case 'triggerUndo':
+                        triggerUndoConfirmation(taskIdForAction);
+                        break;
+                    case 'confirmUndo':
+                        confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
+                        break;
+                    case 'incrementCount':
+                        incrementCount(taskIdForAction);
+                        break;
+                    case 'decrementCount':
+                        decrementCount(taskIdForAction);
+                        break;
+                    case 'toggleTimer':
+                        toggleTimer(taskIdForAction);
+                        break;
+                    case 'editProgress':
+                        editProgress(taskIdForAction);
+                        break;
+                    case 'saveProgress':
+                        saveProgressEdit(taskIdForAction);
+                        break;
+                    case 'cancelProgress':
+                        cancelProgressEdit(taskIdForAction);
+                        break;
+                }
+            }
+        });
+    }
+
     const advancedOptionsContent = document.getElementById('advanced-options-content');
     if (advancedOptionsContent) {
         advancedOptionsContent.addEventListener('click', (event) => {
@@ -4690,9 +4726,17 @@ function updateAllTaskStatuses(forceRender = false) {
     const nowMs = Date.now();
     const currentTasks = [...tasks];
     const sensitivityParams = getSensitivityParameters();
+    const tasksToRemove = [];
+
     tasks.forEach(task => {
         try {
-            if (task.repetitionType === 'none' && task.completed) return;
+            // New: Check if a completed non-repeating task's lock has expired.
+            if (task.repetitionType === 'none' && task.completed) {
+                if (task.cycleEndDate && nowMs >= new Date(task.cycleEndDate).getTime()) {
+                    tasksToRemove.push(task.id);
+                }
+                return; // Skip further status checks for this task.
+            }
 
             const oldStatus = task.status;
             const oldConfirmationState = task.confirmationState;
@@ -4735,6 +4779,12 @@ function updateAllTaskStatuses(forceRender = false) {
             console.error("Error updating status for task:", task?.id, e);
         }
     });
+
+    if (tasksToRemove.length > 0) {
+        tasks = tasks.filter(t => !tasksToRemove.includes(t.id));
+        changed = true; // Force a re-render if tasks were removed
+    }
+
     if (changed || forceRender) {
         saveData();
         renderTasks();
@@ -4936,7 +4986,7 @@ function applyActiveView() {
         { btn: showJournalBtn, view: journalView, id: 'journal-view' }
     ];
 
-    const activeViewId = uiSettings.activeView || 'calendar-view'; // Default to calendar
+    const activeViewId = uiSettings.activeView || 'dashboard-view'; // Default to dashboard
     let foundActive = false;
 
     views.forEach(item => {
@@ -4957,9 +5007,9 @@ function applyActiveView() {
 
     // Fallback if the saved view ID is invalid for some reason
     if (!foundActive && views.length > 0) {
-        views[1].view.classList.remove('hidden'); // Default to calendar view
-        views[1].btn.classList.add('active-view-btn', 'themed-button-primary');
-        views[1].btn.classList.remove('themed-button-secondary');
+        views[2].view.classList.remove('hidden'); // Default to dashboard view
+        views[2].btn.classList.add('active-view-btn', 'themed-button-primary');
+        views[2].btn.classList.remove('themed-button-secondary');
     }
 }
 

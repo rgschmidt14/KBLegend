@@ -15,6 +15,24 @@ This application is built on three core principles that set it apart from standa
 
 *   **3. Integrated Task & Goal Management:** The application seamlessly combines a powerful daily task manager with a high-level mission and KPI tracker. You can manage granular to-do items with complex repetition schedules (e.g., "the last Friday of every month") while also tracking your progress on long-term goals and performance indicators, all within a single, unified interface.
 
+## **Functionality of the App**
+
+This section details the core user-facing functionality of the application, explaining how key features behave.
+
+*   **Early & On-Time Task Completion:**
+    *   When a user clicks "Complete" on a task (either a repeating or non-repeating one), a historical record of the completion is immediately created. This record is visible in the "Detailed History" of the task's statistics view.
+    *   The task then enters a "locked" (blue) state. It will remain in this state until its original due date passes. This prevents a user from accidentally completing a task multiple times before its cycle is over.
+    *   For non-repeating tasks, once the original due date passes, the task is automatically removed from the active task list, completing its lifecycle.
+
+*   **Undo Functionality:**
+    *   While a task is in the "locked" (blue) state after being completed, an "Undo" button is available.
+    *   Clicking "Undo" and confirming the action will perform the following:
+        1.  It finds the most recent "completed" record for that task in the history and removes it.
+        2.  It restores any partial progress the task had before it was completed (e.g., for timer- or counter-based tasks).
+        3.  It reverts the task's status from "blue" back to its calculated active state (e.g., green, yellow, or red).
+        4.  For a non-repeating task, it clears the internal `completed` flag, making it fully active again.
+    *   Once the task's original due date passes and it is no longer blue, the "Undo" option is no longer available.
+
 ## **In-Depth Features**
 
 This application is built as a comprehensive tool for managing complex schedules and tracking progress towards specific goals. It combines a sophisticated task manager with a weekly mission planner, providing a single interface for all your planning needs.
