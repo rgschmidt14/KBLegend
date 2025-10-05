@@ -254,6 +254,20 @@ legend {
     @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-10 text-center mx-1 bg-transparent;
 }
 
+/* High-contrast text for action area on dark backgrounds */
+.task-item[data-status="red"] .action-area-text,
+.task-item[data-status="black"] .action-area-text {
+    color: var(--text-color-dark-primary) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* High-contrast input for action area on dark backgrounds */
+.task-item[data-status="red"] .miss-input,
+.task-item[data-status="black"] .miss-input {
+    color: var(--text-color-dark-primary) !important;
+    border-color: var(--text-color-dark-tertiary) !important;
+}
+
 .common-buttons-container {
     @apply flex space-x-2 mt-2;
 } /* Container for Edit/Delete */
