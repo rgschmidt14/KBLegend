@@ -23,14 +23,14 @@
         <!-- Main View Navigation -->
         <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-between items-center gap-2">
             <div class="flex flex-wrap space-x-2">
-                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
-                    <i class="fa-solid fa-tasks mr-2"></i>Task Manager
+                <button id="show-dashboard-btn" type="button" class="view-toggle-btn active-view-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                    <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
-                <button id="show-calendar-btn" type="button" class="view-toggle-btn active-view-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-calendar-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-dashboard-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
-                    <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
+                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                    <i class="fa-solid fa-tasks mr-2"></i>Task Manager
                 </button>
                 <button id="show-journal-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
                     <i class="fa-solid fa-book-journal-whills mr-2"></i>Journal
@@ -63,7 +63,7 @@
             </div>
 
             <!-- Calendar View -->
-            <div id="calendar-view">
+            <div id="calendar-view" class="hidden">
                 <div id="mainPlannerSection">
                     <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
                         <button id="prevWeekBtn" class="nav-btn p-2 rounded-md themed-button-secondary">&lt; Prev Week</button>
@@ -87,7 +87,7 @@
             </div>
 
             <!-- Dashboard View -->
-            <div id="dashboard-view" class="hidden">
+            <div id="dashboard-view">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
                         <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Mission Goals for this Week</h2>
