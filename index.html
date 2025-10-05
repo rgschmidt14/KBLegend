@@ -476,47 +476,10 @@
             <h2 class="text-2xl font-semibold mb-6 text-gray-700">Advanced Options</h2>
             <div id="advanced-options-content" class="space-y-2">
 
-                <!-- General Settings Section -->
-                <div class="collapsible-section" data-section-key="general">
-                    <h3 class="collapsible-header">
-                        <span>General Settings</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>View Options</legend>
-                            <div id="restore-defaults-container" class="mt-4">
-                                <button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Restore All View Defaults</button>
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Application Settings</legend>
-                            <div class="space-y-2">
-                                <div>
-                                    <label for="app-title-input" class="form-label">Application Title:</label>
-                                    <input type="text" id="app-title-input" placeholder="Enter a new title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label for="app-subtitle-input" class="form-label">Application Subtitle:</label>
-                                    <input type="text" id="app-subtitle-input" placeholder="Enter a new subtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label for="app-goal-label-input" class="form-label">Weekly Goal Label:</label>
-                                    <input type="text" id="app-goal-label-input" placeholder="Enter a new label" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="time-format-toggle" class="form-label mb-0">Use 24-Hour Time Format:</label>
-                                    <input type="checkbox" id="time-format-toggle" data-action="toggleTimeFormat" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Appearance Section -->
+                <!-- Theme and Color Section -->
                 <div class="collapsible-section" data-section-key="appearance">
                     <h3 class="collapsible-header">
-                        <span>Appearance</span>
+                        <span>Theme and Color</span>
                         <i class="fas fa-chevron-down"></i>
                     </h3>
                     <div class="collapsible-content">
@@ -579,13 +542,50 @@
                                 </label>
                             </div>
                         </fieldset>
+                        <fieldset>
+                            <legend>View Options</legend>
+                            <div id="restore-defaults-container" class="mt-4">
+                                <button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Restore All View Defaults</button>
+                            </div>
+                        </fieldset>
                     </div>
                 </div>
 
-                <!-- Feature Settings Section -->
-                <div class="collapsible-section" data-section-key="features">
+                <!-- Naming Section -->
+                <div class="collapsible-section" data-section-key="general">
                     <h3 class="collapsible-header">
-                        <span>Feature Settings</span>
+                        <span>Naming</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Application Naming</legend>
+                            <div class="space-y-2">
+                                <div>
+                                    <label for="app-title-input" class="form-label">Application Title:</label>
+                                    <input type="text" id="app-title-input" placeholder="Enter a new title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label for="app-subtitle-input" class="form-label">Application Subtitle:</label>
+                                    <input type="text" id="app-subtitle-input" placeholder="Enter a new subtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label for="app-goal-label-input" class="form-label">Weekly Goal Label:</label>
+                                    <input type="text" id="app-goal-label-input" placeholder="Enter a new label" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label for="time-format-toggle" class="form-label mb-0">Use 24-Hour Time Format:</label>
+                                    <input type="checkbox" id="time-format-toggle" data-action="toggleTimeFormat" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Planner Sensitivity Section -->
+                <div class="collapsible-section" data-section-key="sensitivity">
+                    <h3 class="collapsible-header">
+                        <span>Planner Sensitivity</span>
                         <i class="fas fa-chevron-down"></i>
                     </h3>
                     <div class="collapsible-content">
@@ -595,6 +595,16 @@
                                 <!-- This content will be rendered by a new template -->
                             </div>
                         </fieldset>
+                    </div>
+                </div>
+
+                <!-- Category Management Section -->
+                <div class="collapsible-section" data-section-key="category">
+                    <h3 class="collapsible-header">
+                        <span>Category Management</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h3>
+                    <div class="collapsible-content">
                         <fieldset>
                             <legend>Category Management</legend>
                             <div id="category-manager-list" class="space-y-2">
@@ -609,6 +619,32 @@
                                 <p class="text-gray-500 italic">No categories to filter.</p>
                             </div>
                         </fieldset>
+                    </div>
+                </div>
+
+                <!-- Vacation Schedule Section -->
+                <div class="collapsible-section" data-section-key="vacation">
+                    <h3 class="collapsible-header">
+                        <span>Vacation Schedule</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Vacation Mode</legend>
+                            <div id="vacation-manager-content" class="space-y-4">
+                                <!-- Vacation manager will be rendered here by JS -->
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Other Features Section -->
+                <div class="collapsible-section" data-section-key="other">
+                    <h3 class="collapsible-header">
+                        <span>Other Features</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h3>
+                    <div class="collapsible-content">
                         <fieldset>
                             <legend>Planner Integration</legend>
                             <div>
@@ -623,12 +659,6 @@
                             </div>
                         </fieldset>
                         <fieldset>
-                            <legend>Vacation Mode</legend>
-                            <div id="vacation-manager-content" class="space-y-4">
-                                <!-- Vacation manager will be rendered here by JS -->
-                            </div>
-                        </fieldset>
-                        <fieldset>
                             <legend>Journal Settings</legend>
                             <div id="journal-settings-content" class="space-y-4">
                                 <!-- Journal settings will be rendered here by JS -->
@@ -637,10 +667,10 @@
                     </div>
                 </div>
 
-                <!-- Advanced Section -->
+                <!-- Data & Notifications Section -->
                 <div class="collapsible-section" data-section-key="advanced">
                     <h3 class="collapsible-header">
-                        <span>Advanced</span>
+                        <span>Data & Notifications</span>
                         <i class="fas fa-chevron-down"></i>
                     </h3>
                     <div class="collapsible-content">

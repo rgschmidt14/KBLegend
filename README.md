@@ -61,7 +61,7 @@ The core of the application is a dynamic and intelligent task management system.
 * **In-Depth Customization:**  
   * **Task Icons:** Assign a unique icon to each task using Font Awesome classes for quick visual identification.  
   * **Customizable Task Cards:** From the Advanced Options menu, choose exactly which details you want to see on your task cards, such as due date, duration, category, and more.  
-  * **Collapsible Advanced Options:** The Advanced Options menu has been reorganized into logical, collapsible sections (General, Appearance, etc.). Click on any section header to expand or collapse it, making the menu cleaner and easier to navigate. Your preferences are saved automatically.
+  * **Reorganized Advanced Options:** The Advanced Options menu has been completely reorganized for clarity and ease of use. Sections have been renamed and reordered into more intuitive groups: Theme and Color, Naming, Planner Sensitivity, Category Management, Vacation Schedule, Other Features, and Data & Notifications. All sections remain collapsible, and your preferences are saved automatically.
   * **Categories:** Create an unlimited number of color-coded categories to organize your tasks.  
   * **Status Names & Colors:** Edit the names and colors for each status (Ready, Overdue, etc.) to match your personal workflow.  
   * **Advanced Theming Engine:** The application features a powerful, dynamic theming system that ensures readability and a cohesive look across the entire interface.
