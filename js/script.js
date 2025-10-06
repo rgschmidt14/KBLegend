@@ -1,5 +1,5 @@
 import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -2467,6 +2467,117 @@ function handleJournalFormSubmit(event) {
     closeJournalModal();
 }
 
+function openVacationChangeModal(changedTasks, onConfirm, onCancel) {
+    // Remove any existing modal first
+    const existingModal = document.getElementById('vacation-change-confirm-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create and append the new modal
+    const modalHtml = vacationChangeConfirmationModalTemplate(changedTasks);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('vacation-change-confirm-modal');
+
+    const confirmBtn = document.getElementById('confirm-vacation-change-btn');
+    const cancelBtn = document.getElementById('cancel-vacation-change-btn');
+    const closeBtn = document.getElementById('vacation-change-close-btn');
+
+    const closeModal = () => {
+        deactivateModal(modalElement);
+        setTimeout(() => modalElement.remove(), 300); // Remove after transition
+    };
+
+    confirmBtn.addEventListener('click', () => {
+        onConfirm();
+        closeModal();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        onCancel();
+        closeModal();
+    });
+
+    closeBtn.addEventListener('click', () => {
+        onCancel(); // Closing also cancels the change
+        closeModal();
+    });
+
+    activateModal(modalElement);
+}
+
+
+function handleVacationChange(changeAction) {
+    // 1. Snapshot the current state
+    const originalTasksState = JSON.parse(JSON.stringify(tasks));
+    const originalVacationsState = JSON.parse(JSON.stringify(appState.vacations));
+    const originalCategoriesState = JSON.parse(JSON.stringify(categories));
+
+    // 2. Perform the action that changes the vacation state
+    changeAction();
+
+    // 3. Recalculate all due dates based on the new state
+    const changedTasks = [];
+    originalTasksState.forEach(originalTask => {
+        const task = tasks.find(t => t.id === originalTask.id);
+        const originalDueDate = originalTask.dueDate ? new Date(originalTask.dueDate) : null;
+        if (!task || !originalDueDate) return;
+
+        // Calculate the new due date based on the *potentially modified* vacation/category state
+        const newDueDate = adjustDateForVacation(new Date(originalDueDate), appState.vacations, task.categoryId, categories);
+
+        // Compare time values to see if the date actually changed
+        if (newDueDate.getTime() !== originalDueDate.getTime()) {
+            changedTasks.push({
+                id: task.id,
+                name: task.name,
+                oldDueDate: originalDueDate,
+                newDueDate: newDueDate
+            });
+        }
+    });
+
+    const onConfirm = () => {
+        // Apply the new due dates to the actual tasks array
+        changedTasks.forEach(change => {
+            const taskToUpdate = tasks.find(t => t.id === change.id);
+            if (taskToUpdate) {
+                taskToUpdate.dueDate = change.newDueDate;
+            }
+        });
+        // Save data and update UI
+        saveData();
+        updateAllTaskStatuses(true);
+        if (calendar) calendar.refetchEvents();
+        console.log('Vacation changes confirmed and applied.');
+    };
+
+    const onCancel = () => {
+        // Restore the original state of tasks, vacations, and categories from the deep copies
+        tasks = JSON.parse(JSON.stringify(originalTasksState)).map(t => {
+            t.dueDate = t.dueDate ? new Date(t.dueDate) : null;
+            return t;
+        });
+        appState.vacations = JSON.parse(JSON.stringify(originalVacationsState));
+        categories = JSON.parse(JSON.stringify(originalCategoriesState));
+
+        // Re-render the UI to reflect the cancelled state
+        renderVacationManager();
+        updateAllTaskStatuses(true);
+        if (calendar) calendar.refetchEvents();
+        console.log('Vacation changes cancelled.');
+    };
+
+    // 4. If there are changes, open the confirmation modal
+    if (changedTasks.length > 0) {
+        openVacationChangeModal(changedTasks, onConfirm, onCancel);
+    } else {
+        // If no tasks were affected, just save the data (e.g., an empty vacation was deleted)
+        saveData();
+        if (calendar) calendar.refetchEvents();
+    }
+}
+
 function handleAddVacation(event) {
     event.preventDefault();
     const nameInput = document.getElementById('vacation-name');
@@ -2492,10 +2603,10 @@ function handleAddVacation(event) {
             endDate,
         };
 
-        appState.vacations.push(newVacation);
-        savePlannerData();
-        renderVacationManager();
-        if (calendar) calendar.refetchEvents(); // Refresh calendar to show changes
+        handleVacationChange(() => {
+            appState.vacations.push(newVacation);
+            renderVacationManager();
+        });
 
         // Clear the form
         nameInput.value = '';
@@ -4494,22 +4605,21 @@ function setupEventListeners() {
                     saveData();
                     break;
                 case 'deleteVacation':
-                    if (confirm('Are you sure you want to delete this vacation period?')) {
-                        const vacationId = target.dataset.id;
+                    const vacationId = target.dataset.id;
+                    handleVacationChange(() => {
                         appState.vacations = appState.vacations.filter(v => v.id !== vacationId);
-                        savePlannerData();
                         renderVacationManager();
-                        if (calendar) calendar.refetchEvents();
-                    }
+                    });
                     break;
                 case 'toggleVacationBypass':
                      const catId = target.dataset.categoryId;
-                     const categoryToUpdate = categories.find(c => c.id === catId);
-                     if(categoryToUpdate) {
-                         categoryToUpdate.bypassVacation = target.checked;
-                         saveData();
-                         // No need to re-render anything visually here, just save the data
-                     }
+                     handleVacationChange(() => {
+                         const categoryToUpdate = categories.find(c => c.id === catId);
+                         if(categoryToUpdate) {
+                             categoryToUpdate.bypassVacation = target.checked;
+                         }
+                         // The UI for the checkbox updates automatically. No re-render needed here.
+                     });
                     break;
             }
         });

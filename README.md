@@ -105,6 +105,22 @@ The Journal provides a space for free-form entries and serves as a log for your 
 
 This section provides a high-level overview of the project's status, recent updates, and future plans.
 
+### ✅ Recently Completed (Version 5.8) - 10/05/2025
+
+This is a major enhancement to the calendar's scheduling and deconfliction engine, making it fully vacation-aware and more user-friendly.
+
+*   **Intelligent Vacation Lookahead:** Fixed a bug where tasks due immediately after a vacation would not be visible to the scheduling engine. The calendar now intelligently "looks ahead" past any scheduled vacation periods to fetch tasks, ensuring that the user's true workload is always visible.
+*   **Vacation-Aware Deconfliction:** The task deconfliction algorithm has been improved. If a high-priority task (like "Sleep") pushes another task backward in the schedule, the algorithm will now ensure the pushed task does not land in a vacation period. If it does, the task is automatically "jumped" to the time immediately preceding the vacation, preventing tasks from being scheduled during time off.
+*   **User-Friendly Confirmation for Schedule Changes:** To prevent unexpected changes, a confirmation modal now appears whenever a vacation is added/deleted or a category's "Bypass Vacation" setting is changed. This modal clearly lists all tasks that will be rescheduled, showing their old and new due dates, and allowing the user to confirm or cancel the action.
+*   **Smarter Recurring Task Scheduling:** The logic for calculating the next due date for a repeating task is now fully vacation-aware. When a task is completed, its next occurrence will automatically be scheduled on the first available non-vacation day, respecting the "Bypass Vacation" category setting.
+
+### ✅ Recently Completed (Version 5.7) - 10/05/2025
+
+This is a major enhancement to the calendar's scheduling and deconfliction engine, making it fully vacation-aware.
+
+*   **Intelligent Vacation Lookahead:** Fixed a bug where tasks due immediately after a vacation would not be visible to the scheduling engine. The calendar now intelligently "looks ahead" past any scheduled vacation periods to fetch tasks, ensuring that the user's true workload is always visible.
+*   **Vacation-Aware Deconfliction:** The task deconfliction algorithm has been improved. If a high-priority task (like "Sleep") pushes another task backward in the schedule, the algorithm will now ensure the pushed task does not land in a vacation period. If it does, the task is automatically "jumped" to the time immediately preceding the vacation, preventing tasks from being scheduled during time off.
+
 ### ✅ Recently Completed (Version 5.6) - 10/05/2025
 
 This is a comprehensive UI/UX and feature update focused on fixing core issues with the Journal and Weekly Goals, and adding powerful new customization options.
@@ -543,12 +559,12 @@ This is the official backlog of tasks to be completed before moving on to the la
 
 4.  **Improve Icon Picker Testability:** The icon picker modal is difficult to interact with in automated tests, causing them to be flaky. Investigate the modal's rendering logic in `js/script.js` and `js/templates.js` and refactor it to ensure that all elements, particularly the category headers, are rendered in a way that is stable and easily located by testing frameworks like Playwright.
 
-5.  **Refine Calendar View for Overlapping Events:** The current day/week view shows events that are due on that day. It should be updated to also show tasks that *start* on the previous day but *end* on the current day (e.g., a "Sleep" task from 10 PM to 6 AM). This could be achieved by fetching events for a slightly wider time range (e.g., `view.start - 1 day` to `view.end + 1 day`) and letting FullCalendar handle the rendering.
-
-6.  **Smarter Task Status Calculation:** The current status calculation can be misleading when a very long task (like "Sleep") makes short, unrelated tasks (like "Brush Teeth") turn red prematurely.
+5.  **Smarter Task Status Calculation:** The current status calculation can be misleading when a very long task (like "Sleep") makes short, unrelated tasks (like "Brush Teeth") turn red prematurely.
     > "I have a concern about my task logic... Maybe could we add .. yet another checkbox to have a task excluded from the calculation for yellow red? Eg, back to the sleep example. It's making my "brush teeth" show up red way too early in the day. I would appreciate this particular problem being added to the to do list as well as it will require some thinking. I may even get some outside help too before we tackle that."
     *   **Proposed Solution:** Instead of just summing up all high-priority task durations, the `calculateStatus` function in `js/task-logic.js` should first use the deconfliction logic from `calculateScheduledTimes` to determine a more realistic "effective start time" for each task. The yellow/red status would then be calculated based on the time remaining until this *effective* start time, not the final due date. This would prevent tasks from turning red hours or days before they can actually be worked on.
     *   **Related Idea:** As a simpler, more direct alternative, add a checkbox to the task form: "Exclude from status calculations". If checked, the task's duration would not be included in the predictive workload analysis for other tasks.
+
+6.  **Add User Confirmation for Vacation Changes:** When a vacation is added, removed, or a category's "Bypass Vacation" setting is toggled, the application should calculate which tasks will have their due dates changed. It should then present a confirmation modal to the user, listing the affected tasks and their new due dates, and allow the user to confirm or cancel the change before it is saved. This prevents unexpected schedule modifications.
 
 ### **🚀 Future Roadmap: Database & Collaboration**
 

@@ -269,13 +269,44 @@ function historyDeleteConfirmationTemplate(historyId, taskId) {
     `;
 }
 
+function vacationChangeConfirmationModalTemplate(changedTasks) {
+    const taskListHtml = changedTasks.map(t => {
+        const oldDateStr = t.oldDueDate ? new Date(t.oldDueDate).toLocaleString() : 'N/A';
+        const newDateStr = t.newDueDate ? new Date(t.newDueDate).toLocaleString() : 'N/A';
+        return `
+            <li class="text-sm p-1 rounded">
+                <strong>${t.name}</strong>: <span class="line-through text-gray-500">${oldDateStr}</span> -> <span class="font-semibold text-green-400">${newDateStr}</span>
+            </li>
+        `;
+    }).join('');
+
+    return `
+        <div id="vacation-change-confirm-modal" class="modal">
+            <div class="modal-content themed-modal-primary">
+                 <button class="close-button" id="vacation-change-close-btn">&times;</button>
+                <h3 class="text-xl font-semibold mb-4">Confirm Schedule Changes</h3>
+                <p class="mb-4 text-sm">The recent change to vacations or categories will affect the following tasks. Please review the changes and confirm.</p>
+                <div class="max-h-60 overflow-y-auto border border-gray-600 rounded p-2 mb-4 bg-gray-900">
+                    <ul class="space-y-2">
+                        ${taskListHtml || '<li class="text-sm italic text-gray-500">No tasks were affected by this change.</li>'}
+                    </ul>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button id="cancel-vacation-change-btn" class="themed-button-tertiary">Cancel</button>
+                    <button id="confirm-vacation-change-btn" class="themed-button-secondary">Confirm Changes</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
     editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
-    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate
+    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate
 };
 
 function vacationManagerTemplate(vacations, categories) {
