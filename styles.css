@@ -861,7 +861,11 @@ select {
     background-color: #2d3748; /* gray-800 */
     color: var(--text-color-primary);
 }
-.journal-entry .prose { color: var(--text-color-secondary); }
+.journal-entry .prose {
+    color: var(--text-color-secondary);
+    white-space: pre-wrap; /* Preserve line breaks and spacing */
+    word-wrap: break-word; /* Ensure long words don't overflow */
+}
 .journal-entry .prose h1, .journal-entry .prose h2, .journal-entry .prose h3, .journal-entry .prose h4, .journal-entry .prose strong { color: var(--text-color-primary); }
 .journal-entry .prose a { color: #93c5fd; } /* blue-300 */
 .journal-entry .prose blockquote { color: var(--text-color-tertiary); border-left-color: var(--text-color-quaternary); }

@@ -181,7 +181,7 @@ function categoryManagerTemplate(categories) {
                         <span class="font-medium cursor-pointer">${cat.icon ? `<i class="${cat.icon} mr-2"></i>` : ''}${cat.name}</span>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button data-action="setCategoryIcon" data-category-id="${cat.id}" class="themed-button-clear text-xs">Set Icon</button>
+                        <button data-action="openIconPicker" data-context="category" data-category-id="${cat.id}" class="themed-button-clear text-xs">Set Icon</button>
                         <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
                         <button data-action="deleteCategory" data-category-id="${cat.id}" class="themed-button-clear font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
                     </div>
@@ -415,8 +415,11 @@ function journalSettingsTemplate(settings) {
     return `
         <div>
             <label for="weekly-goal-icon-input" class="form-label">Weekly Goal Icon:</label>
-            <input type="text" id="weekly-goal-icon-input" value="${settings.weeklyGoalIcon}" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="form-hint">Set the Font Awesome icon for weekly goals in the journal view.</p>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="weekly-goal-icon-input" value="${settings.weeklyGoalIcon}" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <button type="button" id="open-weekly-goal-icon-picker" data-action="openIconPicker" data-context="journalGoal" class="themed-button-clear">Choose Icon</button>
+            </div>
+            <p class="form-hint">Set the Font Awesome icon for weekly goals when sorting the journal by icon.</p>
         </div>
     `;
 }
