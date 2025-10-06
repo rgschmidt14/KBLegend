@@ -543,6 +543,13 @@ This is the official backlog of tasks to be completed before moving on to the la
 
 4.  **Improve Icon Picker Testability:** The icon picker modal is difficult to interact with in automated tests, causing them to be flaky. Investigate the modal's rendering logic in `js/script.js` and `js/templates.js` and refactor it to ensure that all elements, particularly the category headers, are rendered in a way that is stable and easily located by testing frameworks like Playwright.
 
+5.  **Refine Calendar View for Overlapping Events:** The current day/week view shows events that are due on that day. It should be updated to also show tasks that *start* on the previous day but *end* on the current day (e.g., a "Sleep" task from 10 PM to 6 AM). This could be achieved by fetching events for a slightly wider time range (e.g., `view.start - 1 day` to `view.end + 1 day`) and letting FullCalendar handle the rendering.
+
+6.  **Smarter Task Status Calculation:** The current status calculation can be misleading when a very long task (like "Sleep") makes short, unrelated tasks (like "Brush Teeth") turn red prematurely.
+    > "I have a concern about my task logic... Maybe could we add .. yet another checkbox to have a task excluded from the calculation for yellow red? Eg, back to the sleep example. It's making my "brush teeth" show up red way too early in the day. I would appreciate this particular problem being added to the to do list as well as it will require some thinking. I may even get some outside help too before we tackle that."
+    *   **Proposed Solution:** Instead of just summing up all high-priority task durations, the `calculateStatus` function in `js/task-logic.js` should first use the deconfliction logic from `calculateScheduledTimes` to determine a more realistic "effective start time" for each task. The yellow/red status would then be calculated based on the time remaining until this *effective* start time, not the final due date. This would prevent tasks from turning red hours or days before they can actually be worked on.
+    *   **Related Idea:** As a simpler, more direct alternative, add a checkbox to the task form: "Exclude from status calculations". If checked, the task's duration would not be included in the predictive workload analysis for other tasks.
+
 ### **🚀 Future Roadmap: Database & Collaboration**
 
 These are larger, long-term goals for the project that are dependent on migrating the application's backend from `localStorage` to a persistent, server-side database. For a detailed guide on the migration process itself, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).

@@ -2223,12 +2223,7 @@ function renderIconPicker() {
 
 function openIconPicker(context = 'task') {
     renderIconPicker();
-    // A bit of a hack to manage context for the icon picker
-    if (context === 'journal') {
-        iconPickerModal.dataset.context = 'journal';
-    } else {
-        delete iconPickerModal.dataset.context;
-    }
+    iconPickerModal.dataset.context = context; // Store the context
     activateModal(iconPickerModal);
 }
 
@@ -2240,13 +2235,27 @@ function renderJournalEntry(entry) {
         </div>
     `;
 
+    const contentLength = entry.content.length;
+    const truncateLength = 500;
+    let contentHtml;
+    let toggleButtonHtml = '';
+
+    if (contentLength > truncateLength) {
+        const truncatedContent = entry.content.substring(0, truncateLength);
+        contentHtml = `<div class="prose mt-2 max-w-none journal-content-display">${truncatedContent}...</div>`;
+        toggleButtonHtml = `<button data-action="toggleJournalContent" data-entry-id="${entry.id}" class="themed-button-clear text-xs mt-2">Show More</button>`;
+    } else {
+        contentHtml = `<div class="prose mt-2 max-w-none journal-content-display">${entry.content}</div>`;
+    }
+
     return `
-        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}">
+        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" data-full-content="${encodeURIComponent(entry.content)}">
             <div class="flex justify-between items-start">
                 <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${entry.title}</h3>
                 <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
             </div>
-            <div class="prose mt-2 max-w-none">${entry.content}</div>
+            ${contentHtml}
+            ${toggleButtonHtml}
             <div class="text-xs text-gray-500 mt-2 text-right">${entry.editedAt ? `(Edited: ${new Date(entry.editedAt).toLocaleString()})` : ''}</div>
             ${buttonsHtml}
         </div>
@@ -4171,18 +4180,38 @@ function setupEventListeners() {
             const iconWrapper = e.target.closest('[data-icon]');
             if (iconWrapper) {
                 const iconClass = iconWrapper.dataset.icon;
-                if (iconPickerModal.dataset.context === 'journal') {
-                    journalEntryIconInput.value = iconClass;
-                } else if (editingCategoryIdForIcon) {
-                    const category = categories.find(c => c.id === editingCategoryIdForIcon);
-                    if (category) {
-                        category.icon = iconClass;
-                        saveData();
-                        renderCategoryManager();
-                    }
-                    editingCategoryIdForIcon = null;
-                } else if (taskIconInput) {
-                    taskIconInput.value = iconClass;
+                const context = iconPickerModal.dataset.context;
+
+                switch (context) {
+                    case 'journal':
+                        journalEntryIconInput.value = iconClass;
+                        break;
+                    case 'journalGoal':
+                        const weeklyGoalIconInput = document.getElementById('weekly-goal-icon-input');
+                        if (weeklyGoalIconInput) {
+                            weeklyGoalIconInput.value = iconClass;
+                            // Manually trigger change to save data
+                            journalSettings.weeklyGoalIcon = iconClass;
+                            saveData();
+                        }
+                        break;
+                    case 'category':
+                         if (editingCategoryIdForIcon) {
+                            const category = categories.find(c => c.id === editingCategoryIdForIcon);
+                            if (category) {
+                                category.icon = iconClass;
+                                saveData();
+                                renderCategoryManager();
+                            }
+                            editingCategoryIdForIcon = null;
+                        }
+                        break;
+                    case 'task':
+                    default:
+                        if (taskIconInput) {
+                            taskIconInput.value = iconClass;
+                        }
+                        break;
                 }
                 deactivateModal(iconPickerModal);
             }
@@ -4371,9 +4400,12 @@ function setupEventListeners() {
                     renderStatusManager(); // Re-render to update disabled state
                     saveData();
                     break;
-                case 'setCategoryIcon':
-                    editingCategoryIdForIcon = categoryId;
-                    openIconPicker();
+                case 'openIconPicker':
+                    const context = target.dataset.context || 'task';
+                     if (context === 'category') {
+                        editingCategoryIdForIcon = target.dataset.categoryId;
+                    }
+                    openIconPicker(context);
                     break;
                 case 'toggleAdaptiveSensitivity':
                     sensitivitySettings.isAdaptive = event.target.checked;
@@ -4777,6 +4809,20 @@ function setupEventListeners() {
                     appState.journal = appState.journal.filter(entry => entry.id !== id);
                     savePlannerData();
                     renderJournal();
+                }
+            } else if (action === 'toggleJournalContent') {
+                const entryId = target.dataset.entryId;
+                const entryElement = journalList.querySelector(`.journal-entry[data-id="${entryId}"]`);
+                const contentDisplay = entryElement.querySelector('.journal-content-display');
+                const fullContent = decodeURIComponent(entryElement.dataset.fullContent);
+
+                if (target.textContent === 'Show More') {
+                    contentDisplay.innerHTML = fullContent;
+                    target.textContent = 'Show Less';
+                } else {
+                    const truncatedContent = fullContent.substring(0, 500);
+                    contentDisplay.innerHTML = `${truncatedContent}...`;
+                    target.textContent = 'Show More';
                 }
             } else if (action === 'toggleJournalIconGroup') {
                 const iconGroup = target.dataset.iconGroup;
