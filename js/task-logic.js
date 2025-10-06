@@ -314,14 +314,22 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate, vacations = 
     let allOccurrences = [];
 
     // 1. Generate all occurrences for all tasks within the given timeframe.
-    // We look back 7 days to catch tasks that might be pushed into the current view.
+    // We look back 7 days to catch tasks pushed into view and look ahead past any vacations.
     const schedulingStartDate = new Date(viewStartDate.getTime() - 7 * MS_PER_DAY);
+
+    // Determine the effective end date for fetching, skipping over any vacations at the end of the view.
+    let schedulingEndDate = new Date(viewEndDate);
+    while (isDateInVacation(schedulingEndDate, vacations)) {
+        schedulingEndDate.setDate(schedulingEndDate.getDate() + 1);
+    }
+    // Add one more day to the final non-vacation day to catch events that span across it.
+    schedulingEndDate.setDate(schedulingEndDate.getDate() + 1);
 
     tasks.forEach(task => {
         if (!task.dueDate) return;
 
         const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 0;
-        const dueDates = getOccurrences(task, schedulingStartDate, viewEndDate);
+        const dueDates = getOccurrences(task, schedulingStartDate, schedulingEndDate);
 
         const adjustedDueDates = dueDates.map(dueDate => adjustDateForVacation(dueDate, vacations, task.categoryId, categories));
 
@@ -366,8 +374,24 @@ function calculateScheduledTimes(tasks, viewStartDate, viewEndDate, vacations = 
                 const taskB = fullAttentionOccurrences[j];
                 if (taskA.scheduledStartTime < taskB.scheduledEndTime && taskA.scheduledEndTime > taskB.scheduledStartTime) {
                     const durationMs = getDurationMs(taskA.estimatedDurationAmount, taskA.estimatedDurationUnit) || 0;
-                    taskA.scheduledEndTime = new Date(taskB.scheduledStartTime.getTime() - 1000);
-                    taskA.scheduledStartTime = new Date(taskA.scheduledEndTime.getTime() - durationMs);
+
+                    // Tentatively move task A to end just before task B starts.
+                    let newEndTime = new Date(taskB.scheduledStartTime.getTime() - 1000);
+                    let newStartTime = new Date(newEndTime.getTime() - durationMs);
+
+                    // Check if this new start time falls within a vacation period.
+                    const vacation = isDateInVacation(newStartTime, vacations);
+                    if (vacation) {
+                        // If so, the task is pushed into a vacation. Jump it to before the vacation.
+                        const vacationStartDate = new Date(vacation.startDate);
+                        // The new end time is just before midnight on the day the vacation starts.
+                        newEndTime = new Date(vacationStartDate.getTime() - 1000); // Ends at 23:59:59 the day before
+                        newStartTime = new Date(newEndTime.getTime() - durationMs);
+                    }
+
+                    taskA.scheduledEndTime = newEndTime;
+                    taskA.scheduledStartTime = newStartTime;
+
                     hasConflict = true;
                     break;
                 }
