@@ -338,9 +338,23 @@ legend {
 /* ======================================================================== */
 /* FULLCALENDAR                                                             */
 /* ======================================================================== */
+#mainPlannerSection {
+    background: var(--bg-calendar-border, transparent); /* This will be the gradient */
+    padding: 14px;
+    border-radius: 0.75rem; /* A slightly larger radius for the outer border */
+}
+
+#calendar-inner-wrapper {
+    background: var(--bg-secondary); /* This will be the solid color */
+    border-radius: 0.25rem; /* A smaller, inner radius */
+    overflow: hidden; /* To ensure the inner content respects the border radius */
+}
+
 #calendar {
     min-height: 70vh;
+    background-color: var(--bg-secondary);
 }
+
 .fc .fc-button {
     text-transform: capitalize;
     transition: background-color 0.2s;
@@ -422,6 +436,56 @@ legend {
 .nav-btn, .view-btn {
     /* To be replaced by .btn and variants */
 }
-.active-view-btn {
-    /* Active state will be handled by a class like .btn-active, with colors from JS */
+.active-view-btn, .fc-button-active {
+    /* "Lit up" effect for active buttons */
+    box-shadow: 0 0 8px 2px var(--focus-ring-color), inset 0 0 5px rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+
+/* ======================================================================== */
+/* CALENDAR HEADER LAYOUT                                                   */
+/* ======================================================================== */
+.calendar-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* space-y-3 */
+}
+
+.calendar-title-row {
+    width: 100%;
+    text-align: center;
+}
+
+.calendar-nav-row, .calendar-view-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem; /* gap-2 */
+}
+
+.calendar-nav-row {
+    justify-content: center; /* Center the nav buttons by default */
+}
+
+.calendar-nav-row > :first-child {
+    margin-right: auto; /* Pushes prev button to the left */
+}
+.calendar-nav-row > :last-child {
+    margin-left: auto; /* Pushes next button to the right */
+}
+
+/* On smaller screens, stack the view controls for better layout */
+@media (max-width: 480px) {
+    .calendar-view-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .calendar-view-row > div {
+        display: flex;
+        justify-content: center;
+    }
+    .calendar-view-row > button {
+        width: 100%;
+    }
 }

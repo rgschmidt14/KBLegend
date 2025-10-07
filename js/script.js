@@ -785,6 +785,14 @@ function applyTheme() {
     const isDarkMode = effectiveMode === 'night';
     applyThemeMode(effectiveMode); // Apply .light-mode class if needed
 
+    // First, determine which status colors are active for this render cycle.
+    const activeStatusColors = (theming.enabled && theming.useThemeForStatus)
+        ? generateGradientPalette(theming.baseColor, isDarkMode)
+        : { ...defaultStatusColors };
+
+    // Update the global statusColors object so all other functions use the correct set.
+    statusColors = activeStatusColors;
+
     // Generate a subtle background color from the base theme color
     const baseHSL = hexToHSL(theming.baseColor);
     const mainBgLightness = isDarkMode ? 8 : 97; // Very dark (8%) or very light (97%)
@@ -793,11 +801,11 @@ function applyTheme() {
 
     // Generate color palettes
     const palette = generateComplementaryPalette(theming.baseColor, isDarkMode);
-    const statusGradientPalette = generateGradientPalette(theming.baseColor, isDarkMode);
 
     // --- Gradient Logic ---
     const gradientDirection = isDarkMode ? 'to top' : 'to bottom';
-    const statusColorsForGradient = [statusGradientPalette.black, statusGradientPalette.red, statusGradientPalette.yellow, statusGradientPalette.green, statusGradientPalette.blue];
+    // Create the "Status Spectrum" gradient from the *active* status colors.
+    const statusColorsForGradient = [activeStatusColors.black, activeStatusColors.red, activeStatusColors.yellow, activeStatusColors.green, activeStatusColors.blue];
     // Reverse for light mode to have lighter colors at the bottom
     if (!isDarkMode) {
         statusColorsForGradient.reverse();
@@ -812,7 +820,7 @@ function applyTheme() {
         activeGradient = statusGradient;
     }
 
-    const calendarGradient = theming.enabled ? activeGradient : (isDarkMode ? 'var(--bg-secondary)' : '#FFFFFF');
+    const calendarBorderGradient = theming.enabled ? activeGradient : 'transparent';
     const chartBgColor = theming.enabled ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#1F2937' : '#FFFFFF'); // gray-800 or white
 
     // Define theme properties
@@ -825,7 +833,7 @@ function applyTheme() {
 
         // Modals and interactive elements can retain the theme color for accent.
         '--bg-modal': theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'),
-        '--bg-calendar': calendarGradient,
+        '--bg-calendar-border': calendarBorderGradient,
         '--bg-calendar-header': theming.enabled ? adjustColor(palette.secondary, isDarkMode ? -0.2 : -0.2) : (isDarkMode ? '#111827' : '#E5E7EB'),
         '--bg-input': isDarkMode ? '#374151' : '#FFFFFF',
         // Use a slightly lighter/darker shade for journal entries to make them stand out
@@ -899,9 +907,6 @@ function applyTheme() {
             background: var(--bg-modal);
             color: ${getContrastingTextColor(theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'))['--text-color-primary']};
         }
-        #mainPlannerSection {
-             background: var(--bg-calendar);
-        }
         .fc-col-header-cell {
             background-color: var(--bg-calendar-header) !important;
         }
@@ -964,13 +969,6 @@ function applyTheme() {
     const styleSheet = document.getElementById('dynamic-theme-styles');
     if (styleSheet) {
         styleSheet.textContent = css;
-    }
-
-    // Update status colors if theme is active
-    if (theming.enabled && theming.useThemeForStatus) {
-        statusColors = generateGradientPalette(theming.baseColor, isDarkMode);
-    } else {
-        statusColors = { ...defaultStatusColors };
     }
 
     // Re-render components that depend on theme changes
@@ -2803,6 +2801,9 @@ function startTimerInterval(taskId) {
 function handleFormSubmit(event) {
     event.preventDefault();
     try {
+        // Immediately close the modal to provide quick feedback and prevent duplicate submissions.
+        closeModal();
+
         const now = new Date();
 
         const taskData = {
@@ -2953,7 +2954,6 @@ function handleFormSubmit(event) {
         renderKpiTaskSelect();
         renderKpiList();
         checkForAppointmentConflicts();
-        closeModal();
     } catch (e) {
         console.error("Error handling form submit:", e);
     }
