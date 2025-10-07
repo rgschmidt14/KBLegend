@@ -1,3 +1,67 @@
+# **Task & Mission Planner \- README**
+
+## **1\. High-Level Summary**
+
+The **Task & Mission Planner** is a comprehensive, highly intelligent personal productivity application designed for users who want to go beyond simple to-do lists. It integrates task management, visual scheduling, goal tracking, and personal reflection into a single, cohesive system. Its core purpose is to not only list what needs to be done but to provide a dynamic, real-time assessment of a user's workload and schedule pressure.
+
+The application is structured around four main views:
+
+1. **Dashboard:** A high-level overview featuring weekly goals and a Key Performance Indicator (KPI) section that charts completion accuracy for important, recurring tasks.
+2. **Task Manager:** A powerful list-based view for creating, editing, and organizing tasks. It supports complex features like varied completion types (simple checkbox, count-based, or timed), intricate repetition schedules, and habit-failure tracking.
+3. **Calendar:** A visual, interactive planner that automatically schedules and de-conflicts tasks. It prioritizes fixed appointments and high-urgency items, shifting flexible tasks to create a realistic, achievable timeline.
+4. **Journal:** A dedicated space for reflection, where users can create entries and review their weekly goals, bridging the gap between planning and self-assessment.
+
+## **2\. Core Features**
+
+### **Intelligent Task & Schedule Management**
+
+* **Dynamic GPA System:** Every task is assigned a "Task GPA" from 4.0 (perfect) down to 0.0 (failed). This score is derived from the task's proximity to its due date and its history of being missed.
+* **User-Controlled Sensitivity:** Users can adjust a "sensitivity" slider that changes the GPA thresholds for what it means to be Green, Yellow, or Red, tailoring the app's urgency notifications to their personal planning style.
+* **Automatic Scheduling & Deconfliction:** The Calendar view is powered by a "scheduling forward" engine. It places immovable appointments first, then sorts all other tasks by their GPA (lowest score first). It then places each task on the timeline in the first available open slot, automatically resolving all conflicts.
+* **Real-Time Coloring:** The Task Manager uses a final calculation pass to adjust a task's color based on its true scheduled start time, providing an accurate, at-a-glance view of what to work on next.
+
+### **Advanced Task Properties**
+
+* **Prep Time:** A field to specify the preparation or travel time needed before a task, allowing for more realistic urgency calculations.
+* **Completion Types:** Tasks can be simple check-offs, require a target count, or be tracked with a built-in timer.
+* **Complex Repetition:** Supports relative intervals (e.g., every 3 days) and complex absolute schedules (e.g., the last Friday of every month).
+* **Failure Tracking:** Tracks "misses" for repeating tasks, which directly impacts the task's GPA.
+
+### **Advanced Options & Customization**
+
+* **Category Management:** Full CRUD functionality for categories, including color, icons, and bulk-editing tools.
+* **Vacation Mode:** Automatically pushes task due dates that fall within a defined vacation period, with the ability for specific categories to bypass this rule.
+* **Theming Engine:** A powerful theme manager for customizing the app's appearance.
+* **Data Portability:** Robust import/export tools for backing up and restoring all application data.
+
+## **3\. Future Features & Improvements**
+
+### **Auto-KPI System**
+
+* **Concept:** This feature will help users identify and focus on tasks they consistently struggle with.
+* **Implementation:**
+  * There will be a setting to "Enable Auto-KPI".
+  * When enabled, any task that reaches its maxMisses count will be automatically flagged as a KPI.
+  * A sub-option will allow these auto-flagged KPIs to be automatically removed from the KPI list once their misses count is brought back down to 0 through consistent completion.
+  * This feature will be separate from manually added KPIs. A manually added KPI will remain a KPI regardless of its miss count, ensuring the user retains full control over their primary focus items.
+
+### **Calculation Horizon (Render Distance)**
+
+* **Concept:** To ensure performance remains fast for users with many repeating tasks, a setting will control how far into the future the app performs its intensive scheduling calculations.
+* **Implementation Verbatim:** There will be an advanced option for a RELATIVE amount of time into the future the app should project repeating tasks and perform calculations. Suggest 1 year and start it there and suggest to shorten it to how far out their furthest task is for best results use lower render distance.
+
+## **4\. To-Do / Fix / Check List**
+
+* **\[BUG\]** The calculateStatus function has hiccups with tasks very close to the current time or tasks awaiting user input (confirming\_complete, confirming\_miss). The new GPA pipeline must resolve this.
+* **\[BUG\]** The Calendar border color sometimes does not accurately reflect the true, final status of a task after deconfliction.
+* **\[CHECK\]** Thoroughly test Vacation Mode. Ensure that adding or removing a vacation correctly triggers a recalculation of all affected task occurrences.
+* **\[REFACTOR\]** Implement the Final V11 Blueprint for the GPA calculation and scheduling pipeline. This is the top priority.
+* **\[FEATURE\]** Add the "Prep Time" field to the task modal.
+* **\[FEATURE\]** Implement the Appointment/Vacation conflict-warning modal.
+* **\[UX\]** Add a scrolling hints/tips feature to help users discover advanced settings like vacation bypasses for categories.
+
+---
+
 # **Dynamic Task & Mission Planner**
 
 > **A Note from the Developer:**
@@ -143,34 +207,6 @@ This is a critical stability and reliability release that addresses several long
 *   **Seamless Calendar Interaction:** Resolved an error where clicking on active or future repeating tasks in the calendar would fail to open the task view. The event handling logic now correctly uses the stored base ID of the task, ensuring that any instance of a task on the calendar can be reliably opened.
 
 ### ✅ Recently Completed (Version 5.4) - 10/04/2025
-
-This is a major feature release focused on providing users with a much richer, more intuitive, and actionable feedback loop on their performance. The historical data system has been overhauled to give users a clearer understanding of *how* and *when* they complete their tasks.
-
-*   **New! Advanced Historical Status:** The system now tracks and displays the precise status of every completed or missed task, providing a more nuanced view of your habits.
-    *   **Color-Coded Calendar Borders:** Historical tasks on the calendar now have a colored border indicating their status:
-        *   `Blue`: The task was completed ahead of schedule.
-        *   `Green`: The task was completed on time or after its due date.
-        *   `Yellow`: The task was a "partial miss" (e.g., a late completion of an overdue repeating task).
-        *   `Red`: This was the *first* time a repeating task was missed.
-        *   `Black`: The task was missed and already had previous misses, or it was a non-repeating task that was missed.
-    *   **Detailed History View:** The "Detailed History" in the task statistics modal now reflects this new system. The status of each entry is color-coded, and completed tasks will now show how early or late they were finished (e.g., "2 hours early").
-*   **Improved Performance Chart:** The "Performance Over Time" graph has been fixed and enhanced.
-    *   It now correctly interprets the new, detailed statuses to categorize completions and misses.
-    *   It displays a continuous timeline from the first historical event to the last, filling in any empty days. This provides a much more accurate and useful visualization of performance over time.
-
-### ✅ Recently Completed (Version 5.3) - 10/04/2025
-
-This is a stability and bug-fix release that addresses several key issues related to task completion logic and UI consistency, improving the overall reliability of the planner.
-
-*   **Corrected Early Completion Logic:**
-    *   **"Blue" Lock State:** Fixed a critical bug where completing a repeating task early would incorrectly advance it to the next cycle. The task now correctly enters a "locked" (blue) state and remains that way until its original due date passes, preventing users from accidentally completing future tasks ahead of time.
-    *   **Robust "Undo" Functionality:** The "Undo" action for a completed task has been made more robust. It now correctly restores any partial progress for count- or timer-based tasks, ensuring the task is reverted to its exact pre-completion state.
-
-*   **Critical Bug Fixes:**
-    *   **Calendar Click Error:** Resolved an error where clicking on a recurring task in the calendar would fail to open the task view and log a "Task or history item not found" error. The event handling logic now correctly parses the unique IDs of recurring task instances.
-    *   **UI Contrast Fix:** Fixed a UI bug where the text and input field in the "Confirm Misses" dialog would become unreadable when displayed on tasks with dark (red or black) backgrounds. The text now reliably has high contrast in all situations.
-
-### ✅ Recently Completed (Version 5.2) - 10/03/2025
 
 This is a major feature release that introduces a powerful new "Vacation Mode" to prevent task pile-ups during time off, along with several critical bug fixes and developer tool improvements.
 
@@ -561,7 +597,7 @@ This is the official backlog of tasks to be completed before moving on to the la
 
 5.  **Smarter Task Status Calculation:** The current status calculation can be misleading when a very long task (like "Sleep") makes short, unrelated tasks (like "Brush Teeth") turn red prematurely.
     > "I have a concern about my task logic... Maybe could we add .. yet another checkbox to have a task excluded from the calculation for yellow red? Eg, back to the sleep example. It's making my "brush teeth" show up red way too early in the day. I would appreciate this particular problem being added to the to do list as well as it will require some thinking. I may even get some outside help too before we tackle that."
-    *   **Proposed Solution:** Instead of just summing up all high-priority task durations, the `calculateStatus` function in `js/task-logic.js` should first use the deconfliction logic from `calculateScheduledTimes` to determine a more realistic "effective start time" for each task. The yellow/red status would then be calculated based on the time remaining until this *effective* start time, not the final due date. This would prevent tasks from turning red hours or days before they can actually be worked on.
+    *   **Proposed Solution:** Instead of just summing up all high-priority task durations, the `calculateStatus` function in `js/task-logic.js` should first use the deconfliction logic from `calculateScheduledTimes` to determine a more realistic "effective start time" for each task. The yellow/red status then would be calculated based on the time remaining until this *effective* start time, not the final due date. This would prevent tasks from turning red hours or days before they can actually be worked on.
     *   **Related Idea:** As a simpler, more direct alternative, add a checkbox to the task form: "Exclude from status calculations". If checked, the task's duration would not be included in the predictive workload analysis for other tasks.
 
 6.  **Add User Confirmation for Vacation Changes:** When a vacation is added, removed, or a category's "Bypass Vacation" setting is toggled, the application should calculate which tasks will have their due dates changed. It should then present a confirmation modal to the user, listing the affected tasks and their new due dates, and allow the user to confirm or cancel the change before it is saved. This prevents unexpected schedule modifications.
@@ -574,7 +610,7 @@ These are larger, long-term goals for the project that are dependent on migratin
 *   **User Authentication:** Implement user accounts, a prerequisite for database integration and multi-user features.
 *   **Multi-Device Sync:** Ensure seamless real-time data synchronization across all devices once the database is in place.
 *   **Groups & Collaborative Task Management:** Implement a system for users to join groups (e.g., a company, a family). This would allow group owners to assign tasks to members, who would see those tasks in their own list.
-*   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, providing deep insights into productivity trends over time.
+*   **Task History & Analytics:** Build a comprehensive dashboard to visualize historical data on task completion and misses, a providing deep insights into productivity trends over time.
 
 ### ✅ **Completed AI Suggestions**
 
