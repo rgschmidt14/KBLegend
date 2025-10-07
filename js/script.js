@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -1531,10 +1531,29 @@ function renderCategoryManager() {
 function renderPlannerSettings() {
     if (!plannerDefaultCategorySelect) return;
 
+    // Handle the new sensitivity controls
+    const sensitivityDefaultToggle = document.getElementById('planner-sensitivity-default-toggle');
+    const sensitivitySlider = document.getElementById('planner-sensitivity-slider');
+
+    if (sensitivityDefaultToggle && sensitivitySlider) {
+        // A value of exactly 0.5 is considered 'default'
+        const isDefault = sensitivitySettings.sValue === 0.5;
+        sensitivityDefaultToggle.checked = isDefault;
+        sensitivitySlider.disabled = isDefault;
+        sensitivitySlider.value = sensitivitySettings.sValue;
+    }
+
+
     const creationOnClickToggle = document.getElementById('allow-creation-on-click-toggle');
     if (creationOnClickToggle) {
         creationOnClickToggle.checked = calendarSettings.allowCreationOnClick;
     }
+
+    const plannerDefaultIconInput = document.getElementById('planner-default-icon');
+    if (plannerDefaultIconInput && plannerSettings) {
+        plannerDefaultIconInput.value = plannerSettings.defaultIcon || 'fa-solid fa-map-pin';
+    }
+
 
     plannerDefaultCategorySelect.innerHTML = '';
     const defaultOption = document.createElement('option');
@@ -1612,7 +1631,6 @@ function openAdvancedOptionsModal() {
     renderPlannerSettings();
     renderTaskDisplaySettings();
     renderAppSettings();
-    renderSensitivityControls();
     renderVacationManager();
     renderJournalSettings();
     renderPerformanceSettings();
@@ -1976,12 +1994,6 @@ function renderThemeControls() {
     if (themeToggle) themeToggle.checked = theming.enabled;
     if (themeColorPicker) themeColorPicker.value = theming.baseColor;
     if (themeControls) themeControls.classList.toggle('hidden', !theming.enabled);
-}
-
-function renderSensitivityControls() {
-    const container = document.getElementById('sensitivity-controls-container');
-    if (!container) return;
-    container.innerHTML = sensitivityControlsTemplate(sensitivitySettings);
 }
 
 function renderKpiTaskSelect() {
@@ -4667,17 +4679,13 @@ function setupEventListeners() {
                     const context = target.dataset.context || 'task';
                      if (context === 'category') {
                         editingCategoryIdForIcon = target.dataset.categoryId;
+                    } else if (context === 'planner') {
+                        const iconInput = document.getElementById('planner-default-icon');
+                        if (iconInput) {
+                           // This context is just for opening, the selection logic will handle the rest.
+                        }
                     }
                     openIconPicker(context);
-                    break;
-                case 'toggleAdaptiveSensitivity':
-                    sensitivitySettings.isAdaptive = event.target.checked;
-                    if (sensitivitySettings.isAdaptive) {
-                        updateAdaptiveSensitivity(); // Recalculate S immediately
-                    }
-                    saveData();
-                    renderSensitivityControls();
-                    updateAllTaskStatuses(true); // Force a re-render of tasks with new settings
                     break;
                 case 'bulkEdit':
                     const container = document.getElementById(`bulk-edit-container-${categoryId}`);
@@ -4811,19 +4819,35 @@ function setupEventListeners() {
         }
         advancedOptionsContent.addEventListener('input', (event) => {
             const target = event.target;
-            if (target.id === 'sensitivity-slider') {
+            if (target.id === 'planner-sensitivity-slider') {
+                const isDefaultToggle = document.getElementById('planner-sensitivity-default-toggle');
+                isDefaultToggle.checked = false; // Uncheck the default toggle if user interacts with slider
                 sensitivitySettings.sValue = parseFloat(target.value);
-                if (uiSettings.userInteractions) {
+                 if (uiSettings.userInteractions) {
                     uiSettings.userInteractions.changedSensitivity = true;
                 }
-                // No need to re-render, just save.
                 saveData();
-                updateAllTaskStatuses(true); // Force a re-render of tasks with new settings
+                updateAllTaskStatuses(true);
             }
         });
 
         advancedOptionsContent.addEventListener('change', (event) => {
             const target = event.target;
+
+            if (target.id === 'planner-sensitivity-default-toggle') {
+                const slider = document.getElementById('planner-sensitivity-slider');
+                if (target.checked) {
+                    sensitivitySettings.sValue = 0.5;
+                    slider.value = 0.5;
+                    slider.disabled = true;
+                } else {
+                    slider.disabled = false;
+                }
+                saveData();
+                updateAllTaskStatuses(true);
+                return;
+            }
+
             if (target.id === 'app-title-input') {
                 appSettings.title = target.value.trim();
                 setAppBranding();
@@ -4841,6 +4865,12 @@ function setupEventListeners() {
             }
             if (target.id === 'weekly-goal-icon-input') {
                 journalSettings.weeklyGoalIcon = target.value.trim();
+                saveData();
+                return;
+            }
+             if (target.id === 'planner-default-icon') {
+                if (!plannerSettings) plannerSettings = {};
+                plannerSettings.defaultIcon = target.value.trim();
                 saveData();
                 return;
             }
@@ -4871,7 +4901,7 @@ function setupEventListeners() {
                     allCheckbox.checked = true;
                 }
                 renderTasks();
-                renderPlanner();
+                if (calendar) calendar.refetchEvents();
             } else if (target.classList.contains('status-color-picker')) {
                  const statusKey = target.dataset.statusKey;
                  const newColor = target.value;
