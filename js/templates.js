@@ -300,13 +300,34 @@ function vacationChangeConfirmationModalTemplate(changedTasks) {
     `;
 }
 
+export const appointmentConflictModalTemplate = (conflictedTasks) => `
+<div class="modal-content themed-modal-primary">
+    <button id="appointment-conflict-close-btn" class="close-button" aria-label="Close">&times;</button>
+    <h2 class="text-2xl font-semibold mb-4">Appointment Conflict</h2>
+    <p class="mb-4">The following appointments are scheduled during a vacation period. How would you like to proceed?</p>
+    <div class="space-y-2 mb-6 max-h-60 overflow-y-auto p-2 bg-gray-200 dark:bg-gray-700 rounded">
+        ${conflictedTasks.map(task => `
+            <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <p class="font-semibold">${task.name}</p>
+                <p class="text-sm">Current Date: ${new Date(task.dueDate).toLocaleString()}</p>
+            </div>
+        `).join('')}
+    </div>
+    <div class="flex justify-end space-x-4">
+        <button id="keep-appointments-btn" class="themed-button-secondary">Keep As Is</button>
+        <button id="reschedule-appointments-btn" class="themed-button-primary">Reschedule Automatically</button>
+    </div>
+</div>
+`;
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
     editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
-    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate
+    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
+    appointmentConflictModalTemplate
 };
 
 function vacationManagerTemplate(vacations, categories) {

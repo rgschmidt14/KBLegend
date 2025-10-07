@@ -1,5 +1,5 @@
-import { getDurationMs, calculateStatus, calculateScheduledTimes, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate } from './templates.js';
+import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -58,6 +58,8 @@ let uiSettings = {
     kpiWeekOffset: 0,
     journalIconCollapseState: {},
     advancedOptionsCollapseState: {},
+    calculationHorizonAmount: 1,
+    calculationHorizonUnit: 'years',
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -173,10 +175,17 @@ function calculateFutureDate(amount, unit, baseDate) {
             case 'days': date.setDate(date.getDate() + amount); break;
             case 'weeks': date.setDate(date.getDate() + amount * 7); break;
             case 'months': date.setMonth(date.getMonth() + amount); break;
+            case 'years': date.setFullYear(date.getFullYear() + amount); break;
             default: console.warn("Unknown unit:", unit);
         }
         return date;
     } catch (e) { console.error("Error calculating future date:", e); return new Date(baseDate); }
+}
+
+function getCalculationHorizonDate() {
+    const amount = uiSettings.calculationHorizonAmount || 1;
+    const unit = uiSettings.calculationHorizonUnit || 'years';
+    return calculateFutureDate(amount, unit, new Date());
 }
 function parseTimeToMs(timeStr) {
     if (!timeStr || typeof timeStr !== 'string') return 0;
@@ -280,6 +289,8 @@ function sanitizeAndUpgradeTask(task) {
         timeTargetUnit: null,
         isKpi: false,
         isAppointment: false,
+        prepTimeAmount: null,
+        prepTimeUnit: 'minutes',
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1347,6 +1358,8 @@ function openModal(taskId = null, options = {}) {
             timeTargetUnitSelect.value = task.timeTargetUnit || 'minutes';
             taskCategorySelect.value = task.categoryId || '';
             document.getElementById('is-kpi').checked = task.isKpi || false;
+            document.getElementById('prep-time-amount').value = task.prepTimeAmount || '';
+            document.getElementById('prep-time-unit').value = task.prepTimeUnit || 'minutes';
 
         } else {
             modalTitle.textContent = 'Add New Task';
@@ -1551,6 +1564,15 @@ function renderJournalSettings() {
     container.innerHTML = journalSettingsTemplate(journalSettings);
 }
 
+function renderPerformanceSettings() {
+    const amountInput = document.getElementById('calculation-horizon-amount');
+    const unitInput = document.getElementById('calculation-horizon-unit');
+    if (amountInput && unitInput) {
+        amountInput.value = uiSettings.calculationHorizonAmount;
+        unitInput.value = uiSettings.calculationHorizonUnit;
+    }
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1563,6 +1585,7 @@ function openAdvancedOptionsModal() {
     renderSensitivityControls();
     renderVacationManager();
     renderJournalSettings();
+    renderPerformanceSettings();
 
     // Apply saved collapse states
     const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
@@ -2507,6 +2530,69 @@ function openVacationChangeModal(changedTasks, onConfirm, onCancel) {
 }
 
 
+function openAppointmentConflictModal(conflictedTasks) {
+    // Remove any existing modal first to prevent duplicates
+    const existingModal = document.getElementById('appointment-conflict-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create a new div for the modal
+    const modalDiv = document.createElement('div');
+    modalDiv.id = 'appointment-conflict-modal';
+    modalDiv.className = 'modal';
+    modalDiv.innerHTML = appointmentConflictModalTemplate(conflictedTasks);
+    document.body.appendChild(modalDiv);
+
+    const closeModal = () => {
+        deactivateModal(modalDiv);
+        setTimeout(() => modalDiv.remove(), 300);
+    };
+
+    const keepBtn = document.getElementById('keep-appointments-btn');
+    const rescheduleBtn = document.getElementById('reschedule-appointments-btn');
+    const closeBtn = document.getElementById('appointment-conflict-close-btn');
+
+    keepBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+
+    rescheduleBtn.addEventListener('click', () => {
+        conflictedTasks.forEach(taskToFix => {
+            const task = tasks.find(t => t.id === taskToFix.id);
+            if (task && task.dueDate) {
+                task.dueDate = adjustDateForVacation(new Date(task.dueDate), appState.vacations, task.categoryId, categories);
+            }
+        });
+        saveData();
+        updateAllTaskStatuses(true);
+        if (calendar) calendar.refetchEvents();
+        closeModal();
+    });
+
+    activateModal(modalDiv);
+}
+
+function checkForAppointmentConflicts() {
+    const conflictedTasks = [];
+    const appointments = tasks.filter(t => t.isAppointment && t.dueDate);
+
+    for (const appt of appointments) {
+        const category = categories.find(c => c.id === appt.categoryId);
+        const bypassesVacation = category ? category.bypassVacation : false;
+        if (bypassesVacation) {
+            continue;
+        }
+
+        if (isDateInVacation(new Date(appt.dueDate), appState.vacations)) {
+            conflictedTasks.push(appt);
+        }
+    }
+
+    if (conflictedTasks.length > 0) {
+        openAppointmentConflictModal(conflictedTasks);
+    }
+}
+
 function handleVacationChange(changeAction) {
     // 1. Snapshot the current state
     const originalTasksState = JSON.parse(JSON.stringify(tasks));
@@ -2550,6 +2636,7 @@ function handleVacationChange(changeAction) {
         updateAllTaskStatuses(true);
         if (calendar) calendar.refetchEvents();
         console.log('Vacation changes confirmed and applied.');
+        checkForAppointmentConflicts();
     };
 
     const onCancel = () => {
@@ -2575,6 +2662,7 @@ function handleVacationChange(changeAction) {
         // If no tasks were affected, just save the data (e.g., an empty vacation was deleted)
         saveData();
         if (calendar) calendar.refetchEvents();
+        checkForAppointmentConflicts();
     }
 }
 
@@ -2678,7 +2766,9 @@ function handleFormSubmit(event) {
             overdueStartDate: null,
             pendingCycles: null,
             categoryId: null,
-            isKpi: document.getElementById('is-kpi').checked
+            isKpi: document.getElementById('is-kpi').checked,
+            prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
+            prepTimeUnit: document.getElementById('prep-time-unit').value
         };
 
         if (taskData.dueDateType === 'absolute') {
@@ -2782,29 +2872,25 @@ function handleFormSubmit(event) {
                 } else {
                     updatedTask.currentProgress = 0;
                 }
-                const otherTasks = tasks.filter(t => t.id !== editingTaskId);
-                const sensitivityParams = getSensitivityParameters();
-                const newStatus = calculateStatus(updatedTask, now.getTime(), otherTasks, sensitivityParams);
-                updatedTask.status = (originalTask.status === 'blue' && originalTask.cycleEndDate?.getTime() > now.getTime()) ? 'blue' : newStatus.name;
-                tasks[taskIndex] = updatedTask;
+                tasks[taskIndex] = sanitizeAndUpgradeTask({ ...originalTask, ...taskData });
             }
         } else {
             taskData.id = generateId();
             taskData.createdAt = now;
             taskData.misses = 0;
             taskData.completed = false;
-            taskData.status = 'green';
+            taskData.status = 'green'; // Start as green, pipeline will correct it
             const newTask = sanitizeAndUpgradeTask(taskData);
-            const otherTasks = [...tasks];
-            const sensitivityParams = getSensitivityParameters();
-            newTask.status = calculateStatus(newTask, now.getTime(), otherTasks, sensitivityParams).name;
             tasks.push(newTask);
         }
+        // After adding or updating, immediately run the pipeline to get the correct status
+        // and save before rendering.
         saveData();
         updateAllTaskStatuses(true);
         if (calendar) calendar.refetchEvents();
         renderKpiTaskSelect();
         renderKpiList();
+        checkForAppointmentConflicts();
         closeModal();
     } catch (e) {
         console.error("Error handling form submit:", e);
@@ -4728,6 +4814,12 @@ function setupEventListeners() {
                     saveData();
                     renderTasks();
                 }
+            } else if (target.id === 'calculation-horizon-amount' || target.id === 'calculation-horizon-unit') {
+                const amountInput = document.getElementById('calculation-horizon-amount');
+                const unitInput = document.getElementById('calculation-horizon-unit');
+                uiSettings.calculationHorizonAmount = parseInt(amountInput.value, 10) || 1;
+                uiSettings.calculationHorizonUnit = unitInput.value;
+                saveData();
             }
         });
         sortBySelect.addEventListener('change', (e) => {
@@ -5217,67 +5309,89 @@ function loadData() {
 }
 
 function updateAllTaskStatuses(forceRender = false) {
+    const now = new Date();
+    const nowMs = now.getTime();
+
+    const calculationHorizon = getCalculationHorizonDate();
+    const settings = {
+        sensitivity: sensitivitySettings,
+        vacations: appState.vacations,
+        categories: categories
+    };
+
+    // The pipeline returns all future occurrences, processed.
+    const allOccurrences = runCalculationPipeline([...tasks], calculationHorizon, settings);
+
     let changed = false;
-    const nowMs = Date.now();
-    const currentTasks = [...tasks];
-    const sensitivityParams = getSensitivityParameters();
-    const tasksToRemove = [];
+
+    // Create a quick lookup map for the next occurrence of each task.
+    const nextOccurrenceMap = new Map();
+    allOccurrences
+        .filter(o => o.scheduledEndTime && new Date(o.scheduledEndTime).getTime() > nowMs)
+        .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime())
+        .forEach(o => {
+            if (!nextOccurrenceMap.has(o.originalId)) {
+                nextOccurrenceMap.set(o.originalId, o);
+            }
+        });
 
     tasks.forEach(task => {
-        try {
-            // New: Check if a completed non-repeating task's lock has expired.
-            if (task.repetitionType === 'none' && task.completed) {
-                if (task.cycleEndDate && nowMs >= new Date(task.cycleEndDate).getTime()) {
-                    tasksToRemove.push(task.id);
-                }
-                return; // Skip further status checks for this task.
+        const oldStatus = task.status;
+        const oldConfirmationState = task.confirmationState;
+
+        // Handle time-based state transitions (e.g., becoming overdue)
+        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        const isPastDue = dueDate && dueDate.getTime() <= nowMs;
+
+        if (isPastDue && task.status !== 'blue' && !task.confirmationState) {
+            task.confirmationState = 'awaiting_overdue_input';
+            if (!task.overdueStartDate) {
+                task.overdueStartDate = task.dueDate.toISOString();
             }
+            task.pendingCycles = calculatePendingCycles(task, nowMs);
+             if (task.isTimerRunning) { toggleTimer(task.id); }
+        } else if (!isPastDue && (task.confirmationState === 'awaiting_overdue_input' || task.confirmationState === 'confirming_miss')) {
+            task.confirmationState = null;
+            delete task.overdueStartDate;
+            delete task.pendingCycles;
+        }
 
-            const oldStatus = task.status;
-            const oldConfirmationState = task.confirmationState;
+        // Determine the final display status
+        const nextOccurrence = nextOccurrenceMap.get(task.id);
+        let newStatus;
 
-            // Step 1: Always calculate the definitive current status based on timing and misses.
-            const newStatusResult = calculateStatus(task, nowMs, currentTasks, sensitivityParams);
-            task.status = newStatusResult.name;
+        if (task.status === 'blue' && task.cycleEndDate && new Date(task.cycleEndDate) > now) {
+            newStatus = 'blue';
+        } else if (task.confirmationState === 'awaiting_overdue_input') {
+            newStatus = 'black';
+        } else if (nextOccurrence) {
+            newStatus = nextOccurrence.finalStatus;
+        } else {
+            newStatus = 'green';
+        }
 
-            const dueDateMs = task.dueDate ? task.dueDate.getTime() : null;
-            const isPastDue = dueDateMs !== null && dueDateMs <= nowMs;
+        if (task.status !== newStatus) {
+            task.status = newStatus;
+        }
 
-            // Step 2: Determine if a confirmation state is needed, or if it should be cleared.
-            if (isPastDue && task.status !== 'blue' && !task.confirmationState) {
-                // Task just became overdue. Set prompt and force status to black.
-                task.confirmationState = 'awaiting_overdue_input';
-                task.status = 'black'; // <-- NEW: Overdue tasks now immediately become black.
-                if (!task.overdueStartDate) {
-                    task.overdueStartDate = task.dueDate.toISOString();
-                }
-                task.pendingCycles = calculatePendingCycles(task, nowMs);
-                if (task.isTimerRunning) { toggleTimer(task.id); }
-            } else if (!isPastDue && (task.confirmationState === 'awaiting_overdue_input' || task.confirmationState === 'confirming_miss')) {
-                // This clears the 'Done/Missed' prompt if the task is no longer past due (e.g., date was edited).
-                task.confirmationState = null;
-                delete task.overdueStartDate;
-                delete task.pendingCycles;
+        if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
+            changed = true;
+        }
+    });
+
+    // Handle removal of completed non-repeating tasks whose lock has expired
+    const tasksToRemove = [];
+    tasks.forEach(task => {
+        if (task.repetitionType === 'none' && task.completed) {
+            if (task.cycleEndDate && nowMs >= new Date(task.cycleEndDate).getTime()) {
+                tasksToRemove.push(task.id);
             }
-
-            // Step 3: If the status OR the confirmation state changed, flag the UI for a full update.
-            // This ensures the color changes without losing the confirmation prompt.
-            if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
-                changed = true;
-            }
-
-            if (task.isTimerRunning && !taskTimers[task.id]) {
-                startTimerInterval(task.id);
-            }
-
-        } catch (e) {
-            console.error("Error updating status for task:", task?.id, e);
         }
     });
 
     if (tasksToRemove.length > 0) {
         tasks = tasks.filter(t => !tasksToRemove.includes(t.id));
-        changed = true; // Force a re-render if tasks were removed
+        changed = true;
     }
 
     if (changed || forceRender) {
@@ -5571,39 +5685,50 @@ function initializeCalendar() {
                 const viewStartDate = fetchInfo.start;
                 const viewEndDate = fetchInfo.end;
                 let calendarEvents = [];
+                const now = new Date();
+
+                const calculationHorizon = getCalculationHorizonDate();
+
+                const settings = {
+                    sensitivity: sensitivitySettings,
+                    vacations: appState.vacations,
+                    categories: categories
+                };
 
                 // 1. Get all scheduled task occurrences from the single source of truth.
-                // The lookahead window is now handled inside calculateScheduledTimes.
-                const scheduledOccurrences = calculateScheduledTimes(tasks, viewStartDate, viewEndDate, appState.vacations, categories);
+                const allScheduledOccurrences = runCalculationPipeline(tasks, calculationHorizon, settings);
 
-                const filteredOccurrences = scheduledOccurrences.filter(task => {
+                // 2. Filter occurrences for the current view and category filter.
+                const filteredOccurrences = allScheduledOccurrences.filter(occurrence => {
+                    if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return false;
+
+                    // Filter by calendar view window
+                    if (new Date(occurrence.scheduledStartTime) >= viewEndDate || new Date(occurrence.scheduledEndTime) <= viewStartDate) {
+                        return false;
+                    }
+
+                    // Filter by category
                     if (categoryFilter.length === 0) return true;
-                    if (!task.categoryId) return categoryFilter.includes(null);
-                    return categoryFilter.includes(task.categoryId);
+                    if (!occurrence.categoryId) return categoryFilter.includes(null);
+                    return categoryFilter.includes(occurrence.categoryId);
                 });
 
-                const now = new Date();
+                // 3. Map to FullCalendar event objects
                 filteredOccurrences.forEach(occurrence => {
                     const category = categories.find(c => c.id === occurrence.categoryId);
-
-                    // Determine the status color for the border
-                    let eventStatus = occurrence.status;
-                    if ((occurrence.status === 'red' || occurrence.status === 'black') && new Date(occurrence.scheduledStartTime) > now) {
-                        eventStatus = 'blue';
-                    }
-                    const borderColor = statusColors[eventStatus] || '#FFFFFF';
+                    const borderColor = statusColors[occurrence.finalStatus] || '#FFFFFF';
                     const eventColor = category ? category.color : '#374151';
 
                     calendarEvents.push({
-                        id: occurrence.id, // The ID is now unique per occurrence
+                        id: occurrence.id, // Unique ID per occurrence
                         title: occurrence.name,
                         start: occurrence.scheduledStartTime,
                         end: occurrence.scheduledEndTime,
                         backgroundColor: eventColor,
                         borderColor: borderColor,
-                        borderWidth: '2px', // Restore the status border
+                        borderWidth: '2px',
                         extendedProps: {
-                            taskId: occurrence.originalId || occurrence.id.split('_')[0], // Get original task ID
+                            taskId: occurrence.originalId,
                             occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
                             isHistorical: false
                         }
@@ -5611,7 +5736,7 @@ function initializeCalendar() {
                 });
 
 
-                // 2. Process Historical Tasks
+                // 4. Process Historical Tasks
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
