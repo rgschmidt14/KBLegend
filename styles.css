@@ -183,6 +183,29 @@ body.modal-open {
 /* ======================================================================== */
 /* TASK & MANAGER STYLES                                                    */
 /* ======================================================================== */
+#task-manager-view .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#task-manager-view .controls .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+#task-manager-view .controls .sort-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
 .task-item {
     transition: border-left-color 0.3s ease, background-color 0.3s ease, opacity 0.2s ease, border 0.2s ease;
     padding: 0.5rem;
@@ -481,6 +504,17 @@ legend {
 }
 .calendar-nav-row > :last-child {
     margin-left: auto; /* Pushes next button to the right */
+}
+
+/* ======================================================================== */
+/* MAIN VIEW NAVIGATION                                                     */
+/* ======================================================================== */
+#main-view-nav {
+    display: grid;
+    /* Create responsive columns: they will be at least 160px wide, */
+    /* and the grid will fit as many as possible, distributing extra space. */
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5rem; /* 8px */
 }
 
 /* On smaller screens, stack the view controls for better layout */
