@@ -470,8 +470,12 @@ function bulkEditFormTemplate(categoryId, settings) {
     `;
 }
 
-function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
+function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyCompleted) {
     const chartHtml = hasChartData ? `<div class="mt-4 gradient-bordered-content"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
+    const reinstateButtonHtml = isFullyCompleted
+        ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md mt-6">Reinstate Task</button>`
+        : '';
+
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
@@ -481,7 +485,10 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
         ${chartHtml}
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
         <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">${historyHtml}</div>
-        <button data-action="backToTaskView" class="btn btn-clear mt-6">Back to Details</button>
+        <div class="flex justify-start items-center space-x-4">
+             <button data-action="backToTaskView" class="btn btn-clear mt-6">Back to Details</button>
+             ${reinstateButtonHtml}
+        </div>
     `;
 }
 
@@ -661,6 +668,47 @@ function kpiAutomationSettingsTemplate(settings) {
             </div>`;
 }
 
+function historicalTaskCardTemplate(task) {
+    const categoryColor = task.categoryColor || '#374151'; // Default to a neutral gray
+    const gpaColor = task.gpaColor || '#4A5568';
+    const lastCompleted = task.lastCompleted ? new Date(task.lastCompleted).toLocaleDateString() : 'N/A';
+
+    return `
+        <div class="historical-task-card p-3 rounded-lg cursor-pointer"
+             data-task-id="${task.id}"
+             style="background-color: ${categoryColor}; border: 3px solid ${gpaColor};">
+            <h4 class="font-bold truncate">${task.name}</h4>
+            <p class="text-xs opacity-80 mt-1">Last completed: ${lastCompleted}</p>
+        </div>
+    `;
+}
+
+function hintManagerTemplate(hints, uiSettings) {
+    const hintItemsHtml = hints.map(hint => {
+        const isCompleted = uiSettings.userInteractions[hint.interaction];
+        return `
+            <label class="flex items-center justify-between p-2 border rounded-md text-sm">
+                <span>${hint.text.replace('💡', '').trim()}</span>
+                <input type="checkbox" data-action="toggleHint" data-interaction="${hint.interaction}" class="h-4 w-4 rounded" ${isCompleted ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    return `
+        <div class="flex items-center justify-between">
+            <label for="disable-hints-toggle" class="form-label mb-0">Disable All Hint Banners:</label>
+            <input type="checkbox" id="disable-hints-toggle" data-action="toggleAllHints" class="toggle-checkbox" ${uiSettings.hintsDisabled ? 'checked' : ''}>
+        </div>
+        <div id="hint-details-container" class="space-y-3 mt-3 ${uiSettings.hintsDisabled ? 'hidden' : ''}">
+            <p class="text-xs italic">Uncheck hints to see them again. The banner shows one random, un-checked hint at a time.</p>
+            <div id="hint-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
+                ${hintItemsHtml}
+            </div>
+            <button data-action="resetAllHints" class="btn btn-secondary btn-md w-full">Reset All Hints (Show All)</button>
+        </div>
+    `;
+}
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
@@ -668,5 +716,5 @@ export {
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
-    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate
+    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate
 };

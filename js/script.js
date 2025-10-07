@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -62,6 +62,7 @@ let uiSettings = {
     advancedOptionsCollapseState: {},
     calculationHorizonAmount: 1,
     calculationHorizonUnit: 'years',
+    hintsDisabled: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -137,6 +138,7 @@ const appState = {
     weeks: [],
     indicators: [],
     historicalTasks: [],
+    archivedTasks: [], // New: To store full task objects that are no longer active.
     journal: [],
     vacations: [], // New: To store vacation periods {id, name, startDate, endDate}
     viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
@@ -733,9 +735,8 @@ function generateComplementaryPalette(baseColor, isDarkMode) {
     const secondary_highlight = HSLToHex(baseHSL.h, clamp(baseHSL.s, 0, 100), clamp(secondarySelectedLightness, 0, 100));
     const secondary_selected = `linear-gradient(to bottom, ${secondary}, ${secondary_highlight})`;
 
-    const mainGradientLightness2 = isDarkMode ? mainBgLightness + 5 : mainBgLightness - 5;
-    const main_gradient_color2 = HSLToHex(baseHSL.h, clamp(baseHSL.s * 0.8, 0, 100), clamp(mainGradientLightness2, 0, 100));
-    const main_gradient = `linear-gradient(180deg, ${main}, ${main_gradient_color2})`;
+    // A more pronounced gradient for the "Theme Spectrum" option, respecting the light source direction.
+    const main_gradient = `linear-gradient(to bottom, ${main}, ${secondary})`;
 
     return { main, secondary, tertiary, accent1, accent2, accent3, secondary_selected, main_gradient };
 }
@@ -804,14 +805,16 @@ function applyTheme() {
 
     // --- Gradient Logic ---
     const gradientDirection = isDarkMode ? 'to top' : 'to bottom';
-    // Create the "Status Spectrum" gradient from the *active* status colors.
+
+    // 1. Status Spectrum Gradient
+    // The initial order from the palette function is dark-to-light. We reverse it to get light-to-dark.
     const statusColorsForGradient = [activeStatusColors.black, activeStatusColors.red, activeStatusColors.yellow, activeStatusColors.green, activeStatusColors.blue];
-    // Reverse for light mode to have lighter colors at the bottom
-    if (!isDarkMode) {
-        statusColorsForGradient.reverse();
-    }
+    statusColorsForGradient.reverse(); // Now it's always [blue, green, yellow, red, black] (light to dark)
     const statusGradient = `linear-gradient(${gradientDirection}, ${statusColorsForGradient.join(', ')})`;
-    const themeGradient = palette.main_gradient;
+
+    // 2. Theme Gradient
+    // The theme gradient also respects the light source direction.
+    const themeGradient = `linear-gradient(${gradientDirection}, ${palette.main}, ${palette.secondary})`;
 
     let activeGradient;
     if (theming.calendarGradientSource === 'theme') {
@@ -856,6 +859,7 @@ function applyTheme() {
         '--border-color-primary': isDarkMode ? '#4A5568' : '#D1D5DB',
         '--border-color-secondary': isDarkMode ? '#374151' : '#E5E7EB',
         '--focus-ring-color': theming.enabled ? palette.tertiary : '#63B3ED',
+        '--toggle-peg-color': isDarkMode ? '#FFFFFF' : '#1F2937', // White in dark mode, gray-800 in light
     };
 
     // Generate CSS rules string
@@ -1474,6 +1478,10 @@ function archiveNonRepeatingTask(task, status, progress = 1) {
         originalDueDate: originalDueDate // The scheduled due date
     };
     appState.historicalTasks.push(historicalTask);
+
+    // Instead of deleting, move the full task object to the new archived array.
+    if (!appState.archivedTasks) { appState.archivedTasks = []; }
+    appState.archivedTasks.push(task);
     tasks = tasks.filter(t => t.id !== task.id); // Remove from active tasks
 }
 function toggleAbsoluteRepetitionFields(frequency) {
@@ -1590,6 +1598,15 @@ function renderKpiAutomationSettings() {
     container.innerHTML = kpiAutomationSettingsTemplate(appSettings);
 }
 
+function renderHintManager() {
+    const container = document.getElementById('hint-manager-content');
+    if (!container) return;
+    if (!uiSettings.userInteractions) {
+        uiSettings.userInteractions = {};
+    }
+    container.innerHTML = hintManagerTemplate(hints, uiSettings);
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1603,6 +1620,7 @@ function openAdvancedOptionsModal() {
     renderJournalSettings();
     renderPerformanceSettings();
     renderKpiAutomationSettings();
+    renderHintManager();
 
     // Apply saved collapse states
     const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
@@ -1780,17 +1798,35 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
 }
 
 function renderTaskStats(taskId) {
-    const task = tasks.find(t => t.id === taskId);
-    // Add a unique, temporary historyId to each item for DOM manipulation
+    const taskViewContentEl = document.getElementById('task-view-content');
+    const taskStatsContentEl = document.getElementById('task-stats-content');
+
+    // Determine if the task is currently active or fully completed/archived.
+    const isActive = tasks.some(t => t.id === taskId);
+    const isFullyCompleted = !isActive;
+
+    // Find the task's info. It could be an active task, an archived one, or just in history.
+    let task = tasks.find(t => t.id === taskId);
+    if (!task && appState.archivedTasks) {
+        task = appState.archivedTasks.find(t => t.id === taskId);
+    }
+
     const history = appState.historicalTasks
         .map((h, index) => ({ ...h, historyId: `hist-${index}` }))
         .filter(ht => ht.originalTaskId === taskId)
         .sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate));
 
-    if (!task) return;
+    if (!task && history.length > 0) {
+        task = { id: taskId, name: history[0].name, isKpi: false }; // Create a phantom task
+    }
 
-    taskViewContent.classList.add('hidden');
-    taskStatsContent.classList.remove('hidden');
+    if (!task) {
+        console.error("Cannot find task or history for stats view:", taskId);
+        return;
+    }
+
+    if (taskViewContentEl) taskViewContentEl.classList.add('hidden');
+    if (taskStatsContentEl) taskStatsContentEl.classList.remove('hidden');
 
     const completionStatuses = ['blue', 'green', 'yellow'];
     const missStatuses = ['red', 'black'];
@@ -1806,41 +1842,30 @@ function renderTaskStats(taskId) {
 
     const historyHtml = history.length > 0
         ? history.map(h => {
-            const statusColor = statusColors[h.status] || '#FFFFFF'; // Default to white
             const formattedDate = new Date(h.completionDate).toLocaleDateString();
             const originalDueDate = new Date(h.originalDueDate);
             const actionDate = new Date(h.actionDate);
-
             let timeDiffText = '';
-            // Only show time difference for completions.
             if (h.status === 'blue' || h.status === 'green' || h.status === 'yellow') {
                 const diffMs = originalDueDate.getTime() - actionDate.getTime();
-                // A small buffer to not show '0 seconds early/late'
                 if (Math.abs(diffMs) > 1000) {
-                     const timeString = formatTimeRemaining(Math.abs(diffMs));
-                     if (diffMs > 0) { // Early
-                        timeDiffText = ` <span class="text-xs opacity-75">(${timeString} early)</span>`;
-                    } else { // Late
-                        timeDiffText = ` <span class="text-xs opacity-75">(${timeString} late)</span>`;
-                    }
+                    const timeString = formatTimeRemaining(Math.abs(diffMs));
+                    if (diffMs > 0) timeDiffText = ` <span class="text-xs opacity-75">(${timeString} early)</span>`;
+                    else timeDiffText = ` <span class="text-xs opacity-75">(${timeString} late)</span>`;
                 }
             }
-
-            // Capitalize status for display
             const displayStatus = h.status.charAt(0).toUpperCase() + h.status.slice(1);
-
-            return `
-            <div id="history-item-${h.historyId}" class="flex justify-between items-center text-sm p-1 rounded">
+            return `<div id="history-item-${h.historyId}" class="flex justify-between items-center text-sm p-1 rounded">
                 <span>${formattedDate}: <span class="font-semibold">${displayStatus}</span>${timeDiffText}</span>
-                <button data-action="triggerHistoryDelete" data-history-id="${h.historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Delete</button>
-            </div>
-        `}).join('')
+                <button data-action="triggerHistoryDelete" data-history-id="${h.historyId}" data-task-id="${taskId}" class="btn btn-clear text-xs">Delete</button>
+            </div>`;
+        }).join('')
         : '<div>No history yet.</div>';
 
     const chartData = processTaskHistoryForChart(history);
     const hasChartData = chartData.labels.length > 0;
 
-    taskStatsContent.innerHTML = taskStatsTemplate(task, stats, historyHtml, hasChartData);
+    taskStatsContentEl.innerHTML = taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyCompleted);
 
     if (hasChartData) {
         const ctx = document.getElementById('task-history-chart').getContext('2d');
@@ -1881,13 +1906,45 @@ function renderTaskStats(taskId) {
         });
     }
 
-    const backBtn = taskStatsContent.querySelector('[data-action="backToTaskView"]');
+    const backBtn = taskStatsContentEl.querySelector('[data-action="backToTaskView"]');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
-            taskStatsContent.innerHTML = '';
-            taskStatsContent.classList.add('hidden');
-            taskViewContent.classList.remove('hidden');
+            const taskViewContentEl = document.getElementById('task-view-content');
+            const taskStatsContentEl = document.getElementById('task-stats-content');
+            if (taskStatsContentEl) taskStatsContentEl.innerHTML = '';
+            if (taskStatsContentEl) taskStatsContentEl.classList.add('hidden');
+            if (taskViewContentEl) taskViewContentEl.classList.remove('hidden');
         }, { once: true });
+    }
+
+    const reinstateBtn = taskStatsContentEl.querySelector('[data-action="reinstateTask"]');
+    if (reinstateBtn) {
+        reinstateBtn.addEventListener('click', () => {
+            const taskId = reinstateBtn.dataset.taskId;
+            const archivedTask = appState.archivedTasks.find(t => t.id === taskId);
+            if (archivedTask) {
+                // Remove from archived
+                appState.archivedTasks = appState.archivedTasks.filter(t => t.id !== taskId);
+                // Reset its state for re-activation
+                archivedTask.completed = false;
+                archivedTask.status = 'green';
+                archivedTask.confirmationState = null;
+                archivedTask.cycleEndDate = null;
+                // Give it a new due date (e.g., 24 hours from now)
+                const now = new Date();
+                archivedTask.dueDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                // Add back to active tasks
+                tasks.push(archivedTask);
+                // Save and refresh everything
+                saveData();
+                updateAllTaskStatuses(true);
+                if (calendar) calendar.refetchEvents();
+                // Close the modal
+                const taskViewModalEl = document.getElementById('task-view-modal');
+                if (taskViewModalEl) deactivateModal(taskViewModalEl);
+                alert(`Task "${archivedTask.name}" has been reinstated!`);
+            }
+        });
     }
 
     const historyList = document.getElementById('detailed-history-list');
@@ -1912,6 +1969,101 @@ function renderTaskStats(taskId) {
             }
         });
     }
+}
+
+function renderHistoricalOverview(sortBy = 'lastCompleted', sortDir = 'desc') {
+    const listContainer = document.getElementById('historical-overview-list');
+    if (!listContainer) return;
+
+    // 1. Group history by original task ID
+    const historyByTask = {};
+    appState.historicalTasks.forEach(h => {
+        if (!historyByTask[h.originalTaskId]) {
+            historyByTask[h.originalTaskId] = [];
+        }
+        historyByTask[h.originalTaskId].push(h);
+    });
+
+    // 2. Process each group to get stats
+    const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
+    let processedTasks = Object.keys(historyByTask).map(taskId => {
+        const history = historyByTask[taskId];
+        const lastEntry = history.sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate))[0];
+
+        const totalGpa = history.reduce((sum, h) => sum + (gpaMap[h.status] || 0), 0);
+        const averageGpa = history.length > 0 ? totalGpa / history.length : 0;
+        const gpaPercent = averageGpa / 4.0; // Scale 0-4 GPA to 0-1 for color interpolation
+
+        const category = categories.find(c => c.id === lastEntry.categoryId);
+
+        return {
+            id: taskId,
+            name: lastEntry.name,
+            lastCompleted: lastEntry.completionDate,
+            gpa: averageGpa,
+            gpaColor: interpolateFiveColors(gpaPercent),
+            categoryColor: category ? category.color : '#374151'
+        };
+    });
+
+    // 3. Sort the processed tasks
+    processedTasks.sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === 'name') {
+            comparison = a.name.localeCompare(b.name);
+        } else if (sortBy === 'lastCompleted') {
+            comparison = new Date(b.lastCompleted) - new Date(a.lastCompleted);
+        } else if (sortBy === 'gpa') {
+            comparison = b.gpa - a.gpa;
+        }
+        return sortDir === 'asc' ? -comparison : comparison;
+    });
+
+    // 4. Render the cards
+    if (processedTasks.length === 0) {
+        listContainer.innerHTML = '<p class="italic text-center col-span-full">No historical tasks found.</p>';
+        return;
+    }
+    listContainer.innerHTML = processedTasks.map(historicalTaskCardTemplate).join('');
+}
+
+
+function openHistoricalOverviewModal() {
+    const modal = document.getElementById('historical-overview-modal');
+    if (!modal) return;
+
+    renderHistoricalOverview(); // Initial render with default sort
+
+    const sortBySelect = modal.querySelector('#historical-sort-by');
+    const sortDirSelect = modal.querySelector('#historical-sort-direction');
+
+    const sortHandler = () => {
+        renderHistoricalOverview(sortBySelect.value, sortDirSelect.value);
+    };
+
+    sortBySelect.removeEventListener('change', sortHandler); // Remove old listener
+    sortDirSelect.removeEventListener('change', sortHandler); // Remove old listener
+    sortBySelect.addEventListener('change', sortHandler);
+    sortDirSelect.addEventListener('change', sortHandler);
+
+    const listContainer = modal.querySelector('#historical-overview-list');
+    const clickHandler = (e) => {
+        const card = e.target.closest('.historical-task-card');
+        if (card) {
+            const taskId = card.dataset.taskId;
+            deactivateModal(modal); // Close this modal before opening the next one
+            openTaskView(taskId, true); // Open in historical mode
+        }
+    };
+    listContainer.removeEventListener('click', clickHandler); // Remove old listener
+    listContainer.addEventListener('click', clickHandler);
+
+    const closeButton = modal.querySelector('.close-button');
+    const closeHandler = () => deactivateModal(modal);
+    closeButton.removeEventListener('click', closeHandler); // Remove old listener
+    closeButton.addEventListener('click', closeHandler);
+
+    activateModal(modal);
 }
 
 function confirmHistoryDelete(historyId, taskId, deleteType) {
@@ -1958,9 +2110,10 @@ function renderThemeControls() {
     const themeModeSelector = document.getElementById('theme-mode-selector');
     if (themeModeSelector) {
         themeModeSelector.querySelectorAll('.theme-mode-btn').forEach(btn => {
-            btn.classList.remove('active-theme-btn');
+            // The 'active-view-btn' class provides the "lit up" effect.
+            btn.classList.remove('active-view-btn');
             if (btn.dataset.mode === theming.mode) {
-                btn.classList.add('active-theme-btn');
+                btn.classList.add('active-view-btn');
             }
         });
     }
@@ -1968,9 +2121,9 @@ function renderThemeControls() {
     const calendarGradientSelector = document.getElementById('calendar-gradient-selector');
     if (calendarGradientSelector) {
         calendarGradientSelector.querySelectorAll('.calendar-gradient-btn').forEach(btn => {
-            btn.classList.remove('active-theme-btn');
+            btn.classList.remove('active-view-btn');
             if (btn.dataset.source === theming.calendarGradientSource) {
-                btn.classList.add('active-theme-btn');
+                btn.classList.add('active-view-btn');
             }
         });
     }
@@ -2054,18 +2207,18 @@ function renderKpiList() {
     // 2. Render Controls
     const controlsHtml = `
         <div class="flex items-center space-x-2">
-            <label for="kpi-range-select" class="text-sm font-medium text-gray-300">Range:</label>
-            <select id="kpi-range-select" class="bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-sm text-white focus:ring-blue-500 focus:border-blue-500">
+            <label for="kpi-range-select" class="form-label mb-0">Range:</label>
+            <select id="kpi-range-select">
                 <option value="8d" ${uiSettings.kpiChartDateRange === '8d' ? 'selected' : ''}>Last 8 Days</option>
                 <option value="30d" ${uiSettings.kpiChartDateRange === '30d' ? 'selected' : ''}>Last 30 Days</option>
                 <option value="90d" ${uiSettings.kpiChartDateRange === '90d' ? 'selected' : ''}>Last 90 Days</option>
             </select>
         </div>
         <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-300">View:</label>
-            <div class="flex rounded-md bg-gray-700 p-0.5">
-                <button data-mode="single" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md themed-button-secondary ${uiSettings.kpiChartMode === 'single' ? 'active-view-btn' : ''}">Combined</button>
-                <button data-mode="stacked" class="kpi-view-toggle-btn px-2 py-0.5 text-sm rounded-md themed-button-secondary ${uiSettings.kpiChartMode === 'stacked' ? 'active-view-btn' : ''}">Stacked</button>
+            <label class="form-label mb-0">View:</label>
+            <div class="flex space-x-1 rounded-md p-1 bg-secondary">
+                <button data-mode="single" class="btn btn-secondary btn-sm kpi-view-toggle-btn ${uiSettings.kpiChartMode === 'single' ? 'active-view-btn' : ''}">Combined</button>
+                <button data-mode="stacked" class="btn btn-secondary btn-sm kpi-view-toggle-btn ${uiSettings.kpiChartMode === 'stacked' ? 'active-view-btn' : ''}">Stacked</button>
             </div>
         </div>
     `;
@@ -3656,9 +3809,10 @@ function analyzeAndPrepareMigrationModal(modalElement) {
     }
 }
 
-function deleteSelectedOrphansAction() {
+function deleteSelectedOrphansAction(modalElement) {
+    if (!modalElement) return;
     const selectedIds = new Set();
-    dataMigrationModal.querySelectorAll('.orphan-checkbox:checked').forEach(checkbox => {
+    modalElement.querySelectorAll('.orphan-checkbox:checked').forEach(checkbox => {
         selectedIds.add(parseInt(checkbox.dataset.historyId, 10));
     });
 
@@ -3673,7 +3827,7 @@ function deleteSelectedOrphansAction() {
         const removedCount = originalCount - appState.historicalTasks.length;
 
         saveData();
-        analyzeAndPrepareMigrationModal(dataMigrationModal); // Re-run analysis to update the UI
+        analyzeAndPrepareMigrationModal(modalElement); // Re-run analysis to update the UI
         if (calendar) calendar.refetchEvents();
         alert(`${removedCount} orphaned history record(s) have been deleted.`);
     }
@@ -3692,19 +3846,22 @@ function deleteAllHistory() {
 }
 
 function openDataMigrationModal(tasksData = null) {
-    if (!dataMigrationModal) return;
-    dataMigrationModal.innerHTML = dataMigrationModalTemplate();
+    const dataMigrationModalEl = document.getElementById('data-migration-modal');
+    if (!dataMigrationModalEl) return;
 
-    // Force a solid background to fix theme-related transparency issues.
-    const modalContent = dataMigrationModal.querySelector('.modal-content');
+    dataMigrationModalEl.innerHTML = dataMigrationModalTemplate();
+    const modalContent = dataMigrationModalEl.querySelector('.modal-content');
+
+    // JIT lookup and background fix
     if (modalContent) {
-        modalContent.style.backgroundColor = '#2d3748';
+        const effectiveMode = theming.mode === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light') : theming.mode;
+        modalContent.style.backgroundColor = effectiveMode === 'night' ? '#2d3748' : '#FFFFFF'; // gray-700 or white
     }
 
     // Add event listeners for the new modal
-    const closeButton = dataMigrationModal.querySelector('.close-button');
+    const closeButton = dataMigrationModalEl.querySelector('.close-button');
     if (closeButton) {
-        closeButton.addEventListener('click', () => deactivateModal(dataMigrationModal));
+        closeButton.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
     }
     const fileInput = document.getElementById('migration-file-input');
     if (fileInput) {
@@ -3713,13 +3870,16 @@ function openDataMigrationModal(tasksData = null) {
 
     const deleteSelectedBtn = document.getElementById('delete-selected-orphans-btn');
     if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', deleteSelectedOrphansAction);
+        deleteSelectedBtn.addEventListener('click', () => {
+             // Pass the modal element to the action handler
+            deleteSelectedOrphansAction(dataMigrationModalEl);
+        });
     }
 
     const selectAllCheckbox = document.getElementById('select-all-orphans-checkbox');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', (e) => {
-            dataMigrationModal.querySelectorAll('.orphan-checkbox').forEach(checkbox => {
+            dataMigrationModalEl.querySelectorAll('.orphan-checkbox').forEach(checkbox => {
                 checkbox.checked = e.target.checked;
             });
         });
@@ -3733,34 +3893,34 @@ function openDataMigrationModal(tasksData = null) {
     // Step 2 buttons
     const cancelBtn = document.getElementById('cancel-migration-btn');
     if(cancelBtn) {
-        cancelBtn.addEventListener('click', () => deactivateModal(dataMigrationModal));
+        cancelBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
     }
     const runBtn = document.getElementById('run-migration-btn');
     if(runBtn) {
-        runBtn.addEventListener('click', runMigration);
+        runBtn.addEventListener('click', () => runMigration(dataMigrationModalEl));
     }
 
     // Step 3 (Confirm) buttons
     const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
     if (cancelConfirmBtn) {
-        cancelConfirmBtn.addEventListener('click', () => deactivateModal(dataMigrationModal));
+        cancelConfirmBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
     }
     const runConfirmBtn = document.getElementById('run-confirm-btn');
     if (runConfirmBtn) {
-        runConfirmBtn.addEventListener('click', runMigration);
+        runConfirmBtn.addEventListener('click', () => runMigration(dataMigrationModalEl));
     }
 
-    analyzeAndPrepareMigrationModal(dataMigrationModal);
+    analyzeAndPrepareMigrationModal(dataMigrationModalEl);
 
     if (tasksData) {
-        prepareMigrationUI(tasksData);
-        const step1Prompt = dataMigrationModal.querySelector('#migration-step-1 p');
+        prepareMigrationUI(tasksData, dataMigrationModalEl);
+        const step1Prompt = dataMigrationModalEl.querySelector('#migration-step-1 p');
         if (step1Prompt) {
             step1Prompt.textContent = 'Outdated task format detected. Please map your old task fields to the new format below to continue.';
         }
     }
 
-    activateModal(dataMigrationModal);
+    activateModal(dataMigrationModalEl);
 }
 
 function prepareMigrationUI(data) {
@@ -4394,6 +4554,10 @@ function setupEventListeners() {
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', () => openModal());
     }
+    const viewHistoricalTasksBtn = document.getElementById('view-historical-tasks-btn');
+    if (viewHistoricalTasksBtn) {
+        viewHistoricalTasksBtn.addEventListener('click', openHistoricalOverviewModal);
+    }
     const advancedOptionsBtnMain = document.getElementById('advancedOptionsBtnMain');
     if(advancedOptionsBtnMain) {
         advancedOptionsBtnMain.addEventListener('click', openAdvancedOptionsModal);
@@ -4820,6 +4984,28 @@ function setupEventListeners() {
                     appSettings.autoKpiRemovable = event.target.checked;
                     saveData();
                     break;
+                case 'disableAllHints':
+                    uiSettings.hintsDisabled = event.target.checked;
+                    saveData();
+                    // Hide or show the banner immediately
+                    const hintsBanner = document.getElementById('hints-banner');
+                    if (hintsBanner) {
+                        hintsBanner.style.display = uiSettings.hintsDisabled ? 'none' : '';
+                    }
+                    break;
+                case 'resetAllHints':
+                    if (confirm("Are you sure you want to reset all hint interactions? You will start seeing hints for features you've already used again.")) {
+                        if (!uiSettings.userInteractions) {
+                            uiSettings.userInteractions = {};
+                        }
+                        // Set all known hint interactions to false instead of wiping the object
+                        hints.forEach(hint => {
+                            uiSettings.userInteractions[hint.interaction] = false;
+                        });
+                        saveData();
+                        renderHintManager(); // Re-render the manager to show all hints as unchecked
+                    }
+                    break;
             }
         });
 
@@ -4856,6 +5042,19 @@ function setupEventListeners() {
 
         advancedOptionsContentEl.addEventListener('change', (event) => {
             const target = event.target;
+
+            if (target.classList.contains('hint-seen-checkbox')) {
+                const interaction = target.dataset.interaction;
+                if (interaction) {
+                    if (!uiSettings.userInteractions) {
+                        uiSettings.userInteractions = {};
+                    }
+                    uiSettings.userInteractions[interaction] = target.checked;
+                    saveData();
+                }
+                return; // Prevent other change handlers from firing
+            }
+
             const categoryFilterListEl = document.getElementById('category-filter-list');
 
             if (target.id === 'planner-sensitivity-default-toggle') {
@@ -5045,6 +5244,100 @@ function setupEventListeners() {
     if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
     if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
 
+
+function renderHistoricalOverview(sortBy = 'lastCompleted', sortDir = 'desc') {
+    const listContainer = document.getElementById('historical-overview-list');
+    if (!listContainer) return;
+
+    // 1. Group history by original task ID
+    const historyByTask = {};
+    appState.historicalTasks.forEach(h => {
+        if (!historyByTask[h.originalTaskId]) {
+            historyByTask[h.originalTaskId] = [];
+        }
+        historyByTask[h.originalTaskId].push(h);
+    });
+
+    // 2. Process each group to get stats
+    const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
+    let processedTasks = Object.keys(historyByTask).map(taskId => {
+        const history = historyByTask[taskId];
+        const lastEntry = history.sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate))[0];
+
+        const totalGpa = history.reduce((sum, h) => sum + (gpaMap[h.status] || 0), 0);
+        const averageGpa = history.length > 0 ? totalGpa / history.length : 0;
+        const gpaPercent = averageGpa / 4.0; // Scale 0-4 GPA to 0-1 for color interpolation
+
+        const category = categories.find(c => c.id === lastEntry.categoryId);
+
+        return {
+            id: taskId,
+            name: lastEntry.name,
+            lastCompleted: lastEntry.completionDate,
+            gpa: averageGpa,
+            gpaColor: interpolateFiveColors(gpaPercent),
+            categoryColor: category ? category.color : '#374151'
+        };
+    });
+
+    // 3. Sort the processed tasks
+    processedTasks.sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === 'name') {
+            comparison = a.name.localeCompare(b.name);
+        } else if (sortBy === 'lastCompleted') {
+            comparison = new Date(b.lastCompleted) - new Date(a.lastCompleted);
+        } else if (sortBy === 'gpa') {
+            comparison = b.gpa - a.gpa;
+        }
+        return sortDir === 'asc' ? -comparison : comparison;
+    });
+
+    // 4. Render the cards
+    if (processedTasks.length === 0) {
+        listContainer.innerHTML = '<p class="italic text-center col-span-full">No historical tasks found.</p>';
+        return;
+    }
+    listContainer.innerHTML = processedTasks.map(historicalTaskCardTemplate).join('');
+}
+
+
+function openHistoricalOverviewModal() {
+    const modal = document.getElementById('historical-overview-modal');
+    if (!modal) return;
+
+    renderHistoricalOverview(); // Initial render with default sort
+
+    const sortBySelect = modal.querySelector('#historical-sort-by');
+    const sortDirSelect = modal.querySelector('#historical-sort-direction');
+
+    const sortHandler = () => {
+        renderHistoricalOverview(sortBySelect.value, sortDirSelect.value);
+    };
+
+    sortBySelect.removeEventListener('change', sortHandler); // Remove old listener
+    sortDirSelect.removeEventListener('change', sortHandler); // Remove old listener
+    sortBySelect.addEventListener('change', sortHandler);
+    sortDirSelect.addEventListener('change', sortHandler);
+
+    const listContainer = modal.querySelector('#historical-overview-list');
+    const clickHandler = (e) => {
+        const card = e.target.closest('.historical-task-card');
+        if (card) {
+            const taskId = card.dataset.taskId;
+            openTaskView(taskId, true); // Open in historical mode
+        }
+    };
+    listContainer.removeEventListener('click', clickHandler); // Remove old listener
+    listContainer.addEventListener('click', clickHandler);
+
+    const closeButton = modal.querySelector('.close-button');
+    const closeHandler = () => deactivateModal(modal);
+    closeButton.removeEventListener('click', closeHandler); // Remove old listener
+    closeButton.addEventListener('click', closeHandler);
+
+    activateModal(modal);
+}
 
     const journalListEl = document.getElementById('journal-list');
     if (journalListEl) {
@@ -5994,15 +6287,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadData();              // From Task Manager
         setAppBranding(); // Set the title on load
 
-        // Automatically check for and prompt user to clean orphaned history on startup.
-        const taskIds = new Set(tasks.map(t => t.id));
-        const orphanedHistory = appState.historicalTasks.filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
-        if (orphanedHistory.length > 0) {
-            // Use a short timeout to ensure the rest of the UI has a chance to render first
-            setTimeout(() => {
-                openDataMigrationModal();
-            }, 500);
-        }
+        // The automatic check for orphaned history has been removed.
+        // This functionality is now available via a button in Advanced Options.
 
         console.log("Task Manager initialized.");
     } catch (e) {
@@ -6099,27 +6385,38 @@ function initializeHints() {
     const hintsBanner = document.getElementById('hints-banner');
     if (!hintsBanner) return;
 
+    // Check if hints are globally disabled first.
+    if (uiSettings.hintsDisabled) {
+        hintsBanner.style.display = 'none';
+        return;
+    }
+
+
     if (!uiSettings.userInteractions) {
         uiSettings.userInteractions = {};
     }
 
     const showRandomHint = () => {
+        // Double-check disabled flag inside the interval as well
+        if (uiSettings.hintsDisabled) {
+            hintsBanner.style.display = 'none';
+            return;
+        }
+
         const hintContent = hintsBanner.querySelector('.hints-content span');
         if (!hintContent) return;
 
-        // Filter out hints for features the user has already interacted with.
         const availableHints = hints.filter(hint => !uiSettings.userInteractions[hint.interaction]);
 
         if (availableHints.length > 0) {
             const randomIndex = Math.floor(Math.random() * availableHints.length);
             hintContent.textContent = `💡 ${availableHints[randomIndex].text}`;
-            hintsBanner.style.display = ''; // Ensure banner is visible
+            hintsBanner.style.display = '';
         } else {
-            // If all hints have been "completed", hide the banner.
             hintsBanner.style.display = 'none';
         }
     };
 
-    showRandomHint(); // Show a hint immediately on load
-    setInterval(showRandomHint, 30000); // Change the hint every 30 seconds
+    showRandomHint();
+    setInterval(showRandomHint, 30000);
 }

@@ -93,7 +93,27 @@ The **Advanced Options** modal is your hub for tailoring the application to your
 *   **Data & Notifications:**
     *   **Data Portability:** Export your entire application data (tasks, settings, history) to a JSON file for backup or transfer. You can also import this data, either overwriting or merging with your existing setup.
     *   **Orphaned History Cleanup:** This tool automatically finds and helps you remove historical records from tasks that have been deleted, keeping your data clean.
+    *   **Hint Management:** Control the application's helpful hints. You can see which hints you've already seen (based on feature interaction), disable the hint banner entirely, or reset all hints to see them again.
 *   **KPI Automation:** Enable this feature to have the app automatically create KPIs for categories. It will track how consistently you complete tasks in a category and score it like a GPA. This helps you see which habits are sticking and where you might need to adjust your goals.
+
+### **Historical Overview: The Long-Term View**
+Accessed via the "View All History" button in the Task Manager, this special modal provides a birds-eye view of every task you've ever completed. Each task is represented by a card showing:
+*   **Task Name:** The name of the original task.
+*   **Last Completed:** The date of its most recent completion.
+*   **Average GPA:** A color-coded border representing the task's average completion GPA over its entire history. The color spectrum (from black for 0.0 to blue for 4.0) gives you an instant sense of your consistency.
+
+This view is invaluable for long-term reviews, allowing you to quickly identify which habits have been successful and which may need more attention. From here, you can also click on any card to jump to that task's detailed stats view.
+
+---
+
+## **Visual Design & CSS Strategy**
+
+The application's visual style is guided by a "layered and lit" philosophy, avoiding a flat design in favor of depth and clarity. This is achieved through a specific CSS strategy:
+
+*   **Layered Backgrounds:** The UI is built with layers. The main application background is a subtle, desaturated version of the current theme color. Content sections, modals, and headers sit on top with slightly more saturated colors, creating a clear visual hierarchy.
+*   **Gradients & Shadows:** Instead of hard borders, the design uses gradients and `box-shadow` to separate elements. The main calendar view features a prominent gradient border that can be switched between a "Status Spectrum" (reflecting the urgency of your tasks) and a "Theme Spectrum" (matching your chosen theme). These gradients also dynamically reverse direction for day and night modes to simulate a consistent light source.
+*   **Semantic & Theme-Agnostic CSS:** The `styles.css` file defines the *structure* and *layout* of elements using theme-agnostic classes (e.g., `.btn`, `.btn-primary`, `.bg-secondary`). It does **not** contain hard-coded color values.
+*   **Dynamic Style Injection:** All color information is handled by the `applyTheme()` function in `js/script.js`. This function calculates all necessary color palettes (for buttons, text, backgrounds, etc.) based on the user's chosen theme color and mode. It then generates a complete CSS stylesheet with these values and injects it into a `<style>` tag in the document's `<head>`. This approach ensures that all colors are calculated with proper contrast ratios automatically, solving accessibility issues at their source and allowing for total, consistent theming from a single point of control.
 
 ---
 
