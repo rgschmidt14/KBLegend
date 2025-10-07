@@ -1,8 +1,9 @@
-/* NEW STYLES.CSS */
-/* Main Styles for the Task Manager Application
-Defines the overall look, feel, and responsiveness.
-- Includes styles for the modal, task items, form elements, and buttons.
-*/
+/* ======================================================================== */
+/* NEW THEME-AGNOSTIC STYLES.CSS                                            */
+/* This file defines the STRUCTURE, LAYOUT, and SIZING of elements.         */
+/* All COLOR, BACKGROUND, and BORDER COLOR properties are intentionally   */
+/* removed. They will be dynamically generated and injected by script.js.   */
+/* ======================================================================== */
 
 :root {
     /* Base text colors for night mode (default) */
@@ -23,30 +24,105 @@ Defines the overall look, feel, and responsiveness.
     --text-color-tertiary: var(--text-color-dark-tertiary);
     --text-color-quaternary: var(--text-color-dark-quaternary);
     --text-shadow: none;
-
-    /* Button theming variables */
-    --btn-bg: #4A5568; /* gray-600 */
-    --btn-hover-bg: #2D3748; /* gray-800 */
-    --btn-active-bg: #4299E1; /* blue-400 */
-    --btn-text-color: var(--text-color-primary);
-    --btn-text-shadow: none;
+    --border-color-primary: #4A5568; /* Default border for night mode */
+    --border-color-secondary: #374151;
+    --focus-ring-color: #63B3ED; /* blue-400 */
 }
 
-
-body {
+/* ======================================================================== */
+/* BACKGROUNDS                                                              */
+/* ======================================================================== */
+.bg-main {
     font-family: 'Inter', sans-serif;
-    color: var(--text-color-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.bg-secondary {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color-primary);
+}
+
+.bg-modal {
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid var(--border-color-primary);
+    width: 90%;
+    max-width: 550px;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* ======================================================================== */
+/* BUTTONS                                                                  */
+/* ======================================================================== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    cursor: pointer;
+    text-wrap: nowrap;
+}
+.btn:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* SIZES */
+.btn-lg {
+    padding: 0.5rem 1rem; /* py-2 px-4 */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-md {
+    padding: 0.5rem 1rem; /* py-2 px-4 */
+    border-radius: 0.375rem; /* rounded-md */
+}
+
+.btn-sm {
+    padding: 0.5rem; /* p-2 */
+    border-radius: 0.375rem; /* rounded-md */
+}
+
+.btn-xs {
+    padding: 0.25rem 0.75rem; /* py-1 px-3 */
+    font-size: 0.875rem; /* text-sm */
+    border-radius: 0.375rem; /* rounded-md */
+}
+
+/* TYPES */
+.btn-primary, .btn-secondary, .btn-tertiary, .btn-confirm, .btn-deny {
+    /* Colors to be applied by JS */
+}
+
+.btn-clear {
+    padding: 0.25rem 0.5rem;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    font-weight: 500;
+    /* JS will set text color and hover background color */
+}
+
+/* ======================================================================== */
+/* GENERAL & UTILITY                                                        */
+/* ======================================================================== */
+body {
+    color: var(--text-color-primary);
 }
 
 body.modal-open {
     overflow: hidden;
-}
-
-.modal-backdrop {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); display: flex;
-    align-items: center; justify-content: center; z-index: 50;
 }
 
 .modal {
@@ -64,23 +140,11 @@ body.modal-open {
 }
 
 #icon-picker-modal {
-    z-index: 1050; /* Ensure icon picker is on top of other modals */
+    z-index: 1050;
 }
 
 .modal-content {
-    background-color: #2d3748; /* Gray 800 */
     color: var(--text-color-primary);
-    margin: auto;
-    padding: 2rem;
-    border: 1px solid #4A5568; /* Gray 600 */
-    width: 90%;
-    max-width: 550px;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-height: 90vh;
-    overflow-y: auto;
-    --modal-secondary-background-color: #374151; /* gray-700 */
-    --modal-tertiary-background-color: #4b5563; /* gray-600 */
 }
 
 .close-button {
@@ -90,24 +154,9 @@ body.modal-open {
     font-weight: bold;
     cursor: pointer;
 }
-
 .close-button:hover, .close-button:focus {
     color: var(--text-color-primary);
-    text-decoration: none;
-    cursor: pointer;
 }
-
-.task-completed {
-    opacity: 0.6;
-}
-
-.task-completed h3 {
-    text-decoration: line-through;
-}
-
-.task-confirming-delete {
-    border: 2px dashed #ef4444;
-} /* Style for delete confirmation */
 
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -119,920 +168,223 @@ body.modal-open {
     animation: fadeIn 0.3s ease-out;
 }
 
-#add-task-btn {
-    transition: all 0.2s ease-in-out;
+.hidden {
+    display: none !important;
 }
 
-#add-task-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1F2937; } /* Will be themed by JS */
+::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; } /* Will be themed by JS */
+::-webkit-scrollbar-thumb:hover { background: #6B7280; } /* Will be themed by JS */
 
+
+/* ======================================================================== */
+/* TASK & MANAGER STYLES                                                    */
+/* ======================================================================== */
 .task-item {
     transition: border-left-color 0.3s ease, background-color 0.3s ease, opacity 0.2s ease, border 0.2s ease;
     padding: 0.5rem;
-    flex-wrap: wrap;
-    color: var(--text-color-primary);
-    text-shadow: var(--text-shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
 }
-
-.task-item:not(.task-completed):not([data-status="blue"]):not([data-confirming="true"]):hover {
-    filter: brightness(95%);
+.task-completed {
+    opacity: 0.6;
 }
-
-.control-button {
-    @apply font-bold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-opacity-50;
+.task-completed h3 {
+    text-decoration: line-through;
 }
-
-/* These are for non-themed buttons, so they keep their original colors */
-.control-button-yellow { @apply bg-yellow-400 hover:bg-yellow-500 text-black; }
-.control-button-red { @apply bg-red-500 hover:bg-red-600 text-white; }
-.control-button-green { @apply bg-green-500 hover:bg-green-600 text-white; }
-.control-button-gray { @apply bg-gray-300 hover:bg-gray-400 text-gray-800; }
-.control-button-blue { @apply bg-blue-500 hover:bg-blue-600 text-white; }
-
+.task-confirming-delete {
+    border-style: dashed !important;
+    border-width: 2px !important;
+}
 .countdown-timer {
     font-size: 0.75rem;
     font-style: italic;
     min-height: 1rem;
     color: var(--text-color-secondary);
 }
-
-.duration-input {
-    width: 6rem;
-}
-
-.form-label {
-    @apply block text-sm font-medium mb-1;
-    color: var(--text-color-secondary);
-}
-
-.form-hint {
-    @apply text-xs mt-1 italic;
-    color: var(--text-color-quaternary);
-}
-
 .progress-display {
     font-size: 0.85rem;
     font-weight: 500;
     display: inline-block;
     margin-right: 0.25rem;
-    color: var(--text-color-primary);
+}
+.misses-display {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.action-area-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    flex-shrink: 1;
 }
 
-.edit-progress-button {
-    @apply text-xs ml-1 underline cursor-pointer;
+/* ======================================================================== */
+/* FORM ELEMENTS                                                            */
+/* ======================================================================== */
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
     color: var(--text-color-secondary);
 }
-
-.progress-input {
-    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-16;
+.form-hint {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    font-style: italic;
+    color: var(--text-color-quaternary);
 }
-
-.action-area-text {
-    @apply text-xs font-semibold mr-2;
-    flex-shrink: 1;
-    color: var(--text-color-primary);
+input[type="text"], input[type="number"], input[type="datetime-local"], input[type="date"], textarea, select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-width: 1px;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    /* Colors to be applied by JS */
 }
-
-.misses-display {
-    @apply text-xs font-medium;
-    color: var(--text-color-primary);
+input:focus, textarea:focus, select:focus {
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 1px var(--focus-ring-color);
+    outline: none;
 }
-
-.weekday-checkbox, .month-checkbox, .occurrence-checkbox, .day-checkbox {
-    @apply h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-1 peer;
+.duration-input {
+    width: 6rem;
 }
-
-.sub-option-group {
-    @apply mt-2 pl-4 border-l-2 border-gray-100;
+.miss-input {
+    font-size: 0.75rem;
+    border-width: 1px;
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    width: 2.5rem;
+    text-align: center;
+    margin: 0 0.25rem;
+    /* BG color will be transparent, text/border set by JS */
 }
-
-.grid-cols-checkboxes {
-    @apply grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-1;
-}
-
-.grid-cols-days {
-    @apply grid grid-cols-5 sm:grid-cols-7 gap-x-1 gap-y-1;
-}
-
 fieldset {
-    @apply border border-gray-200 p-3 rounded-md mb-4;
+    border-width: 1px;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
 }
-
 legend {
-    @apply text-sm font-medium px-1;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0 0.25rem;
     color: var(--text-color-tertiary);
 }
-
 .form-legend {
-    @apply w-full pb-2 border-b border-gray-300 mb-4 text-lg font-semibold;
-    color: var(--text-color-primary);
+    width: 100%;
+    padding-bottom: 0.5rem;
+    border-bottom-width: 1px;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
 }
-
-.light-mode .form-legend {
-    border-color: #D1D5DB; /* gray-300 */
-}
-
-
-.checkbox-label {
-    @apply flex items-center text-sm px-2 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150;
-    color: var(--text-color-secondary);
-}
-
-.peer:checked + .checkbox-label-text {
-    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200;
-}
-
-.day-checkbox-label {
-    @apply flex items-center justify-center text-sm px-1 py-1 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors duration-150 min-w-[30px];
-}
-
-.peer:checked + .day-checkbox-label-text {
-    @apply bg-indigo-100 border-indigo-300 ring-1 ring-indigo-200;
-}
-
-.miss-input {
-    @apply text-xs border border-gray-300 rounded px-1 py-0.5 w-10 text-center mx-1 bg-transparent;
-}
-
-/* High-contrast text for action area on dark backgrounds */
-.task-item[data-status="red"] .action-area-text,
-.task-item[data-status="black"] .action-area-text {
-    color: var(--text-color-dark-primary) !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-}
-
-/* High-contrast input for action area on dark backgrounds */
-.task-item[data-status="red"] .miss-input,
-.task-item[data-status="black"] .miss-input {
-    color: var(--text-color-dark-primary) !important;
-    border-color: var(--text-color-dark-tertiary) !important;
-}
-
-.common-buttons-container {
-    @apply flex space-x-2 mt-2;
-} /* Container for Edit/Delete */
-
-.task-action-button {
-    @apply text-xs font-medium p-1 rounded;
-    color: inherit; /* Inherit the high-contrast color from the parent */
-    text-shadow: inherit; /* Inherit the text-shadow as well */
-}
-
-.task-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.1); /* Subtle hover for light backgrounds */
-}
-
-/* Toggle Switch Styles */
 .toggle-checkbox {
     position: relative;
-    width: 3rem; /* w-12 */
-    height: 1.5rem; /* h-6 */
-    padding: 0.125rem; /* p-0.5 */
-    background-color: #e5e7eb; /* gray-200 */
-    border-radius: 9999px; /* rounded-full */
+    width: 3rem; height: 1.5rem; padding: 0.125rem;
+    border-radius: 9999px;
     appearance: none;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out;
 }
-
 .toggle-checkbox::before {
     content: '';
     position: absolute;
-    left: 2px;
-    top: 2px;
-    width: 1.25rem; /* h-5 */
-    height: 1.25rem; /* w-5 */
+    left: 2px; top: 2px;
+    width: 1.25rem; height: 1.25rem;
     background-color: white;
     border-radius: 9999px;
     transition: transform 0.2s ease-in-out;
     transform: scale(0.8);
 }
-
-.toggle-checkbox:checked {
-    background-color: #4f46e5; /* indigo-600 */
-}
-
 .toggle-checkbox:checked::before {
     transform: translateX(1.5rem) scale(0.8);
 }
 
-
-/* NEW: Specificity for high-contrast action buttons on problematic backgrounds */
-.task-item[data-status="red"] .task-action-button,
-.task-item[data-status="black"] .task-action-button {
-    color: #FFFFFF !important; /* Force white text on dark red/black backgrounds */
-    text-shadow: 0 0 2px rgba(0,0,0,0.7) !important;
-}
-
-
-.collapsible-header span {
-    transition: transform 0.2s ease-in-out;
-}
-
-.collapsible-header.collapsed span {
-    transform: rotate(-90deg);
-}
-
-.planner-grid {
-    display: grid;
-    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
-    grid-template-rows: auto repeat(96, 15px); /* 24 hours * 4 rows per hour */
-    position: relative;
-}
-
-.daily-view-grid {
-    grid-template-columns: 6rem minmax(0, 1fr);
-}
-
-.table-cell {
-    border: 1px solid #374151; /* Gray-700 */
-    padding: 8px;
-    min-height: 40px;
-}
-
-.planner-grid .time-label-cell {
-    grid-row: span 4 / span 4;
-}
-
-.planner-grid .day-header-cell {
-    grid-row: 1;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-.planner-grid .planner-slot {
-    border-left: 1px solid #374151;
-    position: relative;
-}
-
-.weekly-day-column {
-    position: relative;
-    height: 100%;
-}
-
-#weeklyViewContainer {
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.weekly-day-column {
-    position: relative;
-    height: 100%;
-}
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #1F2937; }
-::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #6B7280; }
-
-.nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.amended-item { font-style: italic; color: #FBBF24; /* Amber-400 */ }
-.amended-asterisk { color: #FBBF24; font-weight: bold; margin-left: 2px; }
-
-.hidden {
-    display: none !important;
-}
-
-.planner-slot {
-    position: relative;
-    /* min-height: 50px; */ /* This was forcing grid rows to be too tall. The row height is now correctly managed by the parent grid definition. */
+/* ======================================================================== */
+/* COLLAPSIBLE SECTIONS (Advanced Options)                                  */
+/* ======================================================================== */
+.collapsible-header {
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    transition: background-color 0.2s, border-radius 0.2s ease-in-out;
+}
+.collapsible-header .fas {
+    transition: transform 0.3s ease;
+}
+.collapsible-content {
+    padding: 1.5rem;
+    border-width: 1px;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    display: none; /* Initially hidden */
     flex-direction: column;
-    gap: 2px;
-    padding: 2px;
+    gap: 1.5rem;
 }
-.planner-task-item {
-    position: absolute;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    line-height: 1.2;
-    cursor: pointer;
-    overflow: hidden;
-    transition: background-color 0.2s, filter 0.2s;
-    z-index: 1;
-    min-height: 20px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+.collapsible-section.open > .collapsible-content {
     display: flex;
-    align-items: center;
-    box-sizing: border-box;
+}
+.collapsible-section.open > .collapsible-header .fas {
+    transform: rotate(180deg);
+}
+.collapsible-section.open > .collapsible-header {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
 
-.planner-task-item:hover {
-    filter: brightness(1.2);
-    z-index: 2;
-}
-
-.planner-more-link {
-    display: block;
-    text-align: center;
-    font-size: 0.75rem;
-    font-weight: bold;
-    margin-top: 4px;
-    cursor: pointer;
-}
-
-/* --- Daily View Timeline Styles --- */
-#dailyViewContainer {
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-/*
-   The styles for #daily-planner-grid, .daily-view-time-slot, and .daily-view-time-label
-   have been removed as they were part of a legacy layout system. The daily view now uses
-   the same modern CSS grid structure as the weekly view, making these rules obsolete and
-   fixing the time indentation issue.
-*/
-
-/* --- Month View Styles --- */
-#monthViewContainer {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 2px;
-}
-
-.month-day-cell {
-    min-height: 120px;
-    background-color: #1F2937; /* Gray-800 */
-    border: 1px solid #374151; /* Gray-700 */
-    padding: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    overflow: hidden;
-}
-
-.month-day-cell:hover {
-    background-color: #374151; /* Gray-700 */
-}
-
-.month-day-cell.other-month {
-    background-color: #111827; /* Gray-900 */
-    color: #4B5563; /* Gray-600 */
-}
-
-.month-day-number {
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-.month-task-indicators {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-}
-
-.month-task-indicator {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: bold;
-    overflow: hidden;
-    line-height: 1;
-}
-
-.month-task-indicator i { /* For font-awesome icons */
-    font-size: 0.7rem;
-}
-
-.light-mode .month-day-cell {
-    background-color: #F9FAFB; /* Gray-50 */
-    border-color: #E5E7EB; /* Gray-200 */
-}
-
-.light-mode .month-day-cell:hover {
-    background-color: #F3F4F6; /* Gray-100 */
-}
-
-.light-mode .month-day-cell.other-month {
-    background-color: #E5E7EB; /* Gray-200 */
-    color: #9CA3AF; /* Gray-400 */
-}
-
-/* Theme Mode Selector Styles */
-.theme-mode-btn {
-    color: #4A5568; /* Gray-600 */
-    background-color: transparent;
-}
-
-.theme-mode-btn.active-theme-btn {
-    background-color: #FFFFFF;
-    color: #1A202C; /* Gray-900 */
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06);
-}
-
-.light-mode .theme-mode-selector {
-    background-color: #E5E7EB; /* Gray-200 */
-}
-.light-mode .theme-mode-btn {
-    color: #4B5563; /* Gray-600 */
-}
-.light-mode .theme-mode-btn.active-theme-btn {
-    background-color: #FFFFFF;
-    color: #1F2937;
-}
-
-/* Main View Toggle Button Styles */
-.themed-button-primary,
-.themed-button-secondary,
-.themed-button-tertiary {
-    background: var(--btn-bg);
-    color: var(--btn-text-color);
-    text-shadow: var(--btn-text-shadow);
-    border-color: transparent;
-    transition: background 0.2s ease-in-out, background-color 0.2s ease-in-out;
-}
-.themed-button-primary:hover,
-.themed-button-secondary:hover,
-.themed-button-tertiary:hover {
-    background: var(--btn-hover-bg);
-}
-.themed-button-primary:active,
-.themed-button-secondary:active,
-.themed-button-tertiary:active {
-    background: var(--btn-active-bg);
-}
-
-.themed-button-clear {
-    background: transparent !important;
-    border-color: transparent !important;
-    color: var(--text-color-secondary) !important;
-    text-shadow: none !important;
-    box-shadow: none !important;
-}
-
-.themed-button-clear:hover {
-    color: var(--text-color-primary) !important;
-    background: rgba(128, 128, 128, 0.1) !important;
-}
-
-/* Light Mode Styles */
-.light-mode {
-    --text-color-primary: var(--text-color-light-primary);
-    --text-color-secondary: var(--text-color-light-secondary);
-    --text-color-tertiary: var(--text-color-light-tertiary);
-    --text-color-quaternary: var(--text-color-light-quaternary);
-}
-
-.light-mode #app h1, .light-mode #app h2, .light-mode #app h3, .light-mode #app h4 {
-    color: var(--text-color-primary);
-}
-
-.light-mode #app p, .light-mode #weekDateRange {
-    color: var(--text-color-secondary);
-}
-
-.light-mode .bg-gray-800 {
-    background-color: #FFFFFF;
-    border: 1px solid #E5E7EB;
-}
-
-.light-mode .bg-gray-900 {
-    background-color: #F3F4F6;
-}
-
-.light-mode .border-gray-700 {
-    border-color: #E5E7EB;
-}
-
-.light-mode .nav-btn, .light-mode .view-btn {
-    background-color: #E2E8F0; /* gray-200 */
-    color: #2D3748; /* gray-800 */
-}
-
-.light-mode .nav-btn:hover, .light-mode .view-btn:hover {
-    background-color: #CBD5E0; /* gray-300 */
-}
-
-.light-mode .view-btn.bg-blue-600 {
-    background-color: #2563EB !important; /* blue-600 */
-    color: #FFFFFF !important;
-}
-
-.light-mode input[type="text"], .light-mode input[type="number"] {
-    background-color: #FFFFFF;
-    border-color: #D1D5DB;
-    color: #1F2937;
-}
-
-.light-mode .table-cell {
-    border-color: #E5E7EB;
-}
-
-/* Night Mode Modal Form Element Styles */
-.modal-content {
-    color: var(--text-color-primary);
-}
-.modal-content .form-label,
-.modal-content legend,
-.modal-content h2 {
-    color: var(--text-color-secondary);
-}
-
-.modal-content input[type="text"],
-.modal-content input[type="number"],
-.modal-content input[type="datetime-local"],
-.modal-content textarea,
-.modal-content select {
-    background-color: #1A202C; /* Gray 900 */
-    border-color: #4A5568; /* Gray 600 */
-    color: #F7FAFC; /* Gray 100 */
-}
-
-.modal-content input:focus,
-.modal-content select:focus {
-    border-color: #63B3ED; /* Blue 400 */
-    box-shadow: 0 0 0 1px #63B3ED;
-}
-
-.modal-content .form-hint {
-    color: var(--text-color-quaternary);
-}
-
-.modal-content fieldset {
-    border-color: #4A5568; /* Gray 600 */
-}
-
-.modal-content .close-button {
-    color: var(--text-color-tertiary);
-}
-
-.modal-content .close-button:hover {
-    color: var(--text-color-primary);
-}
-
-.modal-content .checkbox-label {
-    border-color: #4A5568; /* Gray 600 */
-    color: var(--text-color-secondary);
-}
-
-.modal-content .checkbox-label:hover {
-    background-color: #4A5568; /* Gray 600 */
-}
-
-/* Hints and Tips Banner */
-.hints-banner {
-    background-color: #2d3748; /* gray-800 */
-    color: #e2e8f0; /* slate-200 */
-    padding: 0.5rem 0;
-    overflow: hidden;
-    white-space: nowrap;
-    box-sizing: border-box;
-    border-radius: 0.375rem; /* rounded-md */
-    margin-bottom: 1rem;
-    font-size: 0.875rem; /* text-sm */
-}
-
-.hints-content {
-    display: inline-block;
-    padding-left: 100%;
-    animation: scroll-left 30s linear infinite;
-}
-
-@keyframes scroll-left {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-100%);
-    }
-}
-
-.modal-content .peer:checked + .checkbox-label-text {
-    background-color: #4f46e5; /* indigo-600 */
-    border-color: #a5b4fc; /* indigo-300 */
-    color: #ffffff;
-}
-
-.light-mode .modal-content, .light-mode #advanced-options-modal .modal-content, .light-mode #task-modal .modal-content {
-    background-color: #FFFFFF;
-    border-color: #e2e8f0; /* gray-200 */
-    color: var(--text-color-light-primary);
-    --modal-secondary-background-color: #f3f4f6; /* gray-100 */
-    --modal-tertiary-background-color: #e5e7eb; /* gray-200 */
-}
-
-.light-mode .close-button {
-    color: #9CA3AF;
-}
-
-.light-mode .close-button:hover {
-    color: #1F2937;
-}
-
-/* Jules's Fix for Light Mode Readability */
-.light-mode .modal-content {
-    color: var(--text-color-light-primary);
-}
-
-.light-mode .modal-content h2,
-.light-mode .modal-content legend,
-.light-mode .modal-content .form-label,
-.light-mode .modal-content label,
-.light-mode .modal-content div {
-    color: var(--text-color-light-primary) !important;
-}
-
-.light-mode .modal-content .form-hint {
-    color: var(--text-color-light-quaternary) !important;
-}
-
-.light-mode .modal-content input[type="text"],
-.light-mode .modal-content input[type="number"],
-.light-mode .modal-content input[type="datetime-local"],
-.light-mode .modal-content textarea,
-.light-mode .modal-content select {
-    background-color: #FFFFFF;
-    border-color: #D1D5DB;
-    color: #111827; /* Ensure input text is dark */
-}
-
-.light-mode .modal-content .checkbox-label {
-    border-color: #D1D5DB;
-    color: var(--text-color-light-secondary);
-}
-
-.light-mode .modal-content .peer:checked + .checkbox-label-text {
-    background-color: #DBEAFE;
-    border-color: #93C5FD;
-    color: #1E40AF; /* Darker blue text for selected items */
-}
-
-/* General form element styling for dark mode */
-select {
-    background-color: #1A202C; /* Gray 900 */
-    border: 1px solid #4A5568; /* Gray 600 */
-    color: #F7FAFC; /* Gray 100 */
-}
-
-/* General form element styling for light mode */
-.light-mode select {
-    background-color: #FFFFFF;
-    border-color: #D1D5DB;
-    color: #111827;
-}
-
-
-/* 5-Week Progress Tracker Styles */
-.kpi-indicator {
-    background-color: #1f2937; /* Gray-800 */
+/* ======================================================================== */
+/* JOURNAL                                                                  */
+/* ======================================================================== */
+.journal-entry, .journal-week-header, .journal-icon-header {
     padding: 1rem;
     border-radius: 0.5rem;
-    border: 1px solid #374151; /* Gray-700 */
-}
-
-.daily-inputs {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    background-color: rgba(255, 255, 255, 0.05);
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-}
-
-.daily-input-group {
-    text-align: center;
-}
-
-.daily-input-group label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-color-tertiary);
-}
-
-.kpi-goal-input, .kpi-actual-input {
-    width: 100%;
-    text-align: center;
-    border: 1px solid #4b5563; /* Gray-600 */
-    border-radius: 0.25rem;
-    padding: 0.25rem;
-    background-color: transparent; /* As requested */
-    color: var(--text-color-primary);
-}
-
-.progress-bar-bg {
-    background-color: #4b5563; /* Gray-600 */
-    border-radius: 9999px;
-    height: 0.75rem;
-    margin-top: 0.5rem;
-    overflow: hidden;
-}
-
-.progress-bar {
-    background-color: #3b82f6; /* Blue-500 */
-    height: 100%;
-    border-radius: 9999px;
-    transition: width 0.5s ease-in-out;
-}
-
-/* Light mode styles for progress tracker */
-.light-mode .kpi-indicator {
-    background-color: #f9fafb; /* Gray-50 */
-    border-color: #e5e7eb; /* Gray-200 */
-}
-
-.light-mode .daily-inputs {
-    background-color: #e5e7eb; /* Gray-200 */
-}
-
-.light-mode .daily-input-group label {
-    color: var(--text-color-light-tertiary);
-}
-
-.light-mode .kpi-goal-input, .light-mode .kpi-actual-input {
-    border-color: #d1d5db; /* Gray-300 */
-    color: #111827; /* Gray-900 */
-    background-color: #ffffff;
-}
-
-.light-mode .progress-bar-bg {
-    background-color: #e5e7eb; /* Gray-200 */
-}
-
-.light-mode .progress-bar {
-    background-color: #2563eb; /* Blue-600 */
-}
-
-/* Ensure all text within the KPI indicator is readable in light mode */
-.light-mode .kpi-indicator,
-.light-mode .kpi-indicator h4 {
-    color: var(--text-color-light-primary);
-}
-
-/* Icon Picker Styles */
-.icon-grid {
-    background-color: #f3f4f6; /* gray-100 */
-    border-radius: 0 0 0.375rem 0.375rem; /* rounded-b-md */
-}
-
-.icon-grid .fa-2x {
-    color: #374151; /* gray-700 */
-}
-
-.icon-picker-category-header {
-    background-color: #e5e7eb; /* gray-200 */
-    color: #1f2937; /* gray-800 */
-}
-
-/* --- Journal View Styles --- */
-/* Default (Night Mode) styles */
-.journal-entry {
-    background-color: #2d3748; /* gray-800 */
-    color: var(--text-color-primary);
 }
 .journal-entry .prose {
-    color: var(--text-color-secondary);
-    white-space: pre-wrap; /* Preserve line breaks and spacing */
-    word-wrap: break-word; /* Ensure long words don't overflow */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
-.journal-entry .prose h1, .journal-entry .prose h2, .journal-entry .prose h3, .journal-entry .prose h4, .journal-entry .prose strong { color: var(--text-color-primary); }
-.journal-entry .prose a { color: #93c5fd; } /* blue-300 */
-.journal-entry .prose blockquote { color: var(--text-color-tertiary); border-left-color: var(--text-color-quaternary); }
 
-.journal-week-header, .journal-icon-header {
-    background-color: #1f2937; /* gray-800 */
-    color: var(--text-color-primary);
-}
-.journal-week-header .prose { color: var(--text-color-secondary); }
-.journal-week-header .prose h1, .journal-week-header .prose h2, .journal-week-header .prose h3, .journal-week-header .prose h4, .journal-week-header .prose strong { color: var(--text-color-primary); }
-
-/* Light Mode Overrides for Journal */
-.light-mode .journal-entry {
-    background-color: #ffffff; /* white */
-    border: 1px solid #e5e7eb; /* gray-200 */
-    color: var(--text-color-light-primary);
-}
-.light-mode .journal-entry .prose { color: var(--text-color-light-secondary); }
-.light-mode .journal-entry .prose h1, .light-mode .journal-entry .prose h2, .light-mode .journal-entry .prose h3, .light-mode .journal-entry .prose h4, .light-mode .journal-entry .prose strong { color: var(--text-color-light-primary); }
-.light-mode .journal-entry .prose a { color: #3b82f6; } /* blue-500 */
-.light-mode .journal-entry .prose blockquote { color: var(--text-color-light-tertiary); border-left-color: var(--text-color-light-quaternary); }
-
-.light-mode .journal-week-header, .light-mode .journal-icon-header {
-    background-color: #f3f4f6; /* gray-100 */
-    color: var(--text-color-light-primary);
-    border: 1px solid #e5e7eb; /* gray-200 */
-}
-.light-mode .journal-week-header .prose { color: var(--text-color-light-secondary); }
-.light-mode .journal-week-header .prose h1, .light-mode .journal-week-header .prose h2, .light-mode .journal-week-header .prose h3, .light-mode .journal-week-header .prose h4, .light-mode .journal-week-header .prose strong { color: var(--text-color-light-primary); }
-.light-mode .journal-icon-header h3, .light-mode .journal-icon-header i { color: var(--text-color-light-primary); }
-
-
-/* FullCalendar Customizations */
+/* ======================================================================== */
+/* FULLCALENDAR                                                             */
+/* ======================================================================== */
 #calendar {
     min-height: 70vh;
-    color: var(--text-color-primary);
-    background: var(--calendar-background, #1F2937); /* Default to Gray-800 */
 }
-
-/* --- Toolbar Buttons --- */
 .fc .fc-button {
-    background-color: #4B5563; /* Gray-600 */
-    color: #F3F4F6;
-    border: 1px solid #374151; /* Gray-700 */
+    text-transform: capitalize;
     transition: background-color 0.2s;
-    text-transform: capitalize; /* Cleaner look */
+    border: none;
 }
-
-.fc .fc-button:hover {
-    background-color: #6B7280; /* Gray-500 */
-}
-
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active {
-    background-color: #3B82F6; /* Blue-500 */
-    border-color: #2563EB; /* Blue-600 */
-}
-
-/* --- Header Title --- */
-.fc .fc-toolbar-title {
-    color: var(--text-color-primary);
-}
-
-/* --- Calendar Views --- */
-.fc .fc-view {
-    background-color: #1F2937; /* Gray-800 */
-}
-
-/* --- Day/Timegrid Headers --- */
-.fc .fc-col-header-cell {
-    background-color: #111827; /* Gray-900 */
-    border-color: #374151; /* Gray-700 */
-}
-
-.fc .fc-daygrid-day-number,
-.fc .fc-col-header-cell-cushion {
-    color: var(--text-color-secondary);
-}
-
-/* --- Borders --- */
-.fc .fc-daygrid-day,
-.fc .fc-timegrid-slot,
-.fc .fc-timegrid-col,
-.fc .fc-timegrid-axis {
-    border-color: #374151; /* Gray-700 */
-}
-
-/* --- Today's Date Highlighting --- */
-
-/* Default (Night Mode) Highlight */
-.fc .fc-col-header-cell.fc-day-today {
-    background-color: rgba(88, 155, 255, 0.25); /* A slightly more prominent but still subtle blue */
-}
-.fc .fc-daygrid-day.fc-day-today,
-.fc .fc-timegrid-col.fc-day-today {
-    background-color: rgba(88, 155, 255, 0.1); /* A very subtle blue for the column body */
-}
-
-/* --- Themed Highlight Overrides --- */
-/* These variables are set by JS when a theme is active and will override the defaults above. */
-.fc .fc-col-header-cell.fc-day-today {
-    background-color: var(--fc-today-header-bg);
-}
-.fc .fc-daygrid-day.fc-day-today,
-.fc .fc-timegrid-col.fc-day-today {
-    background-color: var(--fc-today-body-bg);
-}
-.fc-day-today .fc-col-header-cell-cushion,
-.fc-day-today .fc-daygrid-day-number {
-    color: var(--fc-today-text-color); /* This ensures the date number is readable */
-}
-
-/* As per the README, disable the body highlight in the day view where it's not needed. */
-.fc-timeGridDay-view .fc-daygrid-day.fc-day-today,
-.fc-timeGridDay-view .fc-timegrid-col.fc-day-today {
-    background-color: transparent !important;
-}
-
-/* --- Event Styling --- */
 .fc-event {
     cursor: pointer;
     padding: 2px 4px;
     font-weight: 500;
-    font-size: 0.75rem; /* Slightly larger base font size for all events */
-    border: none; /* Remove default borders to prevent the white border issue */
+    font-size: 0.75rem;
+    border-width: 2px !important; /* Make border always visible */
+    border-style: solid;
     line-height: 1.3;
 }
-
-/* Ensure all event titles handle overflow properly */
 .fc-event-title {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-grow: 1; /* Allow title to take up available space */
+    flex-grow: 1;
 }
-
-
 .fc-event-short, .fc-timegrid-event-short {
-    font-size: 0.7rem !important; /* Slightly smaller for short events, but still bigger than before */
+    font-size: 0.7rem !important;
     padding-top: 1px !important;
     padding-bottom: 1px !important;
     line-height: 1.2;
@@ -1040,137 +392,58 @@ select {
     align-items: center !important;
     overflow: hidden !important;
 }
-
-/* This is a more general rule now handled by .fc-event-title */
-.fc-event-short .fc-event-title,
-.fc-timegrid-event-short .fc-event-title {
-    /* Styles are now inherited from the general .fc-event-title rule */
-}
-
-/* Remove the default padding from FullCalendar's inner element that user pointed out */
 .fc-timegrid-event-short .fc-event-main {
     padding: 0 1px !important;
 }
-
-/* --- "Now" Indicator Theming --- */
 .fc .fc-timegrid-now-indicator-line {
-    border-color: var(--fc-now-indicator-color, #ff4500); /* Use theme color, fallback to a bright orange */
     border-width: 2px;
 }
-
 .fc .fc-timegrid-now-indicator-arrow {
-    border-top-color: var(--fc-now-indicator-color, #ff4500); /* Match the line color */
+    border-top-color: var(--fc-now-indicator-color, #ff4500);
 }
 
-
-/* Light Mode Overrides for FullCalendar */
-.light-mode #calendar {
-    color: var(--text-color-light-primary);
-}
-
-.light-mode .fc .fc-button {
-    background-color: #E5E7EB; /* Gray-200 */
-    color: #1F2937;
-    border-color: #D1D5DB; /* Gray-300 */
-}
-
-.light-mode .fc .fc-button:hover {
-    background-color: #D1D5DB;
-}
-
-.light-mode .fc .fc-button-primary:not(:disabled).fc-button-active,
-.light-mode .fc .fc-button-primary:not(:disabled):active {
-    background-color: #2563EB; /* Blue-600 */
-    border-color: #1D4ED8; /* Blue-700 */
-    color: #FFFFFF;
-}
-
-.light-mode .fc .fc-toolbar-title {
-    color: var(--text-color-light-primary);
-}
-
-.light-mode .fc .fc-view {
-    background-color: #FFFFFF; /* White */
-}
-
-.light-mode .fc .fc-col-header-cell {
-    background-color: #F9FAFB; /* Gray-50 */
-    border-color: #E5E7EB; /* Gray-200 */
-}
-
-.light-mode .fc .fc-daygrid-day-number,
-.light-mode .fc .fc-col-header-cell-cushion {
-    color: var(--text-color-light-secondary);
-}
-
-.light-mode .fc .fc-daygrid-day,
-.light-mode .fc .fc-timegrid-slot,
-.light-mode .fc .fc-timegrid-col,
-.light-mode .fc .fc-timegrid-axis {
-    border-color: #E5E7EB; /* Gray-200 */
-}
-
-.light-mode .fc .fc-col-header-cell.fc-day-today {
-    background-color: #BFDBFE; /* Blue-200, slightly darker for header */
-    color: #1E3A8A; /* Blue-800, for readable text */
-}
-.light-mode .fc .fc-daygrid-day.fc-day-today,
-.light-mode .fc .fc-timegrid-col.fc-day-today {
-    background-color: #EFF6FF; /* Blue-50, very subtle for body */
-}
-
-/* Style for the task view modal when confirming delete */
-#task-view-content.task-confirming-delete {
-    border: 2px dashed #ef4444 !important; /* red-500 */
-    padding: 1rem;
-    border-radius: 0.5rem;
-}
-
-/* Collapsible Section Styles */
-.collapsible-header {
-    cursor: pointer;
-    padding: 0.75rem 1rem;
-    background-color: var(--modal-secondary-background-color, #e5e7eb);
+/* ======================================================================== */
+/* HINTS BANNER                                                             */
+/* ======================================================================== */
+.hints-banner {
+    padding: 0.5rem 0;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
     border-radius: 0.375rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    transition: background-color 0.2s, border-radius 0.2s ease-in-out;
-    color: var(--text-color-primary);
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+.hints-content {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll-left 30s linear infinite;
+}
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
 }
 
-.collapsible-header:hover {
-    background-color: var(--modal-tertiary-background-color, #d1d5db);
+/* ======================================================================== */
+/* DEPRECATED / TO BE REMOVED                                               */
+/* These classes will be removed in the next steps as the HTML is updated.  */
+/* For now, they are left here to avoid breaking the UI completely.         */
+/* ======================================================================== */
+.themed-button-primary, .themed-button-secondary, .themed-button-tertiary, .themed-button-clear {
+    /* To be replaced by .btn and variants */
 }
-
-.collapsible-header .fas {
-    transition: transform 0.3s ease;
+.control-button-yellow, .control-button-red, .control-button-green, .control-button-gray, .control-button-blue {
+    /* To be replaced by .btn-confirm, .btn-deny, etc. */
 }
-
-.collapsible-content {
-    padding: 1.5rem;
-    border: 1px solid var(--modal-secondary-background-color, #e5e7eb);
-    border-top: none;
-    border-radius: 0 0 0.375rem 0.375rem;
-    display: none; /* Initially hidden */
-    flex-direction: column;
-    gap: 1.5rem; /* Matches the original space-y-6 */
+.light-mode {
+    /* All color logic will be handled by JS, this class will only be a marker */
 }
-
-.collapsible-content > fieldset {
-    margin-bottom: 0; /* Remove default margin as gap is used now */
+.bg-gray-800, .bg-gray-900, .border-gray-700 {
+    /* To be replaced by .bg-main, .bg-secondary, etc. */
 }
-
-.collapsible-section.open > .collapsible-content {
-    display: flex; /* Show when open */
+.nav-btn, .view-btn {
+    /* To be replaced by .btn and variants */
 }
-
-.collapsible-section.open > .collapsible-header .fas {
-    transform: rotate(180deg);
-}
-
-.collapsible-section.open > .collapsible-header {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+.active-view-btn {
+    /* Active state will be handled by a class like .btn-active, with colors from JS */
 }
