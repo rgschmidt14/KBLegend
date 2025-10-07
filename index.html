@@ -31,8 +31,7 @@
         </div>
 
         <!-- Main View Navigation -->
-        <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex flex-wrap space-x-2">
+        <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-center gap-2">
                 <button id="show-dashboard-btn" type="button" class="btn btn-primary btn-lg active-view-btn view-toggle-btn">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
@@ -45,8 +44,7 @@
                 <button id="show-journal-btn" type="button" class="btn btn-primary btn-lg view-toggle-btn">
                     <i class="fa-solid fa-book-journal-whills mr-2"></i>Journal
                 </button>
-            </div>
-            <button id="advancedOptionsBtnMain" class="btn btn-secondary btn-lg">Advanced Options</button>
+                <button id="advancedOptionsBtnMain" class="btn btn-secondary btn-lg">Advanced Options</button>
         </div>
 
         <!-- Main Content Area -->
@@ -122,8 +120,14 @@
 
             <!-- Task Manager View -->
             <div id="task-manager-view" class="hidden">
-                <div class="text-center mb-6 flex justify-between items-center">
-                    <div class="flex items-center gap-4">
+                <div class="controls">
+                    <div class="button-group">
+                        <button id="add-task-btn" class="btn btn-tertiary btn-md">
+                            Add New Task
+                        </button>
+                        <button id="view-historical-tasks-btn" class="btn btn-secondary btn-md">View All History</button>
+                    </div>
+                    <div class="sort-group">
                         <div>
                             <label for="sort-by" class="form-label sr-only">Sort By:</label>
                             <select id="sort-by">
@@ -139,12 +143,6 @@
                                 <option value="desc">Descending</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button id="add-task-btn" class="btn btn-tertiary btn-md">
-                            Add New Task
-                        </button>
-                        <button id="view-historical-tasks-btn" class="btn btn-secondary btn-md">View All History</button>
                     </div>
                 </div>
                 <div id="task-list" class="space-y-2"></div>
