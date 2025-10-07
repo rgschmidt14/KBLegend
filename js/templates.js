@@ -262,7 +262,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
             <p><strong>Estimated Duration:</strong> ${durationStr}</p>
             ${!isHistorical ? `<p><strong>Repetition:</strong> ${repetitionStr}</p>` : '<p><strong>Repetition:</strong> N/A (Historical Record)</p>'}
         </div>
-        <div id="task-view-actions-${task.id}" class="mt-6 flex justify-start space-x-3">
+        <div id="task-view-actions-${task.id}" class="mt-6 responsive-button-grid">
             ${actionsHtml}
         </div>
         <div id="task-view-confirmation-${task.id}" class="mt-4"></div>

@@ -104,16 +104,18 @@
                     </div>
 
                     <div class="bg-secondary lg:col-span-2">
-                        <div class="flex justify-between items-center mb-3 border-b pb-2 flex-wrap gap-2">
+                        <div class="flex flex-col items-center mb-3 border-b pb-2 gap-4">
                             <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
-                            <div class="flex items-center space-x-2">
+                            <div class="kpi-nav-container">
                                 <button id="kpi-prev-week-btn" class="btn btn-secondary btn-sm">&lt; Prev</button>
                                 <button id="kpi-today-btn" class="btn btn-secondary btn-sm">Today</button>
                                 <button id="kpi-next-week-btn" class="btn btn-secondary btn-sm">Next &gt;</button>
                             </div>
-                            <div id="kpi-controls" class="flex items-center space-x-4"></div>
+                            <div id="kpi-controls" class="kpi-controls-container"></div>
                         </div>
-                        <div id="kpi-chart-container" class="relative gradient-bordered-content" style="height: 400px;"></div>
+                        <div id="kpi-chart-container" class="relative" style="min-height: 400px;">
+                            <!-- Chart(s) will be rendered here. The JS will add the gradient wrapper if needed. -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -635,6 +637,16 @@
                                      <option value="years">Years</option>
                                  </select>
                              </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Grading System</legend>
+                            <div class="form-group">
+                                <label for="gpa-system-select" class="form-label">GPA Scale:</label>
+                                <select id="gpa-system-select">
+                                    <option value="standard">Standard (A-F)</option>
+                                    <option value="extended">Extended (S-F)</option>
+                                </select>
+                            </div>
                         </fieldset>
                         <fieldset>
                             <legend>KPI Automation</legend>
