@@ -497,3 +497,11 @@ legend {
         width: 100%;
     }
 }
+
+/* On smaller screens, stack form group items in advanced options to prevent overflow */
+@media (max-width: 480px) {
+    #advanced-options-content .form-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

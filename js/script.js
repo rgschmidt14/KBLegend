@@ -954,7 +954,7 @@ function applyTheme() {
             transform: rotate(180deg);
         }
         .collapsible-section.open .collapsible-content {
-            max-height: 100vh; /* A generous height to ensure content is not clipped */
+            max-height: 1500px; /* A generous height to ensure content is not clipped, avoids vh conflict inside modal */
             padding: 1rem;
         }
         .gradient-bordered-content {
@@ -1706,7 +1706,9 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
 
     // The template needs a consistent ID property, so we ensure it exists.
     if (isHistorical && !taskOrHistoryItem.id) {
-        taskOrHistoryItem.id = eventId;
+        // Sanitize the eventId to make it a valid CSS selector part.
+        // Replace spaces, colons, and other problematic characters with an underscore.
+        taskOrHistoryItem.id = eventId.replace(/[^a-zA-Z0-9_-]/g, '_');
     }
 
     // JIT lookup of DOM elements to fix null reference errors.
@@ -4859,12 +4861,6 @@ function setupEventListeners() {
                         renderCategoryManager();
                     }
                     break;
-                case 'toggleStatusTheme':
-                    theming.useThemeForStatus = !theming.useThemeForStatus;
-                    applyTheme();
-                    renderStatusManager();
-                    saveData();
-                    break;
                 case 'openIconPicker':
                     const context = target.dataset.context || 'task';
                      if (context === 'category') {
@@ -4928,8 +4924,11 @@ function setupEventListeners() {
                     const source = target.dataset.source;
                     if (source) {
                         theming.calendarGradientSource = source;
+                        // This choice now also dictates if status colors are derived from the theme.
+                        theming.useThemeForStatus = (source === 'theme');
                         applyTheme();
                         renderThemeControls();
+                        renderStatusManager(); // Re-render status manager as its appearance might change
                         saveData();
                     }
                     break;
@@ -6271,6 +6270,31 @@ function initializeCalendar() {
     });
 
     calendar.render();
+
+    // --- Swipe Navigation for Calendar ---
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    calendarEl.addEventListener('touchstart', function(event) {
+        touchStartX = event.changedTouches[0].screenX;
+    }, { passive: true }); // Use passive listener for better scroll performance
+
+    calendarEl.addEventListener('touchend', function(event) {
+        touchEndX = event.changedTouches[0].screenX;
+        handleSwipeGesture();
+    }, { passive: true });
+
+    function handleSwipeGesture() {
+        const swipeThreshold = 50; // Minimum pixels for a swipe
+        // Swipe Left (Next)
+        if (touchStartX - touchEndX > swipeThreshold) {
+            calendar.next();
+        }
+        // Swipe Right (Prev)
+        else if (touchEndX - touchStartX > swipeThreshold) {
+            calendar.prev();
+        }
+    }
 }
 
 // =================================================================================
