@@ -1661,8 +1661,14 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     };
 
     if (isHistorical) {
-        // For historical events, the eventId is 'hist_taskId_completionDate'
+        // For historical events from the calendar, the eventId is 'hist_taskId_completionDate'
         taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
+
+        // If not found, it might be a raw taskId from the historical overview.
+        // A historical task could be an active (repeating) task, or a completed non-repeating one (in archivedTasks).
+        if (!taskOrHistoryItem) {
+            taskOrHistoryItem = tasks.find(t => t.id === eventId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === eventId));
+        }
     } else {
         // For active tasks, first try a direct match.
         taskOrHistoryItem = tasks.find(t => t.id === eventId);
@@ -5129,9 +5135,9 @@ function setupEventListeners() {
     const todayBtnEl = document.getElementById('todayBtn');
     if (todayBtnEl) todayBtnEl.addEventListener('click', () => { if (calendar) calendar.today(); });
 
-    const calendarViewControls = document.querySelector('.p-3.rounded-t-lg');
-    if (calendarViewControls) {
-        const viewBtns = calendarViewControls.querySelectorAll('[data-view]');
+    const calendarHeader = document.querySelector('.calendar-header');
+    if (calendarHeader) {
+        const viewBtns = calendarHeader.querySelectorAll('[data-view]');
         viewBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 if (calendar) {
@@ -5244,152 +5250,6 @@ function setupEventListeners() {
     if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
 
 
-function renderHistoricalOverview(sortBy = 'lastCompleted', sortDir = 'desc') {
-    const listContainer = document.getElementById('historical-overview-list');
-    if (!listContainer) return;
-
-    // 1. Group history by original task ID
-    const historyByTask = {};
-    appState.historicalTasks.forEach(h => {
-        if (!historyByTask[h.originalTaskId]) {
-            historyByTask[h.originalTaskId] = [];
-        }
-        historyByTask[h.originalTaskId].push(h);
-    });
-
-    // 2. Process each group to get stats
-    const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
-    let processedTasks = Object.keys(historyByTask).map(taskId => {
-        const history = historyByTask[taskId];
-        const lastEntry = history.sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate))[0];
-
-        const totalGpa = history.reduce((sum, h) => sum + (gpaMap[h.status] || 0), 0);
-        const averageGpa = history.length > 0 ? totalGpa / history.length : 0;
-        const gpaPercent = averageGpa / 4.0; // Scale 0-4 GPA to 0-1 for color interpolation
-
-        const category = categories.find(c => c.id === lastEntry.categoryId);
-
-        return {
-            id: taskId,
-            name: lastEntry.name,
-            lastCompleted: lastEntry.completionDate,
-            gpa: averageGpa,
-            gpaColor: interpolateFiveColors(gpaPercent),
-            categoryColor: category ? category.color : '#374151'
-        };
-    });
-
-    // 3. Sort the processed tasks
-    processedTasks.sort((a, b) => {
-        let comparison = 0;
-        if (sortBy === 'name') {
-            comparison = a.name.localeCompare(b.name);
-        } else if (sortBy === 'lastCompleted') {
-            comparison = new Date(b.lastCompleted) - new Date(a.lastCompleted);
-        } else if (sortBy === 'gpa') {
-            comparison = b.gpa - a.gpa;
-        }
-        return sortDir === 'asc' ? -comparison : comparison;
-    });
-
-    // 4. Render the cards
-    if (processedTasks.length === 0) {
-        listContainer.innerHTML = '<p class="italic text-center col-span-full">No historical tasks found.</p>';
-        return;
-    }
-    listContainer.innerHTML = processedTasks.map(historicalTaskCardTemplate).join('');
-}
-
-
-function openHistoricalOverviewModal() {
-    const modal = document.getElementById('historical-overview-modal');
-    if (!modal) return;
-
-    renderHistoricalOverview(); // Initial render with default sort
-
-    const sortBySelect = modal.querySelector('#historical-sort-by');
-    const sortDirSelect = modal.querySelector('#historical-sort-direction');
-
-    const sortHandler = () => {
-        renderHistoricalOverview(sortBySelect.value, sortDirSelect.value);
-    };
-
-    sortBySelect.removeEventListener('change', sortHandler); // Remove old listener
-    sortDirSelect.removeEventListener('change', sortHandler); // Remove old listener
-    sortBySelect.addEventListener('change', sortHandler);
-    sortDirSelect.addEventListener('change', sortHandler);
-
-    const listContainer = modal.querySelector('#historical-overview-list');
-    const clickHandler = (e) => {
-        const card = e.target.closest('.historical-task-card');
-        if (card) {
-            const taskId = card.dataset.taskId;
-            openTaskView(taskId, true); // Open in historical mode
-        }
-    };
-    listContainer.removeEventListener('click', clickHandler); // Remove old listener
-    listContainer.addEventListener('click', clickHandler);
-
-    const closeButton = modal.querySelector('.close-button');
-    const closeHandler = () => deactivateModal(modal);
-    closeButton.removeEventListener('click', closeHandler); // Remove old listener
-    closeButton.addEventListener('click', closeHandler);
-
-    activateModal(modal);
-}
-
-    const journalListEl = document.getElementById('journal-list');
-    if (journalListEl) {
-        journalListEl.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
-            const action = target.dataset.action;
-            const id = target.dataset.id;
-            if (action === 'editJournal') {
-                openJournalModal(id);
-            } else if (action === 'deleteJournal') {
-                if (confirm('Are you sure you want to delete this journal entry?')) {
-                    appState.journal = appState.journal.filter(entry => entry.id !== id);
-                    savePlannerData();
-                    renderJournal();
-                }
-            } else if (action === 'toggleJournalContent') {
-                const entryId = target.dataset.entryId;
-                const entryElement = journalListEl.querySelector(`.journal-entry[data-id="${entryId}"]`);
-                const contentDisplay = entryElement.querySelector('.journal-content-display');
-                const fullContent = decodeURIComponent(entryElement.dataset.fullContent);
-
-                if (target.textContent === 'Show More') {
-                    contentDisplay.innerHTML = fullContent;
-                    target.textContent = 'Show Less';
-                } else {
-                    const truncatedContent = fullContent.substring(0, 500);
-                    contentDisplay.innerHTML = `${truncatedContent}...`;
-                    target.textContent = 'Show More';
-                }
-            } else if (action === 'toggleJournalIconGroup') {
-                const iconGroup = target.dataset.iconGroup;
-                const entriesContainer = journalListEl.querySelector(`[data-icon-entries="${iconGroup}"]`);
-                const chevron = target.querySelector('.fa-solid');
-
-                if (entriesContainer && chevron) {
-                    const isCollapsed = entriesContainer.style.display === 'none';
-                    if (isCollapsed) {
-                        entriesContainer.style.display = '';
-                        chevron.classList.remove('fa-chevron-right');
-                        chevron.classList.add('fa-chevron-down');
-                        uiSettings.journalIconCollapseState[iconGroup] = false;
-                    } else {
-                        entriesContainer.style.display = 'none';
-                        chevron.classList.remove('fa-chevron-down');
-                        chevron.classList.add('fa-chevron-right');
-                        uiSettings.journalIconCollapseState[iconGroup] = true;
-                    }
-                    saveData();
-                }
-            }
-        });
-    }
 }
 
 function saveData() {
