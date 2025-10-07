@@ -286,6 +286,17 @@
                              <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
                          </div>
                          <div class="mb-4">
+                            <label class="form-label">Preparation Time:</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
+                                <select id="prep-time-unit" name="prep-time-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                   <option value="minutes">Minute(s)</option>
+                                   <option value="hours">Hour(s)</option>
+                                </select>
+                            </div>
+                            <p class="form-hint">Optional. How long you need to prepare for or travel to this task. If set, this will be used for urgency calculations instead of 'Estimated Duration'.</p>
+                        </div>
+                         <div class="mb-4">
                                <label for="requires-full-attention" class="flex items-center">
                                    <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                                    <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
@@ -662,6 +673,32 @@
                             <legend>Journal Settings</legend>
                             <div id="journal-settings-content" class="space-y-4">
                                 <!-- Journal settings will be rendered here by JS -->
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Performance Section -->
+                <div class="collapsible-section" data-section-key="performance">
+                    <h3 class="collapsible-header">
+                        <span>Performance</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Calculation Settings</legend>
+                            <div class="mb-4">
+                                <label for="calculation-horizon-amount" class="form-label">Calculation Horizon:</label>
+                                <div class="flex space-x-2 items-center">
+                                    <input type="number" id="calculation-horizon-amount" name="calculation-horizon-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                    <select id="calculation-horizon-unit" name="calculation-horizon-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                       <option value="days">Day(s)</option>
+                                       <option value="weeks">Week(s)</option>
+                                       <option value="months">Month(s)</option>
+                                       <option value="years" selected>Year(s)</option>
+                                    </select>
+                                </div>
+                                <p class="form-hint">How far into the future to project tasks for scheduling. Shorter horizons can improve performance.</p>
                             </div>
                         </fieldset>
                     </div>
