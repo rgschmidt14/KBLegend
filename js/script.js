@@ -24,7 +24,7 @@ let statusColors = { ...defaultStatusColors };
 let statusNames = { ...defaultStatusNames };
 let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
 let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
-let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true };
+let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true, calendarGradientSource: 'status' };
 let appSettings = {
     title: "Task & Mission Planner",
     subtitle: "Organize your tasks, plan your week, and track your progress.",
@@ -788,14 +788,29 @@ function applyTheme() {
     const isDarkMode = effectiveMode === 'night';
     applyThemeMode(effectiveMode); // Apply .light-mode class if needed
 
-    // Generate color palette
+    // Generate color palettes
     const palette = generateComplementaryPalette(theming.baseColor, isDarkMode);
+    const statusGradientPalette = generateGradientPalette(theming.baseColor, isDarkMode);
+
+    // The user wants the 5-color gradient for the calendar background.
+    // We will now use it by default when the theme is enabled.
+    const calendarGradient = theming.enabled
+        ? `linear-gradient(to top, ${statusGradientPalette.black}, ${statusGradientPalette.red}, ${statusGradientPalette.yellow}, ${statusGradientPalette.green}, ${statusGradientPalette.blue})`
+        : (isDarkMode ? 'var(--bg-secondary)' : '#FFFFFF');
 
     // Define theme properties
     const themeProperties = {
-        '--bg-main': theming.enabled ? palette.main_gradient : (isDarkMode ? '#111827' : '#F9FAFB'),
-        '--bg-secondary': theming.enabled ? palette.secondary : (isDarkMode ? '#1F2937' : '#FFFFFF'),
-        '--bg-modal': theming.enabled ? palette.main_gradient : (isDarkMode ? '#2d3748' : '#FFFFFF'),
+        // Use neutral grays for main backgrounds to create a layered effect and reduce color overload.
+        '--bg-main': isDarkMode ? '#111827' : '#F9FAFB', // e.g., gray-900 | gray-50
+        '--bg-secondary': isDarkMode ? '#1F2937' : '#FFFFFF',   // e.g., gray-800 | white
+
+        // Modals and interactive elements can retain the theme color for accent.
+        '--bg-modal': theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'),
+        '--bg-calendar': calendarGradient,
+        '--bg-calendar-header': theming.enabled ? adjustColor(palette.secondary, isDarkMode ? -0.2 : -0.2) : (isDarkMode ? '#111827' : '#E5E7EB'),
+        '--bg-input': isDarkMode ? '#374151' : '#FFFFFF',
+        // Use a slightly lighter/darker shade for journal entries to make them stand out
+        '--bg-journal-entry': isDarkMode ? '#2d3748' : '#F9FAFB',
 
         '--btn-primary-bg': theming.enabled ? palette.secondary : (isDarkMode ? '#4B5563' : '#E5E7EB'),
         '--btn-secondary-bg': theming.enabled ? palette.tertiary : (isDarkMode ? '#374151' : '#D1D5DB'),
@@ -808,6 +823,8 @@ function applyTheme() {
         '--text-color-on-tertiary': getContrastingTextColor(theming.enabled ? palette.accent1 : (isDarkMode ? '#4A5568' : '#9CA3AF'))['--text-color-primary'],
         '--text-color-on-confirm': getContrastingTextColor(theming.enabled ? palette.accent2 : '#22C55E')['--text-color-primary'],
         '--text-color-on-deny': getContrastingTextColor(theming.enabled ? palette.accent3 : '#EF4444')['--text-color-primary'],
+        '--text-color-on-input': getContrastingTextColor(isDarkMode ? '#374151' : '#FFFFFF')['--text-color-primary'],
+
 
         '--border-color-primary': isDarkMode ? '#4A5568' : '#D1D5DB',
         '--border-color-secondary': isDarkMode ? '#374151' : '#E5E7EB',
@@ -824,14 +841,16 @@ function applyTheme() {
     // Add rules for button states
     const buttonTypes = ['primary', 'secondary', 'tertiary', 'confirm', 'deny'];
     buttonTypes.forEach(type => {
-        const baseBg = themeProperties[`--btn-${type}-bg`];
+        const baseBgVar = `--btn-${type}-bg`;
+        const baseBg = themeProperties[baseBgVar];
+        if (!baseBg) return;
         const hsl = hexToHSL(baseBg);
         const hoverBg = HSLToHex(hsl.h, hsl.s, Math.max(0, Math.min(100, hsl.l + (isDarkMode ? 5 : -5))));
         const activeBg = HSLToHex(hsl.h, hsl.s, Math.max(0, Math.min(100, hsl.l + (isDarkMode ? 8 : -8))));
 
         css += `
             .btn-${type} {
-                background-color: ${baseBg};
+                background-color: var(${baseBgVar});
                 color: var(--text-color-on-${type});
             }
             .btn-${type}:hover {
@@ -844,22 +863,56 @@ function applyTheme() {
     });
 
     // Add rules for backgrounds and text
-    const mainBgForText = theming.enabled ? palette.main : (isDarkMode ? '#111827' : '#F9FAFB');
+    const mainBgForText = isDarkMode ? '#111827' : '#F9FAFB';
     const mainTextStyles = getContrastingTextColor(mainBgForText);
 
     css += `
         body.bg-main {
-            background: ${themeProperties['--bg-main']};
+            background: var(--bg-main);
             color: ${mainTextStyles['--text-color-primary']};
         }
         .bg-secondary {
-            background-color: ${themeProperties['--bg-secondary']};
+            background-color: var(--bg-secondary);
             color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
         }
         .bg-modal {
-            background: ${themeProperties['--bg-modal']};
+            background: var(--bg-modal);
             color: ${getContrastingTextColor(theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'))['--text-color-primary']};
         }
+        #mainPlannerSection {
+             background: var(--bg-calendar);
+        }
+        .fc-col-header-cell {
+            background-color: var(--bg-calendar-header) !important;
+        }
+        .journal-entry {
+            background-color: var(--bg-journal-entry);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color-secondary);
+        }
+        input, textarea, select {
+            background-color: var(--bg-input) !important;
+            color: var(--text-color-on-input) !important;
+            border: 1px solid var(--border-color-primary) !important;
+        }
+        .collapsible-section {
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .collapsible-header {
+            background-color: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+        }
+        .collapsible-content {
+            background-color: var(--bg-main);
+            padding: 1rem;
+        }
+
     `;
 
     // Inject styles into the document head
@@ -1283,7 +1336,10 @@ function openModal(taskId = null, options = {}) {
     }
 }
 function closeModal() {
-    deactivateModal(taskModal);
+    const taskModalEl = document.getElementById('task-modal');
+    if (taskModalEl) {
+        deactivateModal(taskModalEl);
+    }
     editingTaskId = null;
 }
 
@@ -1592,46 +1648,56 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         taskOrHistoryItem.id = eventId;
     }
 
-    taskViewContent.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
-    taskViewContent.classList.remove('hidden', 'task-confirming-delete');
-    taskStatsContent.classList.add('hidden');
-    taskStatsContent.innerHTML = '';
+    // JIT lookup of DOM elements to fix null reference errors.
+    const taskViewContentEl = document.getElementById('task-view-content');
+    const taskStatsContentEl = document.getElementById('task-stats-content');
+    const taskViewModalEl = document.getElementById('task-view-modal');
 
-    const newContentView = taskViewContent.cloneNode(true);
-    taskViewContent.parentNode.replaceChild(newContentView, taskViewContent);
-    taskViewContent = newContentView;
+    if (!taskViewContentEl || !taskStatsContentEl || !taskViewModalEl) {
+        console.error("Could not find task view modal elements in the DOM.");
+        return;
+    }
 
-    taskViewContent.addEventListener('click', (e) => {
+    taskViewContentEl.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
+    taskViewContentEl.classList.remove('hidden', 'task-confirming-delete');
+    taskStatsContentEl.classList.add('hidden');
+    taskStatsContentEl.innerHTML = '';
+
+    // Replace the node to clear old event listeners, then add the new one.
+    const newContentView = taskViewContentEl.cloneNode(true);
+    taskViewContentEl.parentNode.replaceChild(newContentView, taskViewContentEl);
+
+    newContentView.addEventListener('click', (e) => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
         const action = target.dataset.action;
-        const taskId = target.dataset.taskId; // This will be the original task ID for both historical and active tasks
+        const taskId = target.dataset.taskId; // This will be the original task ID
         const historyEventId = target.dataset.historyEventId;
 
-        const confirmationDiv = document.getElementById(`task-view-confirmation-${taskOrHistoryItem.id}`);
-        const actionsDiv = document.getElementById(`task-view-actions-${taskOrHistoryItem.id}`);
+        const confirmationDiv = newContentView.querySelector(`#task-view-confirmation-${taskOrHistoryItem.id}`);
+        const actionsDiv = newContentView.querySelector(`#task-view-actions-${taskOrHistoryItem.id}`);
 
         switch (action) {
             case 'viewTaskStats':
                 renderTaskStats(taskId);
                 break;
             case 'editTaskFromView':
-                deactivateModal(taskViewModal);
+                deactivateModal(taskViewModalEl);
                 openModal(taskId, { occurrenceDate });
                 break;
             case 'triggerDeleteFromView':
                 if (confirmationDiv && actionsDiv) {
                     actionsDiv.classList.add('hidden');
                     confirmationDiv.innerHTML = taskViewDeleteConfirmationTemplate(taskId);
-                    taskViewContent.classList.add('task-confirming-delete');
+                    newContentView.classList.add('task-confirming-delete');
                 }
                 break;
             case 'cancelDeleteFromView':
                 if (confirmationDiv && actionsDiv) {
                     confirmationDiv.innerHTML = '';
                     actionsDiv.classList.remove('hidden');
-                    taskViewContent.classList.remove('task-confirming-delete');
+                    newContentView.classList.remove('task-confirming-delete');
                 }
                 break;
             case 'confirmDeleteFromView':
@@ -1642,32 +1708,32 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
                 renderKpiTaskSelect();
                 renderKpiList();
                 if (calendar) calendar.refetchEvents();
-                deactivateModal(taskViewModal);
+                deactivateModal(taskViewModalEl);
                 break;
             case 'triggerDeleteHistoryRecordFromView':
                 if (confirmationDiv && actionsDiv) {
                     actionsDiv.classList.add('hidden');
                     confirmationDiv.innerHTML = taskViewHistoryDeleteConfirmationTemplate(historyEventId, taskId);
-                    taskViewContent.classList.add('task-confirming-delete');
+                    newContentView.classList.add('task-confirming-delete');
                 }
                 break;
             case 'cancelDeleteHistoryRecordFromView':
                  if (confirmationDiv && actionsDiv) {
                     confirmationDiv.innerHTML = '';
                     actionsDiv.classList.remove('hidden');
-                    taskViewContent.classList.remove('task-confirming-delete');
+                    newContentView.classList.remove('task-confirming-delete');
                 }
                 break;
             case 'confirmDeleteHistoryRecordFromView':
                 appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
                 saveData();
                 if (calendar) calendar.refetchEvents();
-                deactivateModal(taskViewModal);
+                deactivateModal(taskViewModalEl);
                 break;
         }
     });
 
-    activateModal(taskViewModal);
+    activateModal(taskViewModalEl);
 }
 
 function renderTaskStats(taskId) {
@@ -1855,6 +1921,17 @@ function renderThemeControls() {
             }
         });
     }
+
+    const calendarGradientSelector = document.getElementById('calendar-gradient-selector');
+    if (calendarGradientSelector) {
+        calendarGradientSelector.querySelectorAll('.calendar-gradient-btn').forEach(btn => {
+            btn.classList.remove('active-theme-btn');
+            if (btn.dataset.source === theming.calendarGradientSource) {
+                btn.classList.add('active-theme-btn');
+            }
+        });
+    }
+
 
     const themeToggle = document.getElementById('theme-enabled-toggle');
     const themeControls = document.getElementById('theme-controls');
@@ -2351,24 +2428,41 @@ function renderJournal() {
 
 
 function openJournalModal(entryId = null) {
-    journalForm.reset();
+    // JIT lookup of DOM elements to prevent null reference errors.
+    const journalModalEl = document.getElementById('journal-modal');
+    const journalFormEl = document.getElementById('journal-form');
+    const journalModalTitleEl = document.getElementById('journal-modal-title');
+    const journalEntryIdInputEl = document.getElementById('journal-entry-id');
+    const journalEntryTitleInputEl = document.getElementById('journal-entry-title');
+    const journalEntryIconInputEl = document.getElementById('journal-entry-icon');
+    const journalEntryContentInputEl = document.getElementById('journal-entry-content');
+
+    if (!journalModalEl || !journalFormEl || !journalModalTitleEl || !journalEntryIdInputEl || !journalEntryTitleInputEl || !journalEntryIconInputEl || !journalEntryContentInputEl) {
+        console.error("Could not find all required journal modal elements in the DOM.");
+        return;
+    }
+
+    journalFormEl.reset();
     if (entryId) {
         const entry = appState.journal.find(e => e.id === entryId);
         if (!entry) return;
-        journalModalTitle.textContent = 'Edit Journal Entry';
-        journalEntryIdInput.value = entry.id;
-        journalEntryTitleInput.value = entry.title;
-        journalEntryIconInput.value = entry.icon || '';
-        journalEntryContentInput.value = entry.content;
+        journalModalTitleEl.textContent = 'Edit Journal Entry';
+        journalEntryIdInputEl.value = entry.id;
+        journalEntryTitleInputEl.value = entry.title;
+        journalEntryIconInputEl.value = entry.icon || '';
+        journalEntryContentInputEl.value = entry.content;
     } else {
-        journalModalTitle.textContent = 'New Journal Entry';
-        journalEntryIdInput.value = '';
+        journalModalTitleEl.textContent = 'New Journal Entry';
+        journalEntryIdInputEl.value = '';
     }
-    activateModal(journalModal);
+    activateModal(journalModalEl);
 }
 
 function closeJournalModal() {
-    deactivateModal(journalModal);
+    const journalModalEl = document.getElementById('journal-modal');
+    if (journalModalEl) {
+        deactivateModal(journalModalEl);
+    }
 }
 
 function handleJournalFormSubmit(event) {
@@ -4250,183 +4344,233 @@ function initializeDOMElements() {
 function setupEventListeners() {
     let mouseDownCoords = null; // Variable to track mouse position for drag detection
 
-    // Task Manager
+    // --- Main Page Actions ---
     const addTaskBtn = document.getElementById('add-task-btn');
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', () => openModal());
-    }
-    const advancedOptionsBtn = document.getElementById('advanced-options-btn');
-    if(advancedOptionsBtn) {
-        advancedOptionsBtn.addEventListener('click', openAdvancedOptionsModal);
     }
     const advancedOptionsBtnMain = document.getElementById('advancedOptionsBtnMain');
     if(advancedOptionsBtnMain) {
         advancedOptionsBtnMain.addEventListener('click', openAdvancedOptionsModal);
     }
-    const advOptionsCloseButton = advancedOptionsModal.querySelector('.close-button');
-    if(advOptionsCloseButton) {
-        advOptionsCloseButton.addEventListener('click', () => {
-            deactivateModal(advancedOptionsModal);
-        });
+
+    // --- Modal Close Buttons & Global Listeners ---
+    const advancedOptionsModalEl = document.getElementById('advanced-options-modal');
+    if (advancedOptionsModalEl) {
+        const advOptionsCloseButton = advancedOptionsModalEl.querySelector('.close-button');
+        if(advOptionsCloseButton) {
+            advOptionsCloseButton.addEventListener('click', () => deactivateModal(advancedOptionsModalEl));
+        }
     }
 
-    const taskViewCloseButton = taskViewModal.querySelector('.close-button');
-    if (taskViewCloseButton) {
-        taskViewCloseButton.addEventListener('click', () => deactivateModal(taskViewModal));
+    const taskViewModalEl = document.getElementById('task-view-modal');
+    if (taskViewModalEl) {
+        const taskViewCloseButton = taskViewModalEl.querySelector('.close-button');
+        if (taskViewCloseButton) {
+            taskViewCloseButton.addEventListener('click', () => deactivateModal(taskViewModalEl));
+        }
     }
 
-    if (taskForm) {
-        taskForm.addEventListener('submit', handleFormSubmit);
+    const taskModalEl = document.getElementById('task-modal');
+    if (taskModalEl) {
+        const taskFormEl = document.getElementById('task-form');
+        if(taskFormEl) taskFormEl.addEventListener('submit', handleFormSubmit);
+
+        const closeButton = taskModalEl.querySelector('.close-button');
+        if (closeButton) closeButton.addEventListener('click', closeModal);
+
+        const cancelButton = taskModalEl.querySelector('.cancel-task-button');
+        if (cancelButton) cancelButton.addEventListener('click', closeModal);
     }
 
-    const closeButton = taskModal.querySelector('.close-button');
-    const cancelButton = taskModal.querySelector('.cancel-task-button');
-    if (closeButton) closeButton.addEventListener('click', closeModal);
-    if (cancelButton) cancelButton.addEventListener('click', closeModal);
-
-    const simpleModeToggle = document.getElementById('simple-mode-toggle');
-    if (simpleModeToggle) {
-        simpleModeToggle.addEventListener('change', (e) => {
-            uiSettings.isSimpleMode = !e.target.checked;
-            toggleSimpleMode();
-            saveData();
-        });
-    }
-
-    const openIconPickerBtn = document.getElementById('open-icon-picker');
-    if (openIconPickerBtn) {
-        openIconPickerBtn.addEventListener('click', () => openIconPicker('task'));
-    }
-    const openJournalIconPickerBtn = document.getElementById('open-journal-icon-picker');
-    if(openJournalIconPickerBtn) {
-        openJournalIconPickerBtn.addEventListener('click', () => openIconPicker('journal'));
-    }
-
-    if (iconPickerModal) {
-        const closeBtn = iconPickerModal.querySelector('.close-button');
+    const iconPickerModalEl = document.getElementById('icon-picker-modal');
+    if (iconPickerModalEl) {
+        const closeBtn = iconPickerModalEl.querySelector('.close-button');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => deactivateModal(iconPickerModal));
+            closeBtn.addEventListener('click', () => deactivateModal(iconPickerModalEl));
         }
-
-        const content = document.getElementById('icon-picker-content');
-        content.addEventListener('click', (e) => {
-            // Handle category header clicks for accordion behavior
-            const header = e.target.closest('.icon-picker-category-header');
-            if (header) {
-                const grid = header.nextElementSibling;
-                const icon = header.querySelector('span');
-                grid.classList.toggle('hidden');
-                icon.style.transform = grid.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-                return;
-            }
-
-            // Handle icon selection
-            const iconWrapper = e.target.closest('[data-icon]');
-            if (iconWrapper) {
-                const iconClass = iconWrapper.dataset.icon;
-                const context = iconPickerModal.dataset.context;
-
-                switch (context) {
-                    case 'journal':
-                        journalEntryIconInput.value = iconClass;
-                        break;
-                    case 'journalGoal':
-                        const weeklyGoalIconInput = document.getElementById('weekly-goal-icon-input');
-                        if (weeklyGoalIconInput) {
-                            weeklyGoalIconInput.value = iconClass;
-                            // Manually trigger change to save data
-                            journalSettings.weeklyGoalIcon = iconClass;
-                            saveData();
-                        }
-                        break;
-                    case 'category':
-                         if (editingCategoryIdForIcon) {
-                            const category = categories.find(c => c.id === editingCategoryIdForIcon);
-                            if (category) {
-                                category.icon = iconClass;
-                                saveData();
-                                renderCategoryManager();
-                            }
-                            editingCategoryIdForIcon = null;
-                        }
-                        break;
-                    case 'task':
-                    default:
-                        if (taskIconInput) {
-                            taskIconInput.value = iconClass;
-                        }
-                        break;
-                }
-                deactivateModal(iconPickerModal);
-            }
-        });
     }
 
-    timeInputTypeSelect.addEventListener('change', (e) => {
-        updateDateTimeFieldsVisibility();
-        if (estimatedDurationAmountInput) {
-            estimatedDurationAmountInput.required = (e.target.value === 'start');
-        }
-    });
+    const journalModalEl = document.getElementById('journal-modal');
+    if (journalModalEl) {
+        const journalFormEl = document.getElementById('journal-form');
+        if (journalFormEl) journalFormEl.addEventListener('submit', handleJournalFormSubmit);
 
-    taskRepetitionSelect.addEventListener('change', (e) => {
-        const type = e.target.value;
-        repetitionRelativeGroup.classList.toggle('hidden', type !== 'relative');
-        repetitionAbsoluteGroup.classList.toggle('hidden', type !== 'absolute');
-        repeatingOptionsGroup.classList.toggle('hidden', type === 'none');
-        if(type === 'absolute') { toggleAbsoluteRepetitionFields(absoluteFrequencySelect.value); }
-        if (type === 'none') { maxMissesInput.value = ''; trackMissesInput.checked = true; }
-    });
-    absoluteFrequencySelect.addEventListener('change', (e) => {
-        toggleAbsoluteRepetitionFields(e.target.value);
-    });
-    taskForm.querySelectorAll('input[name="monthlyOption"]').forEach(radio => {
-        radio.addEventListener('change', (e) => toggleMonthlyOptions(e.target.value));
-    });
-    taskForm.querySelectorAll('input[name="yearlyOption"]').forEach(radio => {
-        radio.addEventListener('change', (e) => toggleYearlyOptions(e.target.value));
-    });
-    dueDateTypeSelect.addEventListener('change', (e) => {
-        updateDateTimeFieldsVisibility();
-    });
-    completionTypeSelect.addEventListener('change', (e) => {
-        toggleCompletionFields(e.target.value);
-    });
-    taskCategorySelect.addEventListener('change', (e) => {
-        const categoryId = e.target.value;
-        const isNew = categoryId === 'new_category';
-        newCategoryGroup.classList.toggle('hidden', !isNew);
-        if (isNew) {
-            newCategoryNameInput.focus();
-        } else {
-            const category = categories.find(c => c.id === categoryId);
-            if (category && category.icon && category.applyIconToNewTasks) {
-                taskIconInput.value = category.icon;
-            }
-        }
-    });
+        const cancelJournalBtn = journalModalEl.querySelector('.cancel-journal-button');
+        if (cancelJournalBtn) cancelJournalBtn.addEventListener('click', closeJournalModal);
+
+        const closeJournalButton = journalModalEl.querySelector('.close-button');
+        if (closeJournalButton) closeJournalButton.addEventListener('click', closeJournalModal);
+    }
+
+
     window.addEventListener('mousedown', (event) => {
-        if (event.target === taskModal) {
-            closeModal();
-        }
-        if (event.target === advancedOptionsModal) {
-            deactivateModal(advancedOptionsModal);
-        }
+        if (event.target === taskModalEl) closeModal();
+        if (event.target === advancedOptionsModalEl) deactivateModal(advancedOptionsModalEl);
+        if (event.target === journalModalEl) deactivateModal(journalModalEl);
     });
 
-    if (taskListDiv) {
-        taskListDiv.addEventListener('mousedown', (e) => {
+
+    // --- Task Form Listeners ---
+    const taskFormEl = document.getElementById('task-form');
+    if (taskFormEl) {
+        const simpleModeToggle = document.getElementById('simple-mode-toggle');
+        if (simpleModeToggle) {
+            simpleModeToggle.addEventListener('change', (e) => {
+                uiSettings.isSimpleMode = !e.target.checked;
+                toggleSimpleMode();
+                saveData();
+            });
+        }
+
+        const openIconPickerBtn = document.getElementById('open-icon-picker');
+        if (openIconPickerBtn) {
+            openIconPickerBtn.addEventListener('click', () => openIconPicker('task'));
+        }
+
+        const timeInputTypeSelectEl = document.getElementById('time-input-type');
+        if(timeInputTypeSelectEl) {
+            timeInputTypeSelectEl.addEventListener('change', (e) => {
+                updateDateTimeFieldsVisibility();
+                const estDurInput = document.getElementById('estimated-duration-amount');
+                if (estDurInput) {
+                    estDurInput.required = (e.target.value === 'start');
+                }
+            });
+        }
+
+        const taskRepetitionSelectEl = document.getElementById('task-repetition');
+        if (taskRepetitionSelectEl) {
+            taskRepetitionSelectEl.addEventListener('change', (e) => {
+                const type = e.target.value;
+                document.getElementById('repetition-relative-group').classList.toggle('hidden', type !== 'relative');
+                document.getElementById('repetition-absolute-group').classList.toggle('hidden', type !== 'absolute');
+                document.getElementById('repeating-options-group').classList.toggle('hidden', type === 'none');
+                if(type === 'absolute') {
+                    toggleAbsoluteRepetitionFields(document.getElementById('absolute-frequency').value);
+                }
+                if (type === 'none') {
+                    document.getElementById('max-misses').value = '';
+                    document.getElementById('track-misses').checked = true;
+                }
+            });
+        }
+
+        const absoluteFrequencySelectEl = document.getElementById('absolute-frequency');
+        if (absoluteFrequencySelectEl) {
+            absoluteFrequencySelectEl.addEventListener('change', (e) => toggleAbsoluteRepetitionFields(e.target.value));
+        }
+
+        taskFormEl.querySelectorAll('input[name="monthlyOption"]').forEach(radio => {
+            radio.addEventListener('change', (e) => toggleMonthlyOptions(e.target.value));
+        });
+        taskFormEl.querySelectorAll('input[name="yearlyOption"]').forEach(radio => {
+            radio.addEventListener('change', (e) => toggleYearlyOptions(e.target.value));
+        });
+
+        const dueDateTypeSelectEl = document.getElementById('due-date-type');
+        if (dueDateTypeSelectEl) {
+            dueDateTypeSelectEl.addEventListener('change', () => updateDateTimeFieldsVisibility());
+        }
+
+        const completionTypeSelectEl = document.getElementById('completion-type');
+        if(completionTypeSelectEl) {
+            completionTypeSelectEl.addEventListener('change', (e) => toggleCompletionFields(e.target.value));
+        }
+
+        const taskCategorySelectEl = document.getElementById('task-category');
+        if (taskCategorySelectEl) {
+            taskCategorySelectEl.addEventListener('change', (e) => {
+                const categoryId = e.target.value;
+                const isNew = categoryId === 'new_category';
+                document.getElementById('new-category-group').classList.toggle('hidden', !isNew);
+                if (isNew) {
+                    document.getElementById('new-category-name').focus();
+                } else {
+                    const category = categories.find(c => c.id === categoryId);
+                    if (category && category.icon && category.applyIconToNewTasks) {
+                        document.getElementById('task-icon').value = category.icon;
+                    }
+                }
+            });
+        }
+    }
+
+
+    // --- Icon Picker Listeners ---
+    if (iconPickerModalEl) {
+        const content = document.getElementById('icon-picker-content');
+        if (content) {
+            content.addEventListener('click', (e) => {
+                const header = e.target.closest('.icon-picker-category-header');
+                if (header) {
+                    const grid = header.nextElementSibling;
+                    const icon = header.querySelector('i');
+                    grid.classList.toggle('hidden');
+                    if (icon) icon.classList.toggle('fa-chevron-down');
+                    if (icon) icon.classList.toggle('fa-chevron-right');
+                    return;
+                }
+
+                const iconWrapper = e.target.closest('[data-icon]');
+                if (iconWrapper) {
+                    const iconClass = iconWrapper.dataset.icon;
+                    const context = iconPickerModalEl.dataset.context;
+                    const journalIconInput = document.getElementById('journal-entry-icon');
+                    const taskIconInputEl = document.getElementById('task-icon');
+
+                    switch (context) {
+                        case 'journal':
+                            if (journalIconInput) journalIconInput.value = iconClass;
+                            break;
+                        case 'journalGoal':
+                            const weeklyGoalIconInput = document.getElementById('weekly-goal-icon-input');
+                            if (weeklyGoalIconInput) {
+                                weeklyGoalIconInput.value = iconClass;
+                                journalSettings.weeklyGoalIcon = iconClass;
+                                saveData();
+                            }
+                            break;
+                        case 'category':
+                             if (editingCategoryIdForIcon) {
+                                const category = categories.find(c => c.id === editingCategoryIdForIcon);
+                                if (category) {
+                                    category.icon = iconClass;
+                                    saveData();
+                                    renderCategoryManager();
+                                }
+                                editingCategoryIdForIcon = null;
+                            }
+                            break;
+                        case 'task':
+                        default:
+                            if (taskIconInputEl) {
+                                taskIconInputEl.value = iconClass;
+                            }
+                            break;
+                    }
+                    deactivateModal(iconPickerModalEl);
+                }
+            });
+        }
+    }
+
+
+    // --- Task List Listeners ---
+    const taskListDivEl = document.getElementById('task-list');
+    if (taskListDivEl) {
+        taskListDivEl.addEventListener('mousedown', (e) => {
             mouseDownCoords = { x: e.clientX, y: e.clientY };
         });
 
-        taskListDiv.addEventListener('click', (event) => {
+        taskListDivEl.addEventListener('click', (event) => {
             const wasDrag = mouseDownCoords && (Math.abs(event.clientX - mouseDownCoords.x) > 5 || Math.abs(event.clientY - mouseDownCoords.y) > 5);
             mouseDownCoords = null; // Reset after use
 
             const collapsibleHeader = event.target.closest('.collapsible-header');
             if (collapsibleHeader) {
                 const group = collapsibleHeader.dataset.group;
-                const tasksToToggle = taskListDiv.querySelectorAll(`.task-item[data-group="${group}"]`);
+                const tasksToToggle = taskListDivEl.querySelectorAll(`.task-item[data-group="${group}"]`);
                 const icon = collapsibleHeader.querySelector('span');
                 collapsibleHeader.classList.toggle('collapsed');
                 if (collapsibleHeader.classList.contains('collapsed')) {
@@ -4447,81 +4591,49 @@ function setupEventListeners() {
 
             if (!actionTarget || actionTarget.dataset.action === 'viewTask') {
                  if (!event.target.closest('button, a, input, .edit-progress-button')) {
-                    if (wasDrag) {
-                        return; // It was a drag, so don't open the modal
-                    }
+                    if (wasDrag) return;
                     openTaskView(taskId);
                     return;
                 }
             }
 
-            // If an action button was clicked, handle it
             if (actionTarget) {
                 const action = actionTarget.dataset.action;
-                const taskIdForAction = actionTarget.dataset.taskId; // Use the taskId from the button
+                const taskIdForAction = actionTarget.dataset.taskId;
                 switch (action) {
-                    case 'edit':
-                        editTask(taskIdForAction);
-                        break;
-                    case 'triggerDelete':
-                        triggerDelete(taskIdForAction);
-                        break;
-                    case 'triggerCompletion':
-                        triggerCompletion(taskIdForAction);
-                        break;
-                    case 'confirmCompletion':
-                        confirmCompletionAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                        break;
-                    case 'handleOverdue':
-                        handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice);
-                        break;
-                    case 'confirmMiss':
-                        confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                        break;
-                    case 'confirmDelete':
-                        confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                        break;
-                    case 'triggerUndo':
-                        triggerUndoConfirmation(taskIdForAction);
-                        break;
-                    case 'confirmUndo':
-                        confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true');
-                        break;
-                    case 'incrementCount':
-                        incrementCount(taskIdForAction);
-                        break;
-                    case 'decrementCount':
-                        decrementCount(taskIdForAction);
-                        break;
-                    case 'toggleTimer':
-                        toggleTimer(taskIdForAction);
-                        break;
-                    case 'editProgress':
-                        editProgress(taskIdForAction);
-                        break;
-                    case 'saveProgress':
-                        saveProgressEdit(taskIdForAction);
-                        break;
-                    case 'cancelProgress':
-                        cancelProgressEdit(taskIdForAction);
-                        break;
+                    case 'edit': editTask(taskIdForAction); break;
+                    case 'triggerDelete': triggerDelete(taskIdForAction); break;
+                    case 'triggerCompletion': triggerCompletion(taskIdForAction); break;
+                    case 'confirmCompletion': confirmCompletionAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
+                    case 'handleOverdue': handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice); break;
+                    case 'confirmMiss': confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
+                    case 'confirmDelete': confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
+                    case 'triggerUndo': triggerUndoConfirmation(taskIdForAction); break;
+                    case 'confirmUndo': confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
+                    case 'incrementCount': incrementCount(taskIdForAction); break;
+                    case 'decrementCount': decrementCount(taskIdForAction); break;
+                    case 'toggleTimer': toggleTimer(taskIdForAction); break;
+                    case 'editProgress': editProgress(taskIdForAction); break;
+                    case 'saveProgress': saveProgressEdit(taskIdForAction); break;
+                    case 'cancelProgress': cancelProgressEdit(taskIdForAction); break;
                 }
             }
         });
     }
 
-    const advancedOptionsContent = document.getElementById('advanced-options-content');
-    if (advancedOptionsContent) {
-        advancedOptionsContent.addEventListener('click', (event) => {
-                    const header = event.target.closest('.collapsible-header');
-                    if (header) {
-                        const section = header.parentElement;
-                        const key = section.dataset.sectionKey;
-                        const isOpen = section.classList.toggle('open');
-                        uiSettings.advancedOptionsCollapseState[key] = !isOpen; // Store if it's collapsed
-                        saveData();
-                        return; // Prevent other actions from firing
-                    }
+    // --- Advanced Options Listeners ---
+    const advancedOptionsContentEl = document.getElementById('advanced-options-content');
+    if (advancedOptionsContentEl) {
+        advancedOptionsContentEl.addEventListener('click', (event) => {
+            const header = event.target.closest('.collapsible-header');
+            if (header) {
+                const section = header.parentElement;
+                const key = section.dataset.sectionKey;
+                const isOpen = section.classList.toggle('open');
+                uiSettings.advancedOptionsCollapseState[key] = !isOpen;
+                saveData();
+                return;
+            }
 
             const target = event.target.closest('[data-action]');
             if (!target) return;
@@ -4541,18 +4653,13 @@ function setupEventListeners() {
                 case 'toggleStatusTheme':
                     theming.useThemeForStatus = !theming.useThemeForStatus;
                     applyTheme();
-                    renderStatusManager(); // Re-render to update disabled state
+                    renderStatusManager();
                     saveData();
                     break;
                 case 'openIconPicker':
                     const context = target.dataset.context || 'task';
                      if (context === 'category') {
                         editingCategoryIdForIcon = target.dataset.categoryId;
-                    } else if (context === 'planner') {
-                        const iconInput = document.getElementById('planner-default-icon');
-                        if (iconInput) {
-                           // This context is just for opening, the selection logic will handle the rest.
-                        }
                     }
                     openIconPicker(context);
                     break;
@@ -4608,6 +4715,15 @@ function setupEventListeners() {
                     renderThemeControls();
                     saveData();
                     break;
+                case 'setCalendarGradientSource':
+                    const source = target.dataset.source;
+                    if (source) {
+                        theming.calendarGradientSource = source;
+                        applyTheme();
+                        renderThemeControls();
+                        saveData();
+                    }
+                    break;
                 case 'randomizeTheme':
                     theming.baseColor = getRandomColor();
                     applyTheme();
@@ -4631,9 +4747,7 @@ function setupEventListeners() {
                     break;
                 case 'toggleCreationOnClick':
                     calendarSettings.allowCreationOnClick = event.target.checked;
-                    if (uiSettings.userInteractions) {
-                        uiSettings.userInteractions.toggledCalendarClick = true;
-                    }
+                    if (uiSettings.userInteractions) uiSettings.userInteractions.toggledCalendarClick = true;
                     saveData();
                     break;
                 case 'deleteVacation':
@@ -4649,11 +4763,8 @@ function setupEventListeners() {
                          const categoryToUpdate = categories.find(c => c.id === catId);
                          if(categoryToUpdate) {
                              categoryToUpdate.bypassVacation = target.checked;
-                             if (uiSettings.userInteractions) {
-                                 uiSettings.userInteractions.usedVacationBypass = true;
-                             }
+                             if (uiSettings.userInteractions) uiSettings.userInteractions.usedVacationBypass = true;
                          }
-                         // The UI for the checkbox updates automatically. No re-render needed here.
                      });
                     break;
                 case 'toggleAutoKpi':
@@ -4686,22 +4797,21 @@ function setupEventListeners() {
                 }
             });
         }
-        advancedOptionsContent.addEventListener('input', (event) => {
+        advancedOptionsContentEl.addEventListener('input', (event) => {
             const target = event.target;
             if (target.id === 'planner-sensitivity-slider') {
                 const isDefaultToggle = document.getElementById('planner-sensitivity-default-toggle');
-                isDefaultToggle.checked = false; // Uncheck the default toggle if user interacts with slider
+                isDefaultToggle.checked = false;
                 sensitivitySettings.sValue = parseFloat(target.value);
-                 if (uiSettings.userInteractions) {
-                    uiSettings.userInteractions.changedSensitivity = true;
-                }
+                 if (uiSettings.userInteractions) uiSettings.userInteractions.changedSensitivity = true;
                 saveData();
                 updateAllTaskStatuses(true);
             }
         });
 
-        advancedOptionsContent.addEventListener('change', (event) => {
+        advancedOptionsContentEl.addEventListener('change', (event) => {
             const target = event.target;
+            const categoryFilterListEl = document.getElementById('category-filter-list');
 
             if (target.id === 'planner-sensitivity-default-toggle') {
                 const slider = document.getElementById('planner-sensitivity-slider');
@@ -4717,181 +4827,99 @@ function setupEventListeners() {
                 return;
             }
 
-            if (target.id === 'app-title-input') {
-                appSettings.title = target.value.trim();
-                setAppBranding();
-                return;
-            }
-            if (target.id === 'app-subtitle-input') {
-                appSettings.subtitle = target.value.trim();
-                setAppBranding();
-                return;
-            }
-            if (target.id === 'app-goal-label-input') {
-                appSettings.weeklyGoalLabel = target.value.trim();
-                setAppBranding();
-                return;
-            }
-            if (target.id === 'weekly-goal-icon-input') {
-                journalSettings.weeklyGoalIcon = target.value.trim();
-                saveData();
-                return;
-            }
-             if (target.id === 'planner-default-icon') {
-                if (!plannerSettings) plannerSettings = {};
-                plannerSettings.defaultIcon = target.value.trim();
-                saveData();
-                return;
-            }
+            if (target.id === 'app-title-input') { appSettings.title = target.value.trim(); setAppBranding(); return; }
+            if (target.id === 'app-subtitle-input') { appSettings.subtitle = target.value.trim(); setAppBranding(); return; }
+            if (target.id === 'app-goal-label-input') { appSettings.weeklyGoalLabel = target.value.trim(); setAppBranding(); return; }
+            if (target.id === 'weekly-goal-icon-input') { journalSettings.weeklyGoalIcon = target.value.trim(); saveData(); return; }
+            if (target.id === 'planner-default-icon') { if (!plannerSettings) plannerSettings = {}; plannerSettings.defaultIcon = target.value.trim(); saveData(); return; }
+
             if (target.classList.contains('category-color-picker')) {
-                const categoryId = target.dataset.categoryId;
-                const newColor = target.value;
-                const category = categories.find(cat => cat.id === categoryId);
-                if (category) {
-                    category.color = newColor;
-                    saveData();
-                    renderCategoryManager();
-                    renderTasks();
-                }
-            } else if (target.classList.contains('category-filter-checkbox')) {
-                const allCheckbox = categoryFilterList.querySelector('input[value="all"]');
-                const otherCheckboxes = categoryFilterList.querySelectorAll('input:not([value="all"])');
+                const category = categories.find(cat => cat.id === target.dataset.categoryId);
+                if (category) { category.color = target.value; saveData(); renderCategoryManager(); renderTasks(); }
+            } else if (target.classList.contains('category-filter-checkbox') && categoryFilterListEl) {
+                const allCheckbox = categoryFilterListEl.querySelector('input[value="all"]');
+                const otherCheckboxes = categoryFilterListEl.querySelectorAll('input:not([value="all"])');
                 if (target.value === 'all') {
                     otherCheckboxes.forEach(cb => cb.checked = false);
                     categoryFilter = [];
                 } else {
                     allCheckbox.checked = false;
-                    categoryFilter = Array.from(otherCheckboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.value === 'null' ? null : cb.value);
+                    categoryFilter = Array.from(otherCheckboxes).filter(cb => cb.checked).map(cb => cb.value === 'null' ? null : cb.value);
                 }
-
-                if (categoryFilter.length === 0) {
-                    allCheckbox.checked = true;
-                }
+                if (categoryFilter.length === 0) allCheckbox.checked = true;
                 renderTasks();
                 if (calendar) calendar.refetchEvents();
             } else if (target.classList.contains('status-color-picker')) {
-                 const statusKey = target.dataset.statusKey;
-                 const newColor = target.value;
-                 if (statusColors.hasOwnProperty(statusKey)) {
-                     statusColors[statusKey] = newColor;
-                     if (uiSettings.userInteractions) {
-                        uiSettings.userInteractions.changedStatusColor = true;
-                     }
+                 if (statusColors.hasOwnProperty(target.dataset.statusKey)) {
+                     statusColors[target.dataset.statusKey] = target.value;
+                     if (uiSettings.userInteractions) uiSettings.userInteractions.changedStatusColor = true;
                      saveData();
                      renderTasks();
-                     renderStatusManager(); // Re-render the manager to show the change
+                     renderStatusManager();
                  }
-            } else if (target.id === 'notification-rate-amount' || target.id === 'notification-rate-unit') {
-                updateNotificationRateLimit();
-            } else if (target.id === 'theme-base-color') {
-                theming.baseColor = target.value;
-                applyTheme();
-                saveData();
-            } else if (target.id === 'planner-default-category') {
-                plannerSettings.defaultCategoryId = target.value;
-                saveData();
+            } else if (target.id === 'notification-rate-amount' || target.id === 'notification-rate-unit') { updateNotificationRateLimit();
+            } else if (target.id === 'theme-base-color') { theming.baseColor = target.value; applyTheme(); saveData();
+            } else if (target.id === 'planner-default-category') { plannerSettings.defaultCategoryId = target.value; saveData();
             } else if (target.classList.contains('task-display-toggle')) {
-                const key = target.name;
-                if (taskDisplaySettings.hasOwnProperty(key)) {
-                    taskDisplaySettings[key] = target.checked;
-                    saveData();
-                    renderTasks();
-                }
+                if (taskDisplaySettings.hasOwnProperty(target.name)) { taskDisplaySettings[target.name] = target.checked; saveData(); renderTasks(); }
             } else if (target.id === 'calculation-horizon-amount' || target.id === 'calculation-horizon-unit') {
-                const amountInput = document.getElementById('calculation-horizon-amount');
-                const unitInput = document.getElementById('calculation-horizon-unit');
-                uiSettings.calculationHorizonAmount = parseInt(amountInput.value, 10) || 1;
-                uiSettings.calculationHorizonUnit = unitInput.value;
+                uiSettings.calculationHorizonAmount = parseInt(document.getElementById('calculation-horizon-amount').value, 10) || 1;
+                uiSettings.calculationHorizonUnit = document.getElementById('calculation-horizon-unit').value;
                 saveData();
             }
         });
-        sortBySelect.addEventListener('change', (e) => {
-            sortBy = e.target.value;
-            saveData();
-            renderTasks();
-        });
-        sortDirectionSelect.addEventListener('change', (e) => {
-            sortDirection = e.target.value;
-            saveData();
-            renderTasks();
-        });
+
+        const sortBySelectEl = document.getElementById('sort-by');
+        if(sortBySelectEl) sortBySelectEl.addEventListener('change', (e) => { sortBy = e.target.value; saveData(); renderTasks(); });
+
+        const sortDirectionSelectEl = document.getElementById('sort-direction');
+        if(sortDirectionSelectEl) sortDirectionSelectEl.addEventListener('change', (e) => { sortDirection = e.target.value; saveData(); renderTasks(); });
     }
 
-    // Planner Navigation
-    if (prevWeekBtn) {
-        prevWeekBtn.addEventListener('click', () => {
-            if (calendar) calendar.prev();
-        });
-    }
-    if (nextWeekBtn) {
-        nextWeekBtn.addEventListener('click', () => {
-            if (calendar) calendar.next();
-        });
-    }
-    if (todayBtn) {
-        todayBtn.addEventListener('click', () => {
-            if (calendar) calendar.today();
-        });
-    }
-    if (viewBtns) {
+    // --- Planner & KPI Listeners ---
+    const prevWeekBtnEl = document.getElementById('prevWeekBtn');
+    if (prevWeekBtnEl) prevWeekBtnEl.addEventListener('click', () => { if (calendar) calendar.prev(); });
+
+    const nextWeekBtnEl = document.getElementById('nextWeekBtn');
+    if (nextWeekBtnEl) nextWeekBtnEl.addEventListener('click', () => { if (calendar) calendar.next(); });
+
+    const todayBtnEl = document.getElementById('todayBtn');
+    if (todayBtnEl) todayBtnEl.addEventListener('click', () => { if (calendar) calendar.today(); });
+
+    const calendarViewControls = document.querySelector('.p-3.rounded-t-lg');
+    if (calendarViewControls) {
+        const viewBtns = calendarViewControls.querySelectorAll('[data-view]');
         viewBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 if (calendar) {
-                    const viewName = btn.dataset.view === 'month' ? 'dayGridMonth' :
-                                     btn.dataset.view === 'daily' ? 'timeGridDay' : 'timeGridWeek';
+                    const viewName = btn.dataset.view === 'month' ? 'dayGridMonth' : btn.dataset.view === 'daily' ? 'timeGridDay' : 'timeGridWeek';
                     calendar.changeView(viewName);
                 }
             });
         });
     }
 
-    // KPI Listeners
     const kpiPrevWeekBtn = document.getElementById('kpi-prev-week-btn');
+    if (kpiPrevWeekBtn) kpiPrevWeekBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset--; saveData(); renderKpiList(); });
+
     const kpiNextWeekBtn = document.getElementById('kpi-next-week-btn');
+    if (kpiNextWeekBtn) kpiNextWeekBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset++; saveData(); renderKpiList(); });
+
     const kpiTodayBtn = document.getElementById('kpi-today-btn');
+    if (kpiTodayBtn) kpiTodayBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset = 0; saveData(); renderKpiList(); });
 
-    if (kpiPrevWeekBtn) {
-        kpiPrevWeekBtn.addEventListener('click', () => {
-            uiSettings.kpiWeekOffset--;
-            saveData();
-            renderKpiList();
-        });
-    }
+    const addNewKpiBtnEl = document.getElementById('add-new-kpi-btn');
+    if (addNewKpiBtnEl) addNewKpiBtnEl.addEventListener('click', () => openModal(null, { isKpi: true }));
 
-    if (kpiNextWeekBtn) {
-        kpiNextWeekBtn.addEventListener('click', () => {
-            uiSettings.kpiWeekOffset++;
-            saveData();
-            renderKpiList();
-        });
-    }
-
-    if (kpiTodayBtn) {
-        kpiTodayBtn.addEventListener('click', () => {
-            uiSettings.kpiWeekOffset = 0;
-            saveData();
-            renderKpiList();
-        });
-    }
-
-    if (addNewKpiBtn) {
-        addNewKpiBtn.addEventListener('click', () => {
-            openModal(null, { isKpi: true });
-        });
-    }
-
-    if (setKpiBtn) {
-        setKpiBtn.addEventListener('click', () => {
-            const taskId = kpiTaskSelect.value;
-            if (!taskId) return;
-            const task = tasks.find(t => t.id === taskId);
+    const setKpiBtnEl = document.getElementById('set-kpi-btn');
+    if (setKpiBtnEl) {
+        setKpiBtnEl.addEventListener('click', () => {
+            const kpiTaskSelectEl = document.getElementById('kpi-task-select');
+            if (!kpiTaskSelectEl || !kpiTaskSelectEl.value) return;
+            const task = tasks.find(t => t.id === kpiTaskSelectEl.value);
             if (task) {
                 task.isKpi = true;
-                if (uiSettings.userInteractions) {
-                    uiSettings.userInteractions.setKpi = true;
-                }
+                if (uiSettings.userInteractions) uiSettings.userInteractions.setKpi = true;
                 saveData();
                 renderKpiList();
                 renderKpiTaskSelect();
@@ -4899,19 +4927,16 @@ function setupEventListeners() {
         });
     }
 
+    const weeklyGoalsEl = document.getElementById('weeklyGoals');
     if (weeklyGoalsEl) {
         weeklyGoalsEl.addEventListener('blur', () => {
-            // This should always save to the ACTUAL current week, not the one being viewed.
             const week = appState.weeks[CURRENT_WEEK_INDEX];
             if (week) {
                 const newGoals = weeklyGoalsEl.innerHTML;
                 if (week.weeklyGoals !== newGoals) {
                     week.weeklyGoals = newGoals;
                     savePlannerData();
-                    // If the journal is the active view, re-render it to show the new goal
-                    if (uiSettings.activeView === 'journal-view') {
-                        renderJournal();
-                    }
+                    if (uiSettings.activeView === 'journal-view') renderJournal();
                 }
             }
         });
@@ -4922,45 +4947,36 @@ function setupEventListeners() {
         addNewTaskBtnPlanner.addEventListener('click', () => openModal());
     }
 
-    // Main View Toggles
+    // --- Main View & Page Listeners ---
     const mainViewNav = document.getElementById('main-view-nav');
     if (mainViewNav) {
         mainViewNav.addEventListener('click', (event) => {
             const target = event.target.closest('.view-toggle-btn');
             if (!target) return;
-
             const views = [
-                { btn: showTaskManagerBtn, view: taskManagerView, id: 'task-manager-view' },
-                { btn: showCalendarBtn, view: calendarView, id: 'calendar-view' },
-                { btn: showDashboardBtn, view: dashboardView, id: 'dashboard-view' },
-                { btn: showJournalBtn, view: journalView, id: 'journal-view' }
+                { btn: document.getElementById('show-task-manager-btn'), view: document.getElementById('task-manager-view'), id: 'task-manager-view' },
+                { btn: document.getElementById('show-calendar-btn'), view: document.getElementById('calendar-view'), id: 'calendar-view' },
+                { btn: document.getElementById('show-dashboard-btn'), view: document.getElementById('dashboard-view'), id: 'dashboard-view' },
+                { btn: document.getElementById('show-journal-btn'), view: document.getElementById('journal-view'), id: 'journal-view' }
             ];
-
-            // Remove active class from all buttons first
             views.forEach(item => item.btn.classList.remove('active-view-btn'));
-
-            // Then, apply the active class to the correct button and show the correct view
             views.forEach(item => {
                 if (item.btn === target) {
                     item.view.classList.remove('hidden');
                     item.btn.classList.add('active-view-btn');
                     uiSettings.activeView = item.id;
-
-                    // View-specific render calls
-                    if (item.view === calendarView && calendar) calendar.updateSize();
+                    if (item.id === 'calendar-view' && calendar) calendar.updateSize();
                     if (item.id === 'dashboard-view') renderDashboardContent();
                     if (item.id === 'journal-view') renderJournal();
-
                 } else {
                     item.view.classList.add('hidden');
                 }
             });
-            applyTheme(); // Re-apply styles after changing classes
+            applyTheme();
             saveData();
         });
     }
 
-    // Add the listener for page visibility changes.
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             startNotificationEngine();
@@ -4969,31 +4985,25 @@ function setupEventListeners() {
         }
     });
 
-    // Journal Listeners
+    // --- Journal Listeners ---
     const addJournalEntryBtn = document.getElementById('add-journal-entry-btn');
     if (addJournalEntryBtn) {
         addJournalEntryBtn.addEventListener('click', () => openJournalModal());
     }
+
     const journalSortBy = document.getElementById('journal-sort-by');
     const journalSortDir = document.getElementById('journal-sort-direction');
     const journalSortHandler = () => {
-        if (uiSettings.userInteractions) {
-            uiSettings.userInteractions.sortedJournal = true;
-        }
+        if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
         renderJournal();
     };
     if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
     if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
-    if (journalForm) {
-        journalForm.addEventListener('submit', handleJournalFormSubmit);
-    }
-    const cancelJournalBtn = document.querySelector('.cancel-journal-button');
-    if(cancelJournalBtn) {
-        cancelJournalBtn.addEventListener('click', closeJournalModal);
-    }
-    const journalList = document.getElementById('journal-list');
-    if (journalList) {
-        journalList.addEventListener('click', (e) => {
+
+
+    const journalListEl = document.getElementById('journal-list');
+    if (journalListEl) {
+        journalListEl.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action]');
             if (!target) return;
             const action = target.dataset.action;
@@ -5008,7 +5018,7 @@ function setupEventListeners() {
                 }
             } else if (action === 'toggleJournalContent') {
                 const entryId = target.dataset.entryId;
-                const entryElement = journalList.querySelector(`.journal-entry[data-id="${entryId}"]`);
+                const entryElement = journalListEl.querySelector(`.journal-entry[data-id="${entryId}"]`);
                 const contentDisplay = entryElement.querySelector('.journal-content-display');
                 const fullContent = decodeURIComponent(entryElement.dataset.fullContent);
 
@@ -5022,7 +5032,7 @@ function setupEventListeners() {
                 }
             } else if (action === 'toggleJournalIconGroup') {
                 const iconGroup = target.dataset.iconGroup;
-                const entriesContainer = journalList.querySelector(`[data-icon-entries="${iconGroup}"]`);
+                const entriesContainer = journalListEl.querySelector(`[data-icon-entries="${iconGroup}"]`);
                 const chevron = target.querySelector('.fa-solid');
 
                 if (entriesContainer && chevron) {

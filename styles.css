@@ -40,7 +40,8 @@
 .bg-secondary {
     padding: 1rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--border-color-primary);
+    /* The border is removed to create a softer, more layered look. */
+    /* It will be replaced by shadows on specific components where needed. */
 }
 
 .bg-modal {
@@ -312,38 +313,9 @@ legend {
 /* ======================================================================== */
 /* COLLAPSIBLE SECTIONS (Advanced Options)                                  */
 /* ======================================================================== */
-.collapsible-header {
-    cursor: pointer;
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    transition: background-color 0.2s, border-radius 0.2s ease-in-out;
-}
-.collapsible-header .fas {
-    transition: transform 0.3s ease;
-}
-.collapsible-content {
-    padding: 1.5rem;
-    border-width: 1px;
-    border-top: none;
-    border-radius: 0 0 0.375rem 0.375rem;
-    display: none; /* Initially hidden */
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.collapsible-section.open > .collapsible-content {
-    display: flex;
-}
-.collapsible-section.open > .collapsible-header .fas {
-    transform: rotate(180deg);
-}
-.collapsible-section.open > .collapsible-header {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
+/* This is now handled dynamically by the applyTheme function in script.js  */
+/* to allow for better theming and layering. The old static styles are      */
+/* removed to prevent conflicts.                                            */
 
 /* ======================================================================== */
 /* JOURNAL                                                                  */

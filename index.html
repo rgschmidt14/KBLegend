@@ -502,6 +502,13 @@
                                     <label for="use-theme-for-status" class="form-label mb-0">Use Theme for Status Colors:</label>
                                     <input type="checkbox" id="use-theme-for-status" data-action="toggleStatusTheme" class="toggle-checkbox">
                                 </div>
+                                <div class="flex items-center justify-between">
+                                    <label for="calendar-gradient-toggle" class="form-label mb-0">Calendar Gradient Source:</label>
+                                    <div id="calendar-gradient-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
+                                         <button data-action="setCalendarGradientSource" data-source="status" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Status</button>
+                                         <button data-action="setCalendarGradientSource" data-source="theme" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Theme</button>
+                                    </div>
+                                </div>
                             </div>
                         </fieldset>
                         <fieldset>
@@ -684,8 +691,43 @@
     </div>
 
     <div id="data-migration-modal" class="modal"><div class="modal-content bg-modal"></div></div>
-    <div id="task-view-modal" class="modal"><div class="modal-content bg-modal"></div></div>
-    <div id="journal-modal" class="modal"><div class="modal-content bg-modal"></div></div>
+
+    <div id="task-view-modal" class="modal">
+        <div class="modal-content bg-modal">
+            <button class="close-button" aria-label="Close Task View">&times;</button>
+            <div id="task-view-content"></div>
+            <div id="task-stats-content" class="hidden"></div>
+        </div>
+    </div>
+
+    <div id="journal-modal" class="modal">
+        <div class="modal-content bg-modal">
+            <button class="close-button" aria-label="Close Journal Entry">&times;</button>
+            <h2 id="journal-modal-title" class="text-2xl font-semibold mb-4">New Journal Entry</h2>
+            <form id="journal-form" class="space-y-4">
+                <input type="hidden" id="journal-entry-id">
+                <div>
+                    <label for="journal-entry-title" class="form-label">Title:</label>
+                    <input type="text" id="journal-entry-title" required>
+                </div>
+                <div>
+                    <label for="journal-entry-icon" class="form-label">Icon:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="journal-entry-icon" placeholder="e.g., fa-solid fa-book" class="flex-grow">
+                        <button type="button" id="open-journal-icon-picker" data-action="openIconPicker" data-context="journal" class="btn btn-clear">Choose Icon</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="journal-entry-content" class="form-label">Content:</label>
+                    <textarea id="journal-entry-content" rows="10"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="btn btn-clear cancel-journal-button">Cancel</button>
+                    <button type="submit" class="btn btn-confirm btn-md">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script type="module" src="js/script.js"></script>
 </body>
