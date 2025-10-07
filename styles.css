@@ -539,3 +539,52 @@ legend {
         align-items: flex-start;
     }
 }
+
+/* ======================================================================== */
+/* RESPONSIVE GRIDS & FLEX CONTAINERS                                       */
+/* ======================================================================== */
+.responsive-button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem; /* 12px */
+}
+
+/* For the KPI nav buttons: < Prev | Today | Next > */
+.kpi-nav-container {
+    display: flex;
+    justify-content: space-between; /* This is key for the alignment */
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 500px; /* Prevents buttons from separating too far on wide screens */
+    margin-left: auto;
+    margin-right: auto;
+}
+.kpi-nav-container > .btn {
+    flex-grow: 1; /* Allows buttons to expand and fill space */
+    max-width: 150px; /* But not grow too large */
+}
+
+/* For the KPI controls: Range | View */
+.kpi-controls-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* Allows wrapping on small screens */
+    gap: 1.5rem; /* Space between controls */
+}
+
+/* Wrapper for stacked KPI charts to create a single border */
+.kpi-chart-stack-wrapper {
+    background: var(--bg-calendar-border, transparent); /* The gradient */
+    padding: 14px;
+    border-radius: 0.75rem;
+    margin-top: 1rem;
+}
+.kpi-chart-stack-wrapper .gradient-bordered-content {
+    margin-top: 0; /* Override default margin for items inside the stack */
+    margin-bottom: 14px; /* Add space between charts in the stack */
+}
+.kpi-chart-stack-wrapper .gradient-bordered-content:last-child {
+    margin-bottom: 0; /* No margin on the last chart */
+}
