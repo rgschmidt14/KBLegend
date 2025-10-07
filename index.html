@@ -4,46 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task & Mission Planner</title>
+    <!-- Tailwind is used for layout, not theming. It will be removed eventually. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="styles.css">
+    <!-- This style block will be dynamically populated by script.js -->
+    <style id="dynamic-theme-styles"></style>
 </head>
-<body class="p-4 md:p-6">
+<body class="bg-main p-4 md:p-6">
 
     <!-- Main Application -->
     <div id="app" class="max-w-7xl mx-auto">
         <header class="mb-6 text-center">
             <h1 class="text-3xl md:text-4xl font-bold"></h1>
-            <p class="text-gray-400 mt-1"></p>
+            <p class="mt-1"></p>
         </header>
 
         <!-- Hints and Tips Banner -->
         <div id="hints-banner" class="hints-banner">
             <div class="hints-content">
-                <span></span> <!-- Hint text will be populated here -->
+                <span></span>
             </div>
         </div>
 
         <!-- Main View Navigation -->
         <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-between items-center gap-2">
             <div class="flex flex-wrap space-x-2">
-                <button id="show-dashboard-btn" type="button" class="view-toggle-btn active-view-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-dashboard-btn" type="button" class="btn btn-primary btn-lg active-view-btn">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
-                <button id="show-calendar-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-calendar-btn" type="button" class="btn btn-primary btn-lg">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-task-manager-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-task-manager-btn" type="button" class="btn btn-primary btn-lg">
                     <i class="fa-solid fa-tasks mr-2"></i>Task Manager
                 </button>
-                <button id="show-journal-btn" type="button" class="view-toggle-btn themed-button-primary py-2 px-4 font-semibold rounded-lg shadow-md">
+                <button id="show-journal-btn" type="button" class="btn btn-primary btn-lg">
                     <i class="fa-solid fa-book-journal-whills mr-2"></i>Journal
                 </button>
             </div>
-            <button id="advancedOptionsBtnMain" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Advanced Options</button>
+            <button id="advancedOptionsBtnMain" class="btn btn-secondary btn-lg">Advanced Options</button>
         </div>
 
         <!-- Main Content Area -->
@@ -53,69 +56,63 @@
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <h2 class="text-2xl font-bold">Journal</h2>
                     <div class="flex items-center gap-4">
-                         <select id="journal-sort-by" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                         <select id="journal-sort-by">
                             <option value="date">Sort by Date</option>
                             <option value="icon">Sort by Icon</option>
                         </select>
-                        <select id="journal-sort-direction" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <select id="journal-sort-direction">
                             <option value="desc">Descending</option>
                             <option value="asc">Ascending</option>
                         </select>
-                        <button id="add-journal-entry-btn" class="font-semibold py-2 px-4 rounded-md transition-colors themed-button-secondary">New Entry</button>
+                        <button id="add-journal-entry-btn" class="btn btn-tertiary btn-md">New Entry</button>
                     </div>
                 </div>
-                <div id="journal-list" class="space-y-4">
-                    <!-- Journal entries will be rendered here -->
-                </div>
+                <div id="journal-list" class="space-y-4"></div>
             </div>
 
             <!-- Calendar View -->
             <div id="calendar-view" class="hidden">
-                <div id="mainPlannerSection">
+                <div id="mainPlannerSection" class="bg-secondary">
                     <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
-                        <button id="prevWeekBtn" class="nav-btn p-2 rounded-md themed-button-secondary">&lt; Prev Week</button>
-                        <button id="todayBtn" class="nav-btn p-2 rounded-md themed-button-secondary">Today</button>
-                        <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-white"></h2>
-                        <button id="nextWeekBtn" class="nav-btn p-2 rounded-md themed-button-secondary">Next Week &gt;</button>
+                        <button id="prevWeekBtn" class="btn btn-primary-small">&lt; Prev Week</button>
+                        <button id="todayBtn" class="btn btn-primary-small">Today</button>
+                        <h2 id="weekStatus" class="text-xl md:text-2xl font-bold"></h2>
+                        <button id="nextWeekBtn" class="btn btn-primary-small">Next Week &gt;</button>
                     </div>
 
-                    <div class="flex flex-wrap justify-between items-center bg-gray-800 p-3 rounded-t-lg shadow-lg gap-2">
+                    <div class="flex flex-wrap justify-between items-center p-3 rounded-t-lg gap-2">
                         <div class="flex flex-wrap items-center space-x-2">
                             <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Day</button>
-                            <button data-view="weekly" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Week</button>
-                            <button data-view="month" class="view-btn font-semibold py-1 px-3 rounded-md themed-button-secondary">Month</button>
+                            <button data-view="daily" class="btn btn-primary-smaller">Day</button>
+                            <button data-view="weekly" class="btn btn-primary-smaller">Week</button>
+                            <button data-view="month" class="btn btn-primary-smaller">Month</button>
                         </div>
-                        <button id="addNewTaskBtnPlanner" class="text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">Add New Task</button>
+                        <button id="addNewTaskBtnPlanner" class="btn btn-tertiary btn-md">Add New Task</button>
                     </div>
 
-                    <div id="calendar" class="bg-gray-900 rounded-b-lg shadow-lg p-4 text-white"></div>
+                    <div id="calendar" class="rounded-b-lg p-4"></div>
                 </div>
             </div>
 
             <!-- Dashboard View -->
             <div id="dashboard-view">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-1">
-                        <h2 id="weekly-goal-label" class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2"></h2>
-                        <div id="weeklyGoals" contenteditable="true" class="prose prose-invert prose-sm min-h-[100px] p-2 bg-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="bg-secondary lg:col-span-1">
+                        <h2 id="weekly-goal-label" class="text-lg font-semibold mb-3 border-b pb-2"></h2>
+                        <div id="weeklyGoals" contenteditable="true" class="prose prose-sm min-h-[100px] p-2 rounded-md focus:outline-none focus:ring-2"></div>
                     </div>
 
-                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg lg:col-span-2">
-                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2 flex-wrap gap-2">
+                    <div class="bg-secondary lg:col-span-2">
+                        <div class="flex justify-between items-center mb-3 border-b pb-2 flex-wrap gap-2">
                             <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
                             <div class="flex items-center space-x-2">
-                                <button id="kpi-prev-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">&lt; Prev</button>
-                                <button id="kpi-today-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Today</button>
-                                <button id="kpi-next-week-btn" class="themed-button-secondary text-sm px-3 py-1 rounded-md">Next &gt;</button>
+                                <button id="kpi-prev-week-btn" class="btn btn-primary-smaller">&lt; Prev</button>
+                                <button id="kpi-today-btn" class="btn btn-primary-smaller">Today</button>
+                                <button id="kpi-next-week-btn" class="btn btn-primary-smaller">Next &gt;</button>
                             </div>
-                            <div id="kpi-controls" class="flex items-center space-x-4">
-                                <!-- Existing KPI Controls will be rendered here by JS -->
-                            </div>
+                            <div id="kpi-controls" class="flex items-center space-x-4"></div>
                         </div>
-                        <div id="kpi-chart-container" class="relative" style="height: 400px;">
-                            <!-- KPI Chart(s) will be rendered here by JS -->
-                        </div>
+                        <div id="kpi-chart-container" class="relative" style="height: 400px;"></div>
                     </div>
                 </div>
             </div>
@@ -126,7 +123,7 @@
                     <div class="flex items-center gap-4">
                         <div>
                             <label for="sort-by" class="form-label sr-only">Sort By:</label>
-                            <select id="sort-by" class="w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white">
+                            <select id="sort-by">
                                 <option value="status">Sort by Status</option>
                                 <option value="category">Sort by Category</option>
                                 <option value="dueDate">Sort by Due Date</option>
@@ -134,55 +131,47 @@
                         </div>
                         <div>
                             <label for="sort-direction" class="form-label sr-only">Sort Direction:</label>
-                            <select id="sort-direction" class="w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white">
+                            <select id="sort-direction">
                                 <option value="asc">Ascending</option>
                                 <option value="desc">Descending</option>
                             </select>
                         </div>
                     </div>
-                    <button id="add-task-btn" class="text-white font-bold py-2 px-4 rounded-md transition-colors themed-button-secondary">
+                    <button id="add-task-btn" class="btn btn-tertiary btn-md">
                         Add New Task
                     </button>
                 </div>
-                <!-- This div will be populated with tasks by JavaScript -->
-                <div id="task-list" class="space-y-2">
-                    <p class="text-gray-500 text-center italic">No tasks yet. Add one!</p>
-                </div>
+                <div id="task-list" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for adding and editing tasks -->
+    <!-- Modals -->
     <div id="task-modal" class="modal">
-        <div class="modal-content themed-modal-primary">
+        <div class="modal-content bg-modal">
             <button class="close-button" aria-label="Close Task Form">&times;</button>
             <div class="flex justify-between items-center mb-4">
-                <h2 id="modal-title" class="text-2xl font-semibold text-gray-700">Add New Task</h2>
+                <h2 id="modal-title" class="text-2xl font-semibold">Add New Task</h2>
                 <div class="flex items-center space-x-2">
-                    <span id="simple-mode-label" class="text-sm font-medium text-gray-600">Simple</span>
+                    <span id="simple-mode-label" class="text-sm font-medium">Simple</span>
                     <input type="checkbox" id="simple-mode-toggle" class="toggle-checkbox">
-                    <span class="text-sm font-medium text-gray-600">Advanced</span>
+                    <span class="text-sm font-medium">Advanced</span>
                 </div>
             </div>
              <form id="task-form" class="space-y-4">
                 <input type="hidden" id="task-id">
-
-                <!-- Simple Fields -->
                 <div id="simple-task-fields">
                     <div class="mb-4">
                         <label for="task-name" class="form-label">Task Name:</label>
-                        <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="text" id="task-name" name="task-name" required>
                     </div>
                 </div>
-
-                <!-- Advanced Fields Container -->
                 <div id="advanced-task-fields" class="hidden space-y-4">
-                    <!-- General Section -->
                     <fieldset>
                         <legend class="form-legend">General</legend>
                         <div class="mb-4">
                             <label for="completion-type" class="form-label">Completion Type:</label>
-                            <select id="completion-type" name="completion-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <select id="completion-type" name="completion-type">
                                 <option value="simple">Simple (Mark Done)</option>
                                 <option value="count">Count</option>
                                 <option value="time">Time</option>
@@ -190,14 +179,14 @@
                         </div>
                         <div id="completion-count-group" class="mb-4 hidden">
                              <label for="count-target" class="form-label">Target Count:</label>
-                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <input type="number" id="count-target" name="count-target" min="1" placeholder="e.g., 100">
                              <p class="form-hint">The total count needed to complete the task.</p>
                         </div>
                         <div id="completion-time-group" class="mb-4 hidden">
                              <label for="time-target-amount" class="form-label">Target Time:</label>
                              <div class="flex space-x-2 items-center">
-                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="time-target-unit" name="time-target-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                                 <select id="time-target-unit" name="time-target-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
                                  </select>
@@ -206,72 +195,67 @@
                          </div>
                         <div class="mb-4">
                             <label for="task-description" class="form-label">Description:</label>
-                            <textarea id="task-description" name="task-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            <textarea id="task-description" name="task-description" rows="3"></textarea>
                         </div>
                         <div class="mb-4">
-                           <label for="is-kpi" class="flex items-center">
-                               <input type="checkbox" id="is-kpi" name="is-kpi" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                               <span class="ml-2 text-sm text-gray-700">Set as Key Performance Indicator (KPI)</span>
+                           <label class="flex items-center">
+                               <input type="checkbox" id="is-kpi" name="is-kpi" class="h-4 w-4 rounded">
+                               <span class="ml-2 text-sm">Set as Key Performance Indicator (KPI)</span>
                            </label>
                            <p class="form-hint">KPIs are tracked on the dashboard.</p>
                        </div>
                     </fieldset>
-
-                    <!-- Categorization Section -->
                     <fieldset>
                         <legend class="form-legend">Categorization</legend>
                         <div class="mb-4">
                            <label for="task-category" class="form-label">Category:</label>
-                           <select id="task-category" name="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                           <select id="task-category" name="task-category">
                                <option value="">None</option>
                                <option value="new_category">-- Add New Category --</option>
-                               <!-- Existing categories will be populated here by JavaScript -->
                            </select>
                        </div>
                        <div id="new-category-group" class="mb-4 hidden">
                            <label for="new-category-name" class="form-label">New Category Name:</label>
-                           <input type="text" id="new-category-name" name="new-category-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                           <input type="text" id="new-category-name" name="new-category-name">
                        </div>
                         <div class="mb-4">
                             <label for="task-icon" class="form-label">Task Icon:</label>
                             <div class="flex items-center space-x-2">
-                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                <button type="button" id="open-icon-picker" class="themed-button-clear">Choose Icon</button>
+                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow">
+                                <button type="button" id="open-icon-picker" class="btn btn-clear">Choose Icon</button>
                             </div>
                             <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
                         </div>
                     </fieldset>
-
-                    <!-- Time and Scheduling Section -->
                     <fieldset>
                         <legend class="form-legend">Time and Scheduling</legend>
                          <div class="mb-4">
                             <label class="form-label">Due Date Type:</label>
-                            <select id="due-date-type" name="due-date-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <select id="due-date-type" name="due-date-type">
                                 <option value="absolute">Absolute Date & Time</option>
                                 <option value="relative">Relative Time</option>
                             </select>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Time Input Type:</label>
-                            <select id="time-input-type" name="time-input-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <select id="time-input-type" name="time-input-type">
                                 <option value="due">Due Time</option>
                                 <option value="start">Start Time</option>
                             </select>
                         </div>
                         <div id="due-date-group" class="mb-4">
                             <label for="task-due-date" class="form-label">Due Date & Time:</label>
-                            <input type="datetime-local" id="task-due-date" name="task-due-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="datetime-local" id="task-due-date" name="task-due-date">
                         </div>
                         <div id="start-date-group" class="mb-4 hidden">
                             <label for="task-start-date" class="form-label">Start Date & Time:</label>
-                            <input type="datetime-local" id="task-start-date" name="task-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="datetime-local" id="task-start-date" name="task-start-date">
                         </div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
                             <label id="relative-due-date-label" class="form-label">Due In:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                <select id="relative-unit" name="relative-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="duration-input">
+                                <select id="relative-unit" name="relative-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
                                     <option value="days">Day(s)</option>
@@ -284,8 +268,8 @@
                          <div id="estimated-duration-group" class="mb-4">
                              <label class="form-label">Estimated Duration:</label>
                              <div class="flex space-x-2 items-center">
-                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
                                  </select>
@@ -295,48 +279,53 @@
                          <div class="mb-4">
                             <label class="form-label">Preparation Time:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                                <select id="prep-time-unit" name="prep-time-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
+                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="duration-input">
+                                <select id="prep-time-unit" name="prep-time-unit" class="flex-grow">
                                    <option value="minutes">Minute(s)</option>
                                    <option value="hours">Hour(s)</option>
                                 </select>
                             </div>
-                            <p class="form-hint">Optional. How long you need to prepare for or travel to this task. If set, this will be used for urgency calculations instead of 'Estimated Duration'.</p>
+                            <p class="form-hint">Optional. How long you need to prepare for or travel to this task.</p>
                         </div>
                          <div class="mb-4">
-                               <label for="requires-full-attention" class="flex items-center">
-                                   <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                   <span class="ml-2 text-sm text-gray-700">This task requires my full attention.</span>
+                               <label class="flex items-center">
+                                   <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 rounded">
+                                   <span class="ml-2 text-sm">This task requires my full attention.</span>
                                </label>
-                               <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'. The scheduler will not overlap tasks that require full attention.</p>
+                               <p class="form-hint">Uncheck if you can do other things while this task is 'in progress'.</p>
                            </div>
                            <div class="mb-4">
-                               <label for="is-appointment" class="flex items-center">
-                                   <input type="checkbox" id="is-appointment" name="is-appointment" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                   <span class="ml-2 text-sm text-gray-700">Is this an appointment?</span>
+                               <label class="flex items-center">
+                                   <input type="checkbox" id="is-appointment" name="is-appointment" class="h-4 w-4 rounded">
+                                   <span class="ml-2 text-sm">Is this an appointment?</span>
                                </label>
-                               <p class="form-hint">Appointments must be accomplished at a specific time and will not be moved by the scheduler.</p>
+                               <p class="form-hint">Appointments must be accomplished at a specific time.</p>
                            </div>
                     </fieldset>
-
-                    <!-- Repetition and Failure Tracking Section -->
                     <fieldset>
                        <legend class="form-legend">Repetition & Failure Tracking</legend>
                         <div class="mb-4">
-                            <label class="form-label sr-only">Repetition Type:</label>
-                            <select id="task-repetition" name="task-repetition" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <select id="task-repetition" name="task-repetition">
                                 <option value="none">Non-Repeating</option>
                                 <option value="relative">Relative Interval</option>
                                 <option value="absolute">Absolute Schedule</option>
                             </select>
                         </div>
-                        <div id="repetition-relative-group" class="mb-4 hidden"> <label class="form-label">Repeat Every:</label> <div class="flex space-x-2 items-center"> <input type="number" id="repetition-amount" name="repetition-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input"> <select id="repetition-unit" name="repetition-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow"> <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option> </select> </div> <p class="form-hint">Task will repeat at this interval after its due date/time.</p> </div>
+                        <div id="repetition-relative-group" class="mb-4 hidden">
+                            <label class="form-label">Repeat Every:</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="repetition-amount" name="repetition-amount" min="1" value="1" class="duration-input">
+                                <select id="repetition-unit" name="repetition-unit" class="flex-grow">
+                                    <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option>
+                                </select>
+                            </div>
+                        </div>
                         <div id="repetition-absolute-group" class="mb-4 hidden space-y-4">
                             <fieldset>
                                 <legend>Frequency & Details</legend>
                                 <div>
                                     <label class="form-label">Frequency:</label>
-                                    <select id="absolute-frequency" name="absolute-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                    <select id="absolute-frequency" name="absolute-frequency">
                                         <option value="weekly">Weekly</option>
                                         <option value="monthly">Monthly</option>
                                         <option value="yearly">Yearly</option>
@@ -353,7 +342,6 @@
                                         <label class="checkbox-label"> <input type="checkbox" name="weekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
                                         <label class="checkbox-label"> <input type="checkbox" name="weekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
                                     </div>
-                                    <p class="form-hint text-xs">Select at least one day.</p>
                                 </div>
                                 <div id="absolute-monthly-options" class="hidden sub-option-group space-y-2">
                                     <label class="form-label">Repeat Monthly On:</label>
@@ -369,7 +357,6 @@
                                               <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
                                               <label class="day-checkbox-label"><input type="checkbox" name="monthlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
                                          </div>
-                                         <p class="form-hint text-xs">Select at least one day number.</p>
                                     </div>
                                     <div id="monthly-day-of-week-options" class="sub-option-group hidden space-y-2">
                                          <label class="form-label text-xs">Which Week(s):</label>
@@ -380,7 +367,6 @@
                                              <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
                                              <label class="checkbox-label"><input type="checkbox" name="monthlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
                                          </div>
-                                          <p class="form-hint text-xs">Select at least one occurrence.</p>
                                          <label class="form-label text-xs">Day(s) of Week:</label>
                                          <div class="grid-cols-checkboxes">
                                             <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
@@ -391,7 +377,6 @@
                                             <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
                                             <label class="checkbox-label"><input type="checkbox" name="monthlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
                                         </div>
-                                         <p class="form-hint text-xs">Select at least one weekday.</p>
                                     </div>
                                 </div>
                                 <div id="absolute-yearly-options" class="hidden sub-option-group space-y-2">
@@ -410,7 +395,6 @@
                                          <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="10" class="month-checkbox peer"> <span class="checkbox-label-text">Nov</span></label>
                                          <label class="checkbox-label"><input type="checkbox" name="yearlyMonth" value="11" class="month-checkbox peer"> <span class="checkbox-label-text">Dec</span></label>
                                     </div>
-                                     <p class="form-hint text-xs">Select at least one month.</p>
                                     <div class="mt-2">
                                         <label><input type="radio" name="yearlyOption" value="day_number" checked class="mr-1"> On Day Number</label>
                                         <label><input type="radio" name="yearlyOption" value="day_of_week" class="ml-4 mr-1"> On Day of Week</label>
@@ -423,7 +407,6 @@
                                               <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="second_last" class="day-checkbox peer"> <span class="day-checkbox-label-text">2nd Last</span></label>
                                               <label class="day-checkbox-label"><input type="checkbox" name="yearlyDay" value="last" class="day-checkbox peer"> <span class="day-checkbox-label-text">Last</span></label>
                                          </div>
-                                         <p class="form-hint text-xs">Select at least one day number.</p>
                                     </div>
                                     <div id="yearly-day-of-week-options" class="sub-option-group hidden">
                                         <label class="form-label text-xs">Which Week(s):</label>
@@ -434,7 +417,6 @@
                                              <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="4" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Fourth</span></label>
                                              <label class="checkbox-label"><input type="checkbox" name="yearlyOccurrence" value="last" class="occurrence-checkbox peer"> <span class="checkbox-label-text">Last</span></label>
                                          </div>
-                                         <p class="form-hint text-xs">Select at least one occurrence.</p>
                                          <label class="form-label text-xs">Day(s) of Week:</label>
                                          <div class="grid-cols-checkboxes">
                                              <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="0" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sun</span></label>
@@ -445,7 +427,6 @@
                                              <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="5" class="weekday-checkbox peer"> <span class="checkbox-label-text">Fri</span></label>
                                              <label class="checkbox-label"><input type="checkbox" name="yearlyWeekday" value="6" class="weekday-checkbox peer"> <span class="checkbox-label-text">Sat</span></label>
                                         </div>
-                                         <p class="form-hint text-xs">Select at least one weekday.</p>
                                     </div>
                                 </div>
                             </fieldset>
@@ -455,45 +436,39 @@
                                 <legend>Failure Tracking</legend>
                                 <div id="max-misses-group" class="mb-4">
                                     <label for="max-misses" class="form-label">Max Misses Before Failure:</label>
-                                    <input type="number" id="max-misses" name="max-misses" min="1" placeholder="e.g., 3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                    <p class="form-hint">How many misses trigger failure (Black status).</p>
+                                    <input type="number" id="max-misses" name="max-misses" min="1" placeholder="e.g., 3">
                                 </div>
                                 <div class="mb-4">
-                                   <label for="track-misses" class="flex items-center">
-                                       <input type="checkbox" id="track-misses" name="track-misses" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                       <span class="ml-2 text-sm text-gray-700">Track Misses?</span>
+                                   <label class="flex items-center">
+                                       <input type="checkbox" id="track-misses" name="track-misses" checked class="h-4 w-4 rounded">
+                                       <span class="ml-2 text-sm">Track Misses?</span>
                                    </label>
-                                   <p class="form-hint">Untick if missing this task doesn't count as a failure.</p>
                                </div>
                             </fieldset>
                         </div>
                     </fieldset>
                 </div>
                 <div class="flex justify-end space-x-3 mt-8">
-                   <button type="button" class="cancel-task-button themed-button-clear"> Cancel </button>
-                   <button type="submit" class="themed-button-clear"> Save Task </button>
+                   <button type="button" class="btn btn-clear cancel-task-button"> Cancel </button>
+                   <button type="submit" class="btn btn-confirm btn-md"> Save Task </button>
                </div>
              </form>
         </div>
     </div>
 
-    <!-- Modal for choosing an icon -->
     <div id="icon-picker-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content bg-modal">
             <button class="close-button" aria-label="Close Icon Picker">&times;</button>
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Choose an Icon</h2>
-            <div id="icon-picker-content" class="space-y-4 max-h-[60vh] overflow-y-auto">
-                <!-- Icon categories will be rendered here by JavaScript -->
-            </div>
+            <h2 class="text-2xl font-semibold mb-4">Choose an Icon</h2>
+            <div id="icon-picker-content" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
 
     <div id="advanced-options-modal" class="modal">
-        <div class="modal-content themed-modal-primary">
+        <div class="modal-content bg-modal">
             <button class="close-button" aria-label="Close Advanced Options">&times;</button>
-            <h2 class="text-2xl font-semibold mb-6 text-gray-700">Advanced Options</h2>
+            <h2 class="text-2xl font-semibold mb-6">Advanced Options</h2>
             <div id="advanced-options-content" class="space-y-2">
-
                 <!-- Theme and Color Section -->
                 <div class="collapsible-section" data-section-key="appearance">
                     <h3 class="collapsible-header">
@@ -506,22 +481,22 @@
                             <div id="theme-manager-content" class="space-y-4">
                                 <div>
                                     <label class="form-label">Mode:</label>
-                                    <div id="theme-mode-selector" class="flex space-x-2 rounded-md bg-gray-200 p-1">
-                                        <button data-mode="light" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Day</button>
-                                        <button data-mode="night" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Night</button>
-                                        <button data-mode="auto" class="theme-mode-btn flex-1 py-1 px-2 rounded-md text-sm font-medium transition-colors">Auto</button>
+                                    <div id="theme-mode-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
+                                        <button data-mode="light" class="btn btn-secondary btn-sm flex-1">Day</button>
+                                        <button data-mode="night" class="btn btn-secondary btn-sm flex-1">Night</button>
+                                        <button data-mode="auto" class="btn btn-secondary btn-sm flex-1">Auto</button>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <label for="theme-enabled-toggle" class="form-label mb-0">Enable Gradient Theme:</label>
-                                    <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
+                                    <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="toggle-checkbox">
                                 </div>
                                 <div id="theme-controls" class="hidden space-y-2">
                                     <div class="flex items-center justify-between">
                                         <label for="theme-base-color" class="form-label mb-0">Theme Base Color:</label>
                                         <input type="color" id="theme-base-color" data-action="setThemeColor" class="h-8 w-12 border-none cursor-pointer rounded">
                                     </div>
-                                    <button data-action="randomizeTheme" class="w-full text-white font-bold py-2 px-4 rounded themed-button-tertiary">Randomize Theme</button>
+                                    <button data-action="randomizeTheme" class="btn btn-tertiary btn-md w-full">Randomize Theme</button>
                                 </div>
                             </div>
                         </fieldset>
@@ -534,331 +509,19 @@
                         <fieldset>
                             <legend>View Options</legend>
                             <div id="restore-defaults-container" class="mt-4">
-                                <button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded themed-button-tertiary">Restore All View Defaults</button>
+                                <button data-action="restoreDefaults" class="btn btn-secondary btn-md w-full">Restore All View Defaults</button>
                             </div>
                         </fieldset>
                     </div>
                 </div>
-
-                <!-- Naming Section -->
-                <div class="collapsible-section" data-section-key="general">
-                    <h3 class="collapsible-header">
-                        <span>Naming</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Application</legend>
-                            <div class="space-y-2">
-                                <div>
-                                    <label for="app-title-input" class="form-label">Title:</label>
-                                    <input type="text" id="app-title-input" placeholder="Enter a new title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label for="app-subtitle-input" class="form-label">Subtitle:</label>
-                                    <input type="text" id="app-subtitle-input" placeholder="Enter a new subtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label for="app-goal-label-input" class="form-label">Weekly Goal Label:</label>
-                                    <input type="text" id="app-goal-label-input" placeholder="Enter a new label" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="time-format-toggle" class="form-label mb-0">Use 24-Hour Time Format:</label>
-                                    <input type="checkbox" id="time-format-toggle" data-action="toggleTimeFormat" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Category Management Section -->
-                <div class="collapsible-section" data-section-key="category">
-                    <h3 class="collapsible-header">
-                        <span>Category Management</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <div id="category-manager-list" class="space-y-2">
-                                <!-- Category list will be rendered here by JavaScript -->
-                                <p class="text-gray-500 italic">No categories created yet.</p>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Filters Section -->
-                <div class="collapsible-section" data-section-key="filters">
-                    <h3 class="collapsible-header">
-                        <span>Filters</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Filter by Category</legend>
-                            <div id="category-filter-list" class="space-y-1">
-                                <!-- Category filters will be rendered here -->
-                                <p class="text-gray-500 italic">No categories to filter.</p>
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Task Card Display</legend>
-                            <div id="task-card-display-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showDueDate" checked>
-                                    <span>Show Due Date</span>
-                                </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showRepetition" checked>
-                                    <span>Show Repetition</span>
-                                </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showDuration" checked>
-                                    <span>Show Duration</span>
-                                </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showCategory" checked>
-                                    <span>Show Category</span>
-                                </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showCountdown" checked>
-                                    <span>Show Countdown</span>
-                                </label>
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" class="task-display-toggle" name="showProgress" checked>
-                                    <span>Show Progress</span>
-                                </label>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Planner Section -->
-                <div class="collapsible-section" data-section-key="planner">
-                    <h3 class="collapsible-header">
-                        <span>Planner</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Sensitivity</legend>
-                            <div class="flex items-center justify-between">
-                                <label for="planner-sensitivity-default-toggle" class="form-label mb-0">Use Default (Medium):</label>
-                                <input type="checkbox" id="planner-sensitivity-default-toggle" class="toggle-checkbox">
-                            </div>
-                            <div class="mt-4">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-sm font-medium">Easy</span>
-                                    <input type="range" id="planner-sensitivity-slider" min="0" max="1" step="0.01" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                                    <span class="text-sm font-medium">Hard</span>
-                                </div>
-                            </div>
-                            <p class="form-hint">"Easy" mode gives you more time before a task turns red. "Hard" mode is less forgiving. The default is a balanced "Medium".</p>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Calendar Integration</legend>
-                            <div>
-                                <label for="planner-default-category" class="form-label">Default Category for New Tasks:</label>
-                                <select id="planner-default-category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                                    <!-- Options will be populated by JS -->
-                                </select>
-                            </div>
-                             <div class="flex items-center justify-between mt-4">
-                                <label for="allow-creation-on-click-toggle" class="form-label mb-0">Allow Creation on Click:</label>
-                                <input type="checkbox" id="allow-creation-on-click-toggle" data-action="toggleCreationOnClick" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer">
-                            </div>
-                             <div>
-                                <label for="planner-default-icon" class="form-label">Default Icon for New Tasks:</label>
-                                <div class="flex items-center space-x-2">
-                                    <input type="text" id="planner-default-icon" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                    <button type="button" data-action="openIconPicker" data-context="planner" class="themed-button-clear">Choose Icon</button>
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Vacation Schedule Section -->
-                <div class="collapsible-section" data-section-key="vacation">
-                    <h3 class="collapsible-header">
-                        <span>Vacation Schedule</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Vacation Mode</legend>
-                            <div id="vacation-manager-content" class="space-y-4">
-                                <!-- Vacation manager will be rendered here by JS -->
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Performance Section -->
-                <div class="collapsible-section" data-section-key="performance">
-                    <h3 class="collapsible-header">
-                        <span>Performance</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Calculations</legend>
-                            <div class="mb-4">
-                                <label for="calculation-horizon-amount" class="form-label">Calculation Horizon:</label>
-                                <div class="flex space-x-2 items-center">
-                                    <input type="number" id="calculation-horizon-amount" name="calculation-horizon-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                    <select id="calculation-horizon-unit" name="calculation-horizon-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                       <option value="days">Day(s)</option>
-                                       <option value="weeks">Week(s)</option>
-                                       <option value="months">Month(s)</option>
-                                       <option value="years" selected>Year(s)</option>
-                                    </select>
-                                </div>
-                                <p class="form-hint">How far into the future to project tasks for scheduling. Shorter horizons can improve performance.</p>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Other Features Section -->
-                <div class="collapsible-section" data-section-key="other">
-                    <h3 class="collapsible-header">
-                        <span>Other Features</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Journal</legend>
-                            <div id="journal-settings-content" class="space-y-4">
-                                <!-- Journal settings will be rendered here by JS -->
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>KPI Automation</legend>
-                             <div id="kpi-automation-settings" class="space-y-4">
-                                <!-- KPI automation settings will be rendered here by JS -->
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Performance Section -->
-                <div class="collapsible-section" data-section-key="performance">
-                    <h3 class="collapsible-header">
-                        <span>Performance</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Calculation Settings</legend>
-                            <div class="mb-4">
-                                <label for="calculation-horizon-amount" class="form-label">Calculation Horizon:</label>
-                                <div class="flex space-x-2 items-center">
-                                    <input type="number" id="calculation-horizon-amount" name="calculation-horizon-amount" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                    <select id="calculation-horizon-unit" name="calculation-horizon-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                                       <option value="days">Day(s)</option>
-                                       <option value="weeks">Week(s)</option>
-                                       <option value="months">Month(s)</option>
-                                       <option value="years" selected>Year(s)</option>
-                                    </select>
-                                </div>
-                                <p class="form-hint">How far into the future to project tasks for scheduling. Shorter horizons can improve performance.</p>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
-
-                <!-- Data & Notifications Section -->
-                <div class="collapsible-section" data-section-key="advanced">
-                    <h3 class="collapsible-header">
-                        <span>Data & Notifications</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </h3>
-                    <div class="collapsible-content">
-                        <fieldset>
-                            <legend>Notification Management</legend>
-                            <div id="notification-manager-content" class="space-y-4">
-                                <!-- This content will be rendered by script-part-3.js -->
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Data Management</legend>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="form-label">Export Data:</label>
-                                    <div class="flex flex-wrap gap-2" id="export-options-container">
-                                        <button data-action="exportData" data-export-type="all" class="themed-button-clear">Export All</button>
-                                        <button data-action="exportData" data-export-type="tasks" class="themed-button-clear">Tasks Only</button>
-                                        <button data-action="exportData" data-export-type="categories" class="themed-button-clear">Categories Only</button>
-                                        <button data-action="exportData" data-export-type="history" class="themed-button-clear">History Only</button>
-                                        <button data-action="exportData" data-export-type="settings" class="themed-button-clear">Settings Only</button>
-                                    </div>
-                                    <p class="form-hint">Export your application data to a JSON file.</p>
-                                </div>
-                                <div>
-                                    <label class="form-label">Import Data:</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button data-action="importData" class="control-button control-button-green themed-button-secondary">Import from File</button>
-                                        <button data-action="openMigrationTool" class="control-button control-button-yellow themed-button-tertiary">Migration Tool</button>
-                                    </div>
-                                    <input type="file" id="import-file-input" class="hidden" accept=".json">
-                                    <p class="form-hint">Import from a backup, or use the Migration Tool for old data formats.</p>
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
+                <!-- Other sections will be rendered here by JS -->
             </div>
         </div>
     </div>
 
-    <!-- Modal for Data Migration -->
-    <div id="data-migration-modal" class="modal">
-        <!-- Content will be rendered by JS -->
-    </div>
-
-    <!-- Modal for viewing task details and stats -->
-    <div id="task-view-modal" class="modal">
-        <div class="modal-content">
-            <button class="close-button" aria-label="Close Task View">&times;</button>
-            <div id="task-view-content">
-                <!-- Task details will be rendered here by JavaScript -->
-            </div>
-            <div id="task-stats-content" class="hidden">
-                <!-- Task statistics will be rendered here by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for Journal Entries -->
-    <div id="journal-modal" class="modal">
-        <div class="modal-content themed-modal-primary">
-            <button class="close-button" aria-label="Close Journal Entry">&times;</button>
-            <h2 id="journal-modal-title" class="text-2xl font-semibold mb-4">New Journal Entry</h2>
-            <form id="journal-form" class="space-y-4">
-                <input type="hidden" id="journal-entry-id">
-                <div>
-                    <label for="journal-entry-title" class="form-label">Title:</label>
-                    <input type="text" id="journal-entry-title" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <div>
-                    <label for="journal-entry-icon" class="form-label">Icon:</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" id="journal-entry-icon" placeholder="e.g., fa-solid fa-book" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <button type="button" id="open-journal-icon-picker" class="themed-button-clear">Choose Icon</button>
-                    </div>
-                </div>
-                <div>
-                    <label for="journal-entry-content" class="form-label">Content:</label>
-                    <textarea id="journal-entry-content" rows="10" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3 mt-8">
-                   <button type="button" class="cancel-journal-button themed-button-clear">Cancel</button>
-                   <button type="submit" class="themed-button-clear">Save Entry</button>
-               </div>
-            </form>
-        </div>
-    </div>
+    <div id="data-migration-modal" class="modal"><div class="modal-content bg-modal"></div></div>
+    <div id="task-view-modal" class="modal"><div class="modal-content bg-modal"></div></div>
+    <div id="journal-modal" class="modal"><div class="modal-content bg-modal"></div></div>
 
     <script type="module" src="js/script.js"></script>
 </body>

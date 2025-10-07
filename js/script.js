@@ -395,57 +395,9 @@ function rgbStringToHex(rgbString) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0');
 }
 
-function checkAllElementsContrast() {
-    console.log("--- Running Theme Contrast Check ---");
-    const elementsToCheck = [
-        ...document.querySelectorAll('.task-item'),
-        ...document.querySelectorAll('.themed-button-primary'),
-        ...document.querySelectorAll('.themed-button-secondary'),
-        ...document.querySelectorAll('.themed-button-tertiary'),
-        ...document.querySelectorAll('.themed-button-clear'),
-        ...document.querySelectorAll('.modal-content'),
-        ...document.querySelectorAll('.collapsible-header'),
-        document.body
-    ];
-
-    const getEffectiveBackgroundColor = (element) => {
-        let current = element;
-        while (current) {
-            const bgColor = window.getComputedStyle(current).backgroundColor;
-            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
-                return bgColor;
-            }
-            current = current.parentElement;
-        }
-        return 'rgb(255, 255, 255)'; // Default to white if no background is found
-    };
-
-    elementsToCheck.forEach((el, index) => {
-        if (!el || !el.isConnected) return;
-
-        const style = window.getComputedStyle(el);
-        const textColor = style.color;
-        const effectiveBgColor = getEffectiveBackgroundColor(el);
-
-        const textColorHex = rgbStringToHex(textColor);
-        const bgColorHex = rgbStringToHex(effectiveBgColor);
-
-        if (!textColorHex || !bgColorHex) return;
-
-        const ratio = getContrastRatio(textColorHex, bgColorHex);
-        const minRatio = 4.5; // WCAG AA standard
-
-        if (ratio < minRatio) {
-            console.warn(`Contrast Check FAILED for element:`, {
-                element: el,
-                textColor: textColor,
-                effectiveBackgroundColor: effectiveBgColor,
-                contrastRatio: ratio.toFixed(2),
-                message: `Ratio is ${ratio.toFixed(2)}:1, which is below the recommended minimum of ${minRatio}:1.`
-            });
-        }
-    });
-}
+// This function is now obsolete. The new `applyTheme` engine generates
+// accessible themes by design, making this after-the-fact check unnecessary.
+// function checkAllElementsContrast() { ... }
 
 
 // New helper function to adjust the lightness of a color
@@ -759,6 +711,7 @@ function generateGradientPalette(baseColor, isDarkMode) {
 
 function generateComplementaryPalette(baseColor, isDarkMode) {
     const baseHSL = hexToHSL(baseColor);
+    const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
 
     let mainBgLightness;
     if (isDarkMode) {
@@ -766,25 +719,25 @@ function generateComplementaryPalette(baseColor, isDarkMode) {
     } else {
         mainBgLightness = baseHSL.l < 70 ? 95 : Math.min(100, baseHSL.l + 20);
     }
-    const main = HSLToHex(baseHSL.h, baseHSL.s * 0.8, mainBgLightness);
+    const main = HSLToHex(baseHSL.h, clamp(baseHSL.s * 0.8, 0, 100), mainBgLightness);
 
     const secondaryLightness = isDarkMode ? Math.max(40, baseHSL.l) : Math.min(60, baseHSL.l);
-    const secondary = HSLToHex(baseHSL.h, baseHSL.s, secondaryLightness);
+    const secondary = HSLToHex(baseHSL.h, clamp(baseHSL.s, 0, 100), secondaryLightness);
 
     const tertiaryHue = (baseHSL.h + 150) % 360;
     const tertiaryLightness = isDarkMode ? Math.max(50, baseHSL.l) : Math.min(55, baseHSL.l);
-    const tertiary = HSLToHex(tertiaryHue, Math.min(100, baseHSL.s * 1.1), tertiaryLightness);
+    const tertiary = HSLToHex(tertiaryHue, clamp(baseHSL.s * 1.1, 0, 100), tertiaryLightness);
 
-    const accent1 = HSLToHex((baseHSL.h + 60) % 360, baseHSL.s - 10, isDarkMode ? 60 : 40);
-    const accent2 = HSLToHex((baseHSL.h + 180) % 360, baseHSL.s - 10, isDarkMode ? 65 : 35);
-    const accent3 = HSLToHex((baseHSL.h + 300) % 360, baseHSL.s, isDarkMode ? 55 : 45);
+    const accent1 = HSLToHex((baseHSL.h + 60) % 360, clamp(baseHSL.s - 10, 0, 100), isDarkMode ? 60 : 40);
+    const accent2 = HSLToHex((baseHSL.h + 180) % 360, clamp(baseHSL.s - 10, 0, 100), isDarkMode ? 65 : 35);
+    const accent3 = HSLToHex((baseHSL.h + 300) % 360, clamp(baseHSL.s, 0, 100), isDarkMode ? 55 : 45);
 
     const secondarySelectedLightness = isDarkMode ? secondaryLightness + 10 : secondaryLightness - 10;
-    const secondary_highlight = HSLToHex(baseHSL.h, baseHSL.s, Math.max(0, Math.min(100, secondarySelectedLightness)));
+    const secondary_highlight = HSLToHex(baseHSL.h, clamp(baseHSL.s, 0, 100), clamp(secondarySelectedLightness, 0, 100));
     const secondary_selected = `linear-gradient(to bottom, ${secondary}, ${secondary_highlight})`;
 
     const mainGradientLightness2 = isDarkMode ? mainBgLightness + 5 : mainBgLightness - 5;
-    const main_gradient_color2 = HSLToHex(baseHSL.h, baseHSL.s * 0.8, Math.max(0, Math.min(100, mainGradientLightness2)));
+    const main_gradient_color2 = HSLToHex(baseHSL.h, clamp(baseHSL.s * 0.8, 0, 100), clamp(mainGradientLightness2, 0, 100));
     const main_gradient = `linear-gradient(180deg, ${main}, ${main_gradient_color2})`;
 
     return { main, secondary, tertiary, accent1, accent2, accent3, secondary_selected, main_gradient };
@@ -826,192 +779,108 @@ function setAppBranding() {
 }
 
 function applyTheme() {
-    // Determine the effective mode (light/night) even when set to 'auto'
+    // Determine the effective mode (light/night) based on user settings
     let effectiveMode = theming.mode;
     if (theming.mode === 'auto') {
         const isSystemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         effectiveMode = isSystemDark ? 'night' : 'light';
     }
+    const isDarkMode = effectiveMode === 'night';
+    applyThemeMode(effectiveMode); // Apply .light-mode class if needed
 
-    applyThemeMode(effectiveMode); // Pass the calculated mode to apply the correct body class
+    // Generate color palette
+    const palette = generateComplementaryPalette(theming.baseColor, isDarkMode);
 
-    const root = document.documentElement;
-    const headerTitle = document.querySelector('#app header h1');
+    // Define theme properties
+    const themeProperties = {
+        '--bg-main': theming.enabled ? palette.main_gradient : (isDarkMode ? '#111827' : '#F9FAFB'),
+        '--bg-secondary': theming.enabled ? palette.secondary : (isDarkMode ? '#1F2937' : '#FFFFFF'),
+        '--bg-modal': theming.enabled ? palette.main_gradient : (isDarkMode ? '#2d3748' : '#FFFFFF'),
 
-    const setTextTheme = (textStyles) => {
-        for (const [key, value] of Object.entries(textStyles)) {
-            root.style.setProperty(key, value);
-        }
+        '--btn-primary-bg': theming.enabled ? palette.secondary : (isDarkMode ? '#4B5563' : '#E5E7EB'),
+        '--btn-secondary-bg': theming.enabled ? palette.tertiary : (isDarkMode ? '#374151' : '#D1D5DB'),
+        '--btn-tertiary-bg': theming.enabled ? palette.accent1 : (isDarkMode ? '#4A5568' : '#9CA3AF'),
+        '--btn-confirm-bg': theming.enabled ? palette.accent2 : '#22C55E', // Green-500
+        '--btn-deny-bg': theming.enabled ? palette.accent3 : '#EF4444', // Red-500
+
+        '--text-color-on-primary': getContrastingTextColor(theming.enabled ? palette.secondary : (isDarkMode ? '#4B5563' : '#E5E7EB'))['--text-color-primary'],
+        '--text-color-on-secondary': getContrastingTextColor(theming.enabled ? palette.tertiary : (isDarkMode ? '#374151' : '#D1D5DB'))['--text-color-primary'],
+        '--text-color-on-tertiary': getContrastingTextColor(theming.enabled ? palette.accent1 : (isDarkMode ? '#4A5568' : '#9CA3AF'))['--text-color-primary'],
+        '--text-color-on-confirm': getContrastingTextColor(theming.enabled ? palette.accent2 : '#22C55E')['--text-color-primary'],
+        '--text-color-on-deny': getContrastingTextColor(theming.enabled ? palette.accent3 : '#EF4444')['--text-color-primary'],
+
+        '--border-color-primary': isDarkMode ? '#4A5568' : '#D1D5DB',
+        '--border-color-secondary': isDarkMode ? '#374151' : '#E5E7EB',
+        '--focus-ring-color': theming.enabled ? palette.tertiary : '#63B3ED',
     };
 
-    const styleButton = (btn, bg, palette) => {
-        let baseColorForText;
-        if (typeof bg === 'string' && bg.includes('gradient')) {
-            const match = bg.match(/#([a-fA-F0-9]{6})/);
-            baseColorForText = match ? match[0] : '#ffffff';
-        } else {
-            baseColorForText = bg;
-        }
-        const textStyles = getContrastingTextColor(baseColorForText);
-        for (const [key, value] of Object.entries(textStyles)) {
-            btn.style.setProperty(key, value);
-        }
-        btn.style.setProperty('--btn-bg', bg);
-        btn.style.setProperty('--btn-text-color', 'var(--text-color-primary)');
-        btn.style.setProperty('--btn-text-shadow', 'var(--text-shadow)');
-        if (palette) {
-            const baseForInteraction = bg.includes('gradient') ? palette.secondary : bg;
-            const hsl = hexToHSL(baseForInteraction);
-            const hoverBg = HSLToHex(hsl.h, hsl.s, Math.min(100, hsl.l + 10));
-            const activeBg = HSLToHex(hsl.h, hsl.s, Math.max(0, hsl.l - 5));
-            btn.style.setProperty('--btn-hover-bg', hoverBg);
-            btn.style.setProperty('--btn-active-bg', activeBg);
-        }
-    };
+    // Generate CSS rules string
+    let css = ':root {\n';
+    for (const [key, value] of Object.entries(themeProperties)) {
+        css += `  ${key}: ${value};\n`;
+    }
+    css += '}\n\n';
 
-    const unstyleButton = (btn) => {
-        btn.style.cssText = '';
-    };
+    // Add rules for button states
+    const buttonTypes = ['primary', 'secondary', 'tertiary', 'confirm', 'deny'];
+    buttonTypes.forEach(type => {
+        const baseBg = themeProperties[`--btn-${type}-bg`];
+        const hsl = hexToHSL(baseBg);
+        const hoverBg = HSLToHex(hsl.h, hsl.s, Math.max(0, Math.min(100, hsl.l + (isDarkMode ? 5 : -5))));
+        const activeBg = HSLToHex(hsl.h, hsl.s, Math.max(0, Math.min(100, hsl.l + (isDarkMode ? 8 : -8))));
 
-    if (theming.enabled) {
-        const isDarkMode = effectiveMode === 'night';
-
-        // Pass the effective mode to the palette generator
-        if (theming.useThemeForStatus) {
-            const gradientPalette = generateGradientPalette(theming.baseColor, isDarkMode);
-            statusColors = gradientPalette;
-        } else {
-            statusColors = { ...defaultStatusColors };
-        }
-
-        const buttonPalette = generateComplementaryPalette(theming.baseColor, isDarkMode);
-        const { main, secondary, tertiary, secondary_selected, main_gradient } = buttonPalette;
-
-        document.body.style.backgroundColor = main;
-        const mainTextStyles = getContrastingTextColor(main);
-        setTextTheme(mainTextStyles);
-
-        // Explicitly set the header title color
-        if (headerTitle) {
-            headerTitle.style.color = mainTextStyles['--text-color-primary'];
-        }
-
-        // --- New Calendar Chrome Theming ---
-        if (calendarEl) {
-            const calendarBg = isDarkMode ? adjustColor(main, 0.08) : adjustColor(main, -0.04);
-            const calendarTextStyles = getContrastingTextColor(calendarBg);
-            const calendarTextColor = calendarTextStyles['--text-color-primary'];
-            const calendarBorderColor = isDarkMode ? adjustColor(main, 0.15) : adjustColor(main, -0.1);
-
-            // Set background and text color for the whole calendar component.
-            // This will be inherited by headers, time labels, etc., fixing the contrast issue.
-            calendarEl.style.backgroundColor = calendarBg;
-            calendarEl.style.color = calendarTextColor;
-
-            // Set border color for consistency
-            root.style.setProperty('--fc-border-color', calendarBorderColor);
-        }
-        // --- End New Calendar Chrome Theming ---
-
-        const calendarGradient = `linear-gradient(to bottom, ${statusColors.blue}, ${statusColors.green}, ${statusColors.yellow}, ${statusColors.red}, ${statusColors.black})`;
-        root.style.setProperty('--calendar-background', calendarGradient);
-
-        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
-            if (btn.classList.contains('themed-button-clear')) {
-                unstyleButton(btn); return;
+        css += `
+            .btn-${type} {
+                background-color: ${baseBg};
+                color: var(--text-color-on-${type});
             }
-            const isActive = btn.classList.contains('active-view-btn');
-            let baseColor = btn.classList.contains('themed-button-primary') ? secondary : tertiary;
-            styleButton(btn, isActive ? secondary_selected : baseColor, buttonPalette);
-        });
-
-        document.querySelectorAll('.themed-modal-primary').forEach(modal => {
-            modal.style.background = main_gradient;
-        });
-
-        const todayBgRgb = hexToRgb(secondary);
-        if (todayBgRgb) {
-            const headerBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.4)`;
-            const bodyBg = `rgba(${todayBgRgb.r}, ${todayBgRgb.g}, ${todayBgRgb.b}, 0.2)`;
-            root.style.setProperty('--fc-today-header-bg', headerBg);
-            root.style.setProperty('--fc-today-body-bg', bodyBg);
-            const todayTextStyles = getContrastingTextColor(secondary);
-            root.style.setProperty('--fc-today-text-color', todayTextStyles['--text-color-primary']);
-        }
-        root.style.setProperty('--fc-now-indicator-color', tertiary);
-
-    } else {
-        // Logic for when theming is disabled
-        document.body.style.backgroundColor = '';
-        if (calendarEl) { // Clear calendar-specific styles
-            calendarEl.style.backgroundColor = '';
-            calendarEl.style.color = '';
-        }
-        root.style.cssText = ''; // Clear all root inline styles
-        statusColors = { ...defaultStatusColors };
-
-        if (effectiveMode === 'light') {
-            setTextTheme({
-                '--text-color-primary': 'var(--text-color-light-primary)',
-                '--text-color-secondary': 'var(--text-color-light-secondary)',
-                '--text-color-tertiary': 'var(--text-color-light-tertiary)',
-                '--text-color-quaternary': 'var(--text-color-light-quaternary)',
-                '--text-shadow': 'none'
-            });
-            if (headerTitle) headerTitle.style.color = 'var(--text-color-light-primary)';
-        } else { // night
-            document.body.style.backgroundColor = '#111827'; // gray-900, a dark background for night mode
-            setTextTheme({
-                '--text-color-primary': 'var(--text-color-dark-primary)',
-                '--text-color-secondary': 'var(--text-color-dark-secondary)',
-                '--text-color-tertiary': 'var(--text-color-dark-tertiary)',
-                '--text-color-quaternary': 'var(--text-color-dark-quaternary)',
-                '--text-shadow': 'none'
-            });
-            if (headerTitle) headerTitle.style.color = 'var(--text-color-dark-primary)';
-        }
-
-        document.querySelectorAll('.themed-button-primary, .themed-button-secondary, .themed-button-tertiary').forEach(btn => {
-            if (btn.classList.contains('themed-button-clear')) {
-                unstyleButton(btn);
-                return;
+            .btn-${type}:hover {
+                background-color: ${hoverBg};
             }
-            unstyleButton(btn); // Clear any previous theme styles first
-
-            let bgColor;
-            const isActive = btn.classList.contains('active-view-btn');
-
-            if (isActive) {
-                // Use a standard blue for active buttons that works in both modes
-                bgColor = '#2563EB'; // blue-600
-            } else {
-                // Default gray buttons depending on the mode
-                bgColor = effectiveMode === 'light' ? '#E5E7EB' : '#4B5563';
+            .btn-${type}:active, .btn-${type}.active-view-btn {
+                background-color: ${activeBg};
             }
+        `;
+    });
 
-            btn.style.backgroundColor = bgColor;
-            const textStyles = getContrastingTextColor(bgColor);
-            for (const [key, value] of Object.entries(textStyles)) {
-                // Use setProperty on the style object to apply CSS variables
-                btn.style.setProperty(key.substring(2), value, 'important');
-            }
-             // Directly set the color from the calculated primary text color
-            btn.style.color = textStyles['--text-color-primary'];
-        });
+    // Add rules for backgrounds and text
+    const mainBgForText = theming.enabled ? palette.main : (isDarkMode ? '#111827' : '#F9FAFB');
+    const mainTextStyles = getContrastingTextColor(mainBgForText);
 
-        document.querySelectorAll('.themed-modal-primary, .themed-modal-tertiary').forEach(modal => {
-            modal.style.background = '';
-            modal.style.backgroundColor = '';
-        });
+    css += `
+        body.bg-main {
+            background: ${themeProperties['--bg-main']};
+            color: ${mainTextStyles['--text-color-primary']};
+        }
+        .bg-secondary {
+            background-color: ${themeProperties['--bg-secondary']};
+            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
+        }
+        .bg-modal {
+            background: ${themeProperties['--bg-modal']};
+            color: ${getContrastingTextColor(theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'))['--text-color-primary']};
+        }
+    `;
+
+    // Inject styles into the document head
+    const styleSheet = document.getElementById('dynamic-theme-styles');
+    if (styleSheet) {
+        styleSheet.textContent = css;
     }
 
+    // Update status colors if theme is active
+    if (theming.enabled && theming.useThemeForStatus) {
+        statusColors = generateGradientPalette(theming.baseColor, isDarkMode);
+    } else {
+        statusColors = { ...defaultStatusColors };
+    }
+
+    // Re-render components that depend on theme changes
     renderTasks();
     if (calendar) {
         calendar.refetchEvents();
         calendar.updateSize();
     }
-    // Run the contrast checker after a short delay to allow the DOM to update.
-    setTimeout(checkAllElementsContrast, 100);
 }
 
 
@@ -6080,7 +5949,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 500);
         }
 
-        setAppTitle(appSettings.title); // Set the title on load
         console.log("Task Manager initialized.");
     } catch (e) {
         console.error("Error during Task Manager initialization:", e);

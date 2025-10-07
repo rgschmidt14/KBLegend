@@ -1,7 +1,19 @@
 /**
- * This file will contain template functions that generate HTML strings.
- * This helps to separate the HTML structure from the JavaScript logic.
+ * js/templates.js
+ * ============================================================================
+ * THIS FILE CONTAINS ALL HTML TEMPLATE FUNCTIONS.
+ *
+ * All old styling classes have been replaced with the new, semantic,
+ * theme-agnostic classes (e.g., .btn, .btn-primary, .bg-secondary).
+ * The actual colors for these classes will be injected by the new
+ * theme engine in script.js.
+ * ============================================================================
  */
+
+
+// ============================================================================
+// UTILITY FUNCTIONS (Copied from script.js for standalone use if needed)
+// ============================================================================
 
 function getAbsoluteRepetitionString(task) {
     if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
@@ -97,14 +109,17 @@ function getDurationMs(amount, unit) {
 }
 
 
-function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTextColor, appSettings }) {
+// ============================================================================
+// TEMPLATE FUNCTIONS
+// ============================================================================
+
+function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
     const category = categories.find(c => c.id === task.categoryId);
     const categoryName = category ? category.name : 'Uncategorized';
 
     let categoryHtml = '';
     if (taskDisplaySettings.showCategory) {
-        const categoryColor = category ? category.color : '#808080'; // Default to gray
-        // The text color is now handled by the parent .task-item's CSS variables
+        const categoryColor = category ? category.color : '#808080';
         categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor};">${categoryName}</span>`;
     }
 
@@ -137,7 +152,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTex
         }
         progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
         if (!task.confirmationState && task.status !== 'blue') {
-            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="edit-progress-button" title="Edit Progress" aria-label="Edit progress for ${task.name}">[Edit]</button>`;
+            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs" title="Edit Progress" aria-label="Edit progress for ${task.name}">[Edit]</button>`;
         }
         progressHtml += `</div>`;
     }
@@ -147,7 +162,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTex
         : '';
 
     const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
-    const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="common-buttons-container"></div>`;
+    const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="flex space-x-2 mt-2"></div>`;
     const iconToUse = task.icon || (category ? category.icon : null);
     const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
 
@@ -172,7 +187,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, getContrastingTex
 function categoryManagerTemplate(categories) {
     let content = '';
     if (categories.length === 0) {
-        content += '<p class="text-gray-500 italic">No categories created yet.</p>';
+        content += '<p class="italic">No categories created yet.</p>';
     } else {
         content += categories.map(cat => `
             <div class="p-2 border-b" id="category-item-${cat.id}">
@@ -181,9 +196,9 @@ function categoryManagerTemplate(categories) {
                         <span class="font-medium cursor-pointer">${cat.icon ? `<i class="${cat.icon} mr-2"></i>` : ''}${cat.name}</span>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button data-action="openIconPicker" data-context="category" data-category-id="${cat.id}" class="themed-button-clear text-xs">Set Icon</button>
+                        <button data-action="openIconPicker" data-context="category" data-category-id="${cat.id}" class="btn btn-clear text-xs">Set Icon</button>
                         <input type="color" value="${cat.color}" data-category-id="${cat.id}" class="category-color-picker h-8 w-12 border-none cursor-pointer rounded">
-                        <button data-action="deleteCategory" data-category-id="${cat.id}" class="themed-button-clear font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
+                        <button data-action="deleteCategory" data-category-id="${cat.id}" class="btn btn-clear font-bold text-lg" aria-label="Delete category ${cat.name}">&times;</button>
                     </div>
                 </div>
                 <div class="mt-2 flex justify-between items-center">
@@ -192,8 +207,8 @@ function categoryManagerTemplate(categories) {
                         Auto-apply icon
                     </label>
                     <div class="flex justify-end space-x-2">
-                        <button data-action="bulkEdit" data-category-id="${cat.id}" class="themed-button-clear text-xs">Bulk Edit</button>
-                        <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="themed-button-clear text-xs">Delete All Tasks</button>
+                        <button data-action="bulkEdit" data-category-id="${cat.id}" class="btn btn-clear text-xs">Bulk Edit</button>
+                        <button data-action="deleteCategoryTasks" data-category-id="${cat.id}" class="btn btn-clear text-xs">Delete All Tasks</button>
                     </div>
                 </div>
                 <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
@@ -203,7 +218,7 @@ function categoryManagerTemplate(categories) {
 
     content += `
         <div class="mt-4">
-            <button class="control-button control-button-blue w-full themed-button-secondary" data-action="renderCategoryAdd">
+            <button class="btn btn-secondary btn-md w-full" data-action="renderCategoryAdd">
                 Add New Category
             </button>
             <div id="add-category-form-container" class="mt-2"></div>
@@ -216,11 +231,8 @@ function categoryManagerTemplate(categories) {
 function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
     const category = categories.find(c => c.id === task.categoryId);
     const categoryName = category ? category.name : 'Uncategorized';
-
-    // For historical tasks, completionDate is the due date. For active tasks, it's dueDate.
     const dueDate = isHistorical ? new Date(task.completionDate) : (task.dueDate ? new Date(task.dueDate) : null);
     const dueDateStr = (dueDate && !isNaN(dueDate)) ? formatDateTime(dueDate, appSettings.use24HourFormat) : 'No due date';
-
     const durationStr = formatDuration(task.durationAmount || task.estimatedDurationAmount, task.durationUnit || task.estimatedDurationUnit);
 
     let repetitionStr = 'Non-Repeating';
@@ -232,14 +244,13 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
         }
     }
 
-    // Determine which actions to show
     const actionsHtml = isHistorical ? `
-        <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="themed-button-clear">Delete This Record</button>
-        <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="themed-button-clear">View Parent Task Stats</button>
+        <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm">Delete This Record</button>
+        <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="btn btn-clear">View Parent Task Stats</button>
     ` : `
-        <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="themed-button-clear">Delete Task</button>
-        <button data-action="viewTaskStats" data-task-id="${task.id}" class="themed-button-clear">View Statistics</button>
-        <button data-action="editTaskFromView" data-task-id="${task.id}" class="themed-button-clear">Edit Task</button>
+        <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="btn btn-deny btn-sm">Delete Task</button>
+        <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">View Statistics</button>
+        <button data-action="editTaskFromView" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Edit Task</button>
     `;
 
     return `
@@ -261,39 +272,35 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
 function historyDeleteConfirmationTemplate(historyId, taskId) {
     return `
         <div class="history-delete-confirmation flex justify-end items-center space-x-2 w-full">
-            <span class="text-sm font-semibold text-red-700">Delete?</span>
-            <button data-action="confirmHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" data-delete-type="single" class="themed-button-clear text-xs">This Entry</button>
-            <button data-action="confirmHistoryDelete" data-task-id="${taskId}" data-delete-type="all" class="themed-button-clear text-xs">All History for Task</button>
-            <button data-action="cancelHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Cancel</button>
+            <span class="text-sm font-semibold">Delete?</span>
+            <button data-action="confirmHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" data-delete-type="single" class="btn btn-deny btn-xs">This Entry</button>
+            <button data-action="confirmHistoryDelete" data-task-id="${taskId}" data-delete-type="all" class="btn btn-deny btn-xs">All History for Task</button>
+            <button data-action="cancelHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" class="btn btn-clear text-xs">Cancel</button>
         </div>
     `;
 }
 
 function vacationChangeConfirmationModalTemplate(changedTasks) {
-    const taskListHtml = changedTasks.map(t => {
-        const oldDateStr = t.oldDueDate ? new Date(t.oldDueDate).toLocaleString() : 'N/A';
-        const newDateStr = t.newDueDate ? new Date(t.newDueDate).toLocaleString() : 'N/A';
-        return `
-            <li class="text-sm p-1 rounded">
-                <strong>${t.name}</strong>: <span class="line-through text-gray-500">${oldDateStr}</span> -> <span class="font-semibold text-green-400">${newDateStr}</span>
-            </li>
-        `;
-    }).join('');
+    const taskListHtml = changedTasks.map(t => `
+        <li class="text-sm p-1 rounded">
+            <strong>${t.name}</strong>: <span class="line-through">${new Date(t.oldDueDate).toLocaleString()}</span> -> <span class="font-semibold">${new Date(t.newDueDate).toLocaleString()}</span>
+        </li>
+    `).join('');
 
     return `
         <div id="vacation-change-confirm-modal" class="modal">
-            <div class="modal-content themed-modal-primary">
+            <div class="modal-content bg-modal">
                  <button class="close-button" id="vacation-change-close-btn">&times;</button>
                 <h3 class="text-xl font-semibold mb-4">Confirm Schedule Changes</h3>
                 <p class="mb-4 text-sm">The recent change to vacations or categories will affect the following tasks. Please review the changes and confirm.</p>
-                <div class="max-h-60 overflow-y-auto border border-gray-600 rounded p-2 mb-4 bg-gray-900">
+                <div class="max-h-60 overflow-y-auto border rounded p-2 mb-4">
                     <ul class="space-y-2">
-                        ${taskListHtml || '<li class="text-sm italic text-gray-500">No tasks were affected by this change.</li>'}
+                        ${taskListHtml || '<li class="text-sm italic">No tasks were affected by this change.</li>'}
                     </ul>
                 </div>
                 <div class="flex justify-end space-x-2">
-                    <button id="cancel-vacation-change-btn" class="themed-button-tertiary">Cancel</button>
-                    <button id="confirm-vacation-change-btn" class="themed-button-secondary">Confirm Changes</button>
+                    <button id="cancel-vacation-change-btn" class="btn btn-tertiary btn-md">Cancel</button>
+                    <button id="confirm-vacation-change-btn" class="btn btn-secondary btn-md">Confirm Changes</button>
                 </div>
             </div>
         </div>
@@ -301,21 +308,21 @@ function vacationChangeConfirmationModalTemplate(changedTasks) {
 }
 
 const appointmentConflictModalTemplate = (conflictedTasks) => `
-<div class="modal-content themed-modal-primary">
+<div class="modal-content bg-modal">
     <button id="appointment-conflict-close-btn" class="close-button" aria-label="Close">&times;</button>
     <h2 class="text-2xl font-semibold mb-4">Appointment Conflict</h2>
     <p class="mb-4">The following appointments are scheduled during a vacation period. How would you like to proceed?</p>
-    <div class="space-y-2 mb-6 max-h-60 overflow-y-auto p-2 bg-gray-200 dark:bg-gray-700 rounded">
+    <div class="space-y-2 mb-6 max-h-60 overflow-y-auto p-2 rounded">
         ${conflictedTasks.map(task => `
-            <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+            <div class="p-2 rounded-md">
                 <p class="font-semibold">${task.name}</p>
                 <p class="text-sm">Current Date: ${new Date(task.dueDate).toLocaleString()}</p>
             </div>
         `).join('')}
     </div>
     <div class="flex justify-end space-x-4">
-        <button id="keep-appointments-btn" class="themed-button-secondary">Keep As Is</button>
-        <button id="reschedule-appointments-btn" class="themed-button-primary">Reschedule Automatically</button>
+        <button id="keep-appointments-btn" class="btn btn-secondary btn-md">Keep As Is</button>
+        <button id="reschedule-appointments-btn" class="btn btn-primary btn-md">Reschedule Automatically</button>
     </div>
 </div>
 `;
@@ -325,13 +332,13 @@ function vacationManagerTemplate(vacations, categories) {
         <div class="flex items-center justify-between p-2 border-b">
             <div>
                 <p class="font-medium">${v.name}</p>
-                <p class="text-xs text-gray-400">
+                <p class="text-xs">
                     ${new Date(v.startDate).toLocaleDateString()} - ${new Date(v.endDate).toLocaleDateString()}
                 </p>
             </div>
-            <button data-action="deleteVacation" data-id="${v.id}" class="themed-button-clear font-bold text-lg">&times;</button>
+            <button data-action="deleteVacation" data-id="${v.id}" class="btn btn-clear font-bold text-lg">&times;</button>
         </div>
-    `).join('') : '<p class="text-sm italic text-gray-500">No vacations scheduled.</p>';
+    `).join('') : '<p class="text-sm italic">No vacations scheduled.</p>';
 
     const categoryBypassHtml = categories.map(cat => `
         <label class="flex items-center space-x-2">
@@ -345,23 +352,23 @@ function vacationManagerTemplate(vacations, categories) {
             <h4 class="font-semibold mb-2">Scheduled Vacations</h4>
             <div id="vacation-list" class="space-y-2 mb-4">${vacationListHtml}</div>
             <form id="add-vacation-form" class="space-y-3 p-3 border rounded-md">
-                <input type="text" id="vacation-name" placeholder="Vacation Name (e.g., 'Family Trip')" required class="w-full px-3 py-2 border rounded-md">
+                <input type="text" id="vacation-name" placeholder="Vacation Name" required>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="vacation-start-date" class="text-sm">Start Date</label>
-                        <input type="date" id="vacation-start-date" required class="w-full px-3 py-2 border rounded-md">
+                        <input type="date" id="vacation-start-date" required>
                     </div>
                     <div>
                         <label for="vacation-end-date" class="text-sm">End Date</label>
-                        <input type="date" id="vacation-end-date" required class="w-full px-3 py-2 border rounded-md">
+                        <input type="date" id="vacation-end-date" required>
                     </div>
                 </div>
-                <button type="submit" class="w-full themed-button-secondary">Add Vacation</button>
+                <button type="submit" class="btn btn-secondary btn-md w-full">Add Vacation</button>
             </form>
         </div>
         <div class="mt-4">
              <h4 class="font-semibold mb-2">Category Vacation Bypass</h4>
-             <p class="text-xs italic text-gray-400 mb-2">Tasks in checked categories will NOT be pushed by vacations.</p>
+             <p class="text-xs italic mb-2">Tasks in checked categories will NOT be pushed by vacations.</p>
              <div id="category-bypass-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 ${categoryBypassHtml}
              </div>
@@ -371,11 +378,11 @@ function vacationManagerTemplate(vacations, categories) {
 
 function taskViewDeleteConfirmationTemplate(taskId) {
     return `
-        <div class="p-3 rounded-lg border-2 border-dashed border-red-500 bg-red-50">
-            <p class="text-center text-red-800 font-semibold">Are you sure you want to delete this task?</p>
+        <div class="p-3 rounded-lg border-2 border-dashed">
+            <p class="text-center font-semibold">Are you sure?</p>
             <div class="flex justify-center space-x-4 mt-3">
-                <button data-action="confirmDeleteFromView" data-task-id="${taskId}" class="themed-button-clear text-red-700 font-bold">Yes, Delete</button>
-                <button data-action="cancelDeleteFromView" data-task-id="${taskId}" class="themed-button-clear">No, Cancel</button>
+                <button data-action="confirmDeleteFromView" data-task-id="${taskId}" class="btn btn-deny btn-sm">Yes, Delete</button>
+                <button data-action="cancelDeleteFromView" data-task-id="${taskId}" class="btn btn-clear">No, Cancel</button>
             </div>
         </div>
     `;
@@ -383,11 +390,11 @@ function taskViewDeleteConfirmationTemplate(taskId) {
 
 function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskId) {
     return `
-        <div class="p-3 rounded-lg border-2 border-dashed border-yellow-500 bg-yellow-50">
-            <p class="text-center text-yellow-800 font-semibold">Delete this specific history record?</p>
+        <div class="p-3 rounded-lg border-2 border-dashed">
+            <p class="text-center font-semibold">Delete this record?</p>
             <div class="flex justify-center space-x-4 mt-3">
-                <button data-action="confirmDeleteHistoryRecordFromView" data-history-event-id="${historyEventId}" data-task-id="${originalTaskId}" class="themed-button-clear text-red-700 font-bold">Yes, Delete Record</button>
-                <button data-action="cancelDeleteHistoryRecordFromView" class="themed-button-clear">No, Cancel</button>
+                <button data-action="confirmDeleteHistoryRecordFromView" data-history-event-id="${historyEventId}" data-task-id="${originalTaskId}" class="btn btn-deny btn-sm">Yes, Delete</button>
+                <button data-action="cancelDeleteHistoryRecordFromView" class="btn btn-clear">No, Cancel</button>
             </div>
         </div>
     `;
@@ -395,60 +402,22 @@ function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskI
 
 function dataMigrationModalTemplate() {
     return `
-        <div class="modal-content">
-            <h3 class="text-xl font-semibold mb-4">Task Data Migration & Integrity Tool</h3>
-            <button class="close-button">&times;</button>
-
-            <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded border-yellow-400 bg-yellow-50">
-                <h4 class="font-semibold text-yellow-800">Orphaned History Cleanup</h4>
-                <p id="orphan-summary" class="text-sm text-yellow-700 my-2"></p>
-                <p class="text-xs text-gray-600 mb-3">The following history records belong to tasks that have been deleted. You can select and remove them to clean up your calendar view.</p>
-                <div id="orphan-list-container" class="max-h-60 overflow-y-auto border rounded bg-white p-2 space-y-2">
-                    <!-- Orphaned tasks will be listed here -->
-                </div>
-                <div class="mt-3 flex justify-between items-center">
-                    <label class="text-xs flex items-center"><input type="checkbox" id="select-all-orphans-checkbox" class="mr-2">Select All</label>
-                    <button id="delete-selected-orphans-btn" data-action="deleteSelectedOrphans" class="control-button control-button-red themed-button-tertiary">Delete Selected</button>
-                </div>
+        <h3 class="text-xl font-semibold mb-4">Data Migration & Integrity Tool</h3>
+        <button class="close-button">&times;</button>
+        <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded">
+            <h4 class="font-semibold">Orphaned History Cleanup</h4>
+            <p id="orphan-summary" class="text-sm my-2"></p>
+            <p class="text-xs mb-3">The following records belong to deleted tasks.</p>
+            <div id="orphan-list-container" class="max-h-60 overflow-y-auto border rounded p-2 space-y-2"></div>
+            <div class="mt-3 flex justify-between items-center">
+                <label class="text-xs flex items-center"><input type="checkbox" id="select-all-orphans-checkbox" class="mr-2">Select All</label>
+                <button id="delete-selected-orphans-btn" data-action="deleteSelectedOrphans" class="btn btn-deny btn-sm">Delete Selected</button>
             </div>
-
-            <div class="mt-6 pt-4 border-t border-gray-600">
-                <h4 class="font-semibold text-red-500">Danger Zone</h4>
-                <p class="text-sm text-gray-400 my-2">This action is permanent and cannot be undone.</p>
-                <button id="delete-all-history-btn" data-action="deleteAllHistory" class="control-button control-button-red w-full themed-button-tertiary">Delete All Task History</button>
-            </div>
-
-            <div id="migration-step-1" class="mt-6 pt-4 border-t border-gray-200">
-                <h4 class="font-semibold">Migrate from File</h4>
-                <p class="mb-4">Upload an old task data file (JSON format) to migrate tasks.</p>
-                <input type="file" id="migration-file-input" accept=".json" class="w-full p-2 border rounded">
-            </div>
-
-            <div id="migration-step-2" class="hidden mt-4">
-                <div id="migration-summary" class="mb-4 p-3 bg-blue-100 text-blue-800 rounded-lg"></div>
-                <p class="mb-2 font-semibold">Fields to Map</p>
-                <div id="migration-differences-area" class="space-y-2 p-2 border rounded border-yellow-400 bg-yellow-50 mb-4">
-                    <!-- Fields that require manual mapping will be shown here. -->
-                </div>
-
-                <p class="mb-2 font-semibold text-gray-500">Identical Fields (Auto-Mapped)</p>
-                <div id="migration-identical-area" class="space-y-2 p-2 border rounded bg-gray-100 text-gray-500">
-                    <!-- Auto-mapped fields shown here, disabled -->
-                </div>
-
-                <div class="mt-4 flex justify-end space-x-2">
-                    <button id="cancel-migration-btn" class="themed-button-tertiary">Cancel</button>
-                    <button id="run-migration-btn" class="themed-button-secondary">Run Migration</button>
-                </div>
-            </div>
-
-            <div id="migration-step-confirm" class="hidden mt-4">
-                <p class="mb-4 text-center" id="migration-confirm-message"></p>
-                <div class="mt-4 flex justify-center space-x-2">
-                    <button id="cancel-confirm-btn" class="themed-button-tertiary">Cancel</button>
-                    <button id="run-confirm-btn" class="themed-button-secondary">Confirm Migration</button>
-                </div>
-            </div>
+        </div>
+        <div class="mt-6 pt-4 border-t">
+            <h4 class="font-semibold">Danger Zone</h4>
+            <p class="text-sm my-2">This action is permanent and cannot be undone.</p>
+            <button id="delete-all-history-btn" data-action="deleteAllHistory" class="btn btn-deny btn-md w-full">Delete All Task History</button>
         </div>
     `;
 }
@@ -458,81 +427,61 @@ function journalSettingsTemplate(settings) {
         <div>
             <label for="weekly-goal-icon-input" class="form-label">Weekly Goal Icon:</label>
             <div class="flex items-center space-x-2">
-                <input type="text" id="weekly-goal-icon-input" value="${settings.weeklyGoalIcon}" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                <button type="button" id="open-weekly-goal-icon-picker" data-action="openIconPicker" data-context="journalGoal" class="themed-button-clear">Choose Icon</button>
+                <input type="text" id="weekly-goal-icon-input" value="${settings.weeklyGoalIcon}" class="flex-grow">
+                <button type="button" id="open-weekly-goal-icon-picker" data-action="openIconPicker" data-context="journalGoal" class="btn btn-clear">Choose</button>
             </div>
-            <p class="form-hint">Set the Font Awesome icon for weekly goals when sorting the journal by icon.</p>
         </div>
     `;
 }
 
 function bulkEditFormTemplate(categoryId, settings) {
-    const {
-        durationAmount = '',
-        durationUnit = 'minutes',
-        completionType = '',
-    } = settings;
-
+    const { durationAmount = '', durationUnit = 'minutes', completionType = '' } = settings;
     return `
-        <div class="p-4 rounded-md" style="background-color: #374151; border: 1px solid #4b5563;">
-            <h4 class="font-bold mb-3" style="color: #d1d5db;">Bulk Edit Tasks in this Category</h4>
+        <div class="p-4 rounded-md bg-secondary">
+            <h4 class="font-bold mb-3">Bulk Edit Tasks</h4>
             <form id="bulk-edit-form-${categoryId}" class="space-y-4">
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="form-label" style="color: #d1d5db;">Set Duration:</label>
+                        <label class="form-label">Set Duration:</label>
                         <div class="flex space-x-2 items-center">
-                            <input type="number" name="durationAmount" value="${durationAmount}" min="1" placeholder="e.g., 30" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 duration-input" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
-                            <select name="durationUnit" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 flex-grow" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                            <input type="number" name="durationAmount" value="${durationAmount}" min="1" class="duration-input">
+                            <select name="durationUnit" class="flex-grow">
                                 <option value="minutes" ${durationUnit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
                                 <option value="hours" ${durationUnit === 'hours' ? 'selected' : ''}>Hour(s)</option>
                             </select>
                         </div>
-                        <p class="form-hint" style="color: #9ca3af;">Leave blank to ignore.</p>
                     </div>
                     <div>
-                        <label class="form-label" style="color: #d1d5db;">Set Completion Type:</label>
-                        <select name="completionType" class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" style="background-color: #1f2937; border-color: #4b5563; color: #f3f4f6;">
+                        <label class="form-label">Set Completion Type:</label>
+                        <select name="completionType">
                             <option value="">-- No Change --</option>
-                            <option value="simple" ${completionType === 'simple' ? 'selected' : ''}>Simple (Mark Done)</option>
+                            <option value="simple" ${completionType === 'simple' ? 'selected' : ''}>Simple</option>
                             <option value="count" ${completionType === 'count' ? 'selected' : ''}>Count</option>
                             <option value="time" ${completionType === 'time' ? 'selected' : ''}>Time</option>
                         </select>
                     </div>
                 </div>
-
-                <div class="flex justify-end items-center space-x-3 pt-4 border-t" style="border-color: #4b5563;">
-                    <button type="button" data-action="deleteAllInCategory" data-category-id="${categoryId}" class="control-button text-xs themed-button-tertiary">Delete All In Category</button>
-                    <button type="submit" class="control-button text-white themed-button-secondary" style="background-color: #10B981; hover:background-color: #059669;">Apply Changes to All</button>
+                <div class="flex justify-end items-center space-x-3 pt-4 border-t">
+                    <button type="button" data-action="deleteAllInCategory" data-category-id="${categoryId}" class="btn btn-deny btn-sm">Delete All In Category</button>
+                    <button type="submit" class="btn btn-confirm btn-md">Apply Changes</button>
                 </div>
-
             </form>
         </div>
     `;
 }
 
 function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
-    const chartHtml = hasChartData
-        ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>`
-        : '<p class="italic mt-4">Not enough history to display a chart.</p>';
-
+    const chartHtml = hasChartData ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
             <p><strong>Completion Rate:</strong> ${stats.completionRate}% (${stats.completions} / ${stats.total})</p>
-            <p><strong>Total Completions:</strong> ${stats.completions}</p>
-            <p><strong>Total Misses:</strong> ${stats.misses}</p>
         </div>
-
-        <h4 class="text-lg font-semibold mt-6 mb-2">Performance Over Time</h4>
+        <h4 class="text-lg font-semibold mt-6 mb-2">Performance</h4>
         ${chartHtml}
-
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
-        <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
-            ${historyHtml}
-        </div>
-
-        <button data-action="backToTaskView" class="themed-button-clear mt-6">Back to Details</button>
+        <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">${historyHtml}</div>
+        <button data-action="backToTaskView" class="btn btn-clear mt-6">Back to Details</button>
     `;
 }
 
@@ -541,262 +490,175 @@ function actionAreaTemplate(task) {
     switch (task.confirmationState) {
         case 'confirming_complete':
             const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear font-bold py-2 px-4 rounded">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear font-bold py-2 px-4 rounded">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
         case 'awaiting_overdue_input':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="themed-button-clear">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="themed-button-clear">Missed</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button></div>`;
         case 'confirming_miss':
             const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">No</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
         case 'confirming_delete':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
         case 'confirming_undo':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="themed-button-clear">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="themed-button-clear">Cancel</button></div>`;
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
     }
-    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-    if (isCompletedNonRepeating) {
-        return '<span class="text-xs text-gray-500 italic">Done</span>';
-    }
-    if (task.status === 'blue') {
-        return `<button data-action="triggerUndo" data-task-id="${task.id}" class="themed-button-clear" title="Undo Completion / Reactivate Early">Undo</button>`;
-    }
+    if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
+    if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
     switch (task.completionType) {
         case 'count':
-            const target = task.countTarget || Infinity;
-            return (task.currentProgress < target)
-                ? `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="themed-button-clear w-6 h-6 flex items-center justify-center">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="themed-button-clear w-6 h-6 flex items-center justify-center">+</button> </div>`
-                : `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
+            return `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">+</button> </div>`;
         case 'time':
-            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-            if (task.currentProgress >= targetMs) {
-                return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
-            }
             const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="themed-button-clear">${btnText}</button>`;
+            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="btn btn-clear">${btnText}</button>`;
         default:
-            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="themed-button-clear">Complete</button>`;
+            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-confirm btn-sm">Complete</button>`;
     }
 }
 
 function commonButtonsTemplate(task) {
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="themed-button-clear" title="Delete Task">Delete</button>`;
+        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
     }
-    return `
-        <div class="flex space-x-1">
-            <button data-action="edit" data-task-id="${task.id}" class="themed-button-clear" title="Edit Task">Edit</button>
-            <button data-action="triggerDelete" data-task-id="${task.id}" class="themed-button-clear" title="Delete Task">Delete</button>
-        </div>
-    `;
+    return `<div class="flex space-x-1">
+            <button data-action="edit" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
+            <button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
+        </div>`;
 }
 
 function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
     const toggleHtml = `
         <div class="flex items-center justify-between mb-4 p-2 border-b">
             <label for="status-theme-toggle" class="form-label mb-0">Use Theme Gradient for Statuses:</label>
-            <input type="checkbox" id="status-theme-toggle" data-action="toggleStatusTheme" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${theming.useThemeForStatus ? 'checked' : ''}>
-        </div>
-    `;
-
-    const statusItems = Object.keys(defaultStatusNames).map(statusKey => {
-        const displayName = statusNames[statusKey] || defaultStatusNames[statusKey];
-        const color = statusColors[statusKey] || '#ccc';
-        return `
-            <div class="flex items-center justify-between p-2 border-b" id="status-item-${statusKey}">
-                <div id="status-display-${statusKey}" class="flex-grow flex items-center space-x-3">
-                    <div class="w-4 h-4 rounded-full" style="background-color: ${color};"></div>
-                    <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${displayName}</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <input type="color" value="${color}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded" ${theming.useThemeForStatus ? 'disabled' : ''}>
-                </div>
+            <input type="checkbox" id="status-theme-toggle" data-action="toggleStatusTheme" class="toggle-checkbox" ${theming.useThemeForStatus ? 'checked' : ''}>
+        </div>`;
+    const statusItems = Object.keys(defaultStatusNames).map(statusKey => `
+        <div class="flex items-center justify-between p-2 border-b" id="status-item-${statusKey}">
+            <div id="status-display-${statusKey}" class="flex-grow flex items-center space-x-3">
+                <div class="w-4 h-4 rounded-full" style="background-color: ${statusColors[statusKey] || '#ccc'};"></div>
+                <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${statusNames[statusKey] || defaultStatusNames[statusKey]}</span>
             </div>
-        `;
-    }).join('');
-
+            <div class="flex items-center space-x-2">
+                <input type="color" value="${statusColors[statusKey] || '#ccc'}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded" ${theming.useThemeForStatus ? 'disabled' : ''}>
+            </div>
+        </div>`).join('');
     return toggleHtml + statusItems;
 }
 
 function categoryFilterTemplate(categories, categoryFilter) {
-    if (categories.length === 0) {
-        return '<p class="text-gray-500 italic">No categories to filter.</p>';
-    }
-
-    const allLabel = `
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}>
-            <span>Show All</span>
-        </label>
-    `;
-
-    const uncategorizedLabel = `
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}>
-            <span>Uncategorized</span>
-        </label>
-    `;
-
-    const categoryLabels = categories.map(cat => `
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}>
-            <span>${cat.name}</span>
-        </label>
-    `).join('');
-
+    if (categories.length === 0) return '<p class="italic">No categories to filter.</p>';
+    const allLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}> Show All</label>`;
+    const uncategorizedLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}> Uncategorized</label>`;
+    const categoryLabels = categories.map(cat => `<label><input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}> ${cat.name}</label>`).join('');
     return allLabel + uncategorizedLabel + categoryLabels;
 }
 
 function iconPickerTemplate(iconCategories) {
-    let contentHtml = '';
-    for (const category in iconCategories) {
-        const iconsHtml = iconCategories[category].map(iconClass => `
-            <div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}">
-                <i class="${iconClass} fa-2x text-gray-700"></i>
+    return Object.entries(iconCategories).map(([category, icons]) => `
+        <div class="icon-picker-category">
+            <div class="icon-picker-category-header p-2 font-bold rounded cursor-pointer flex justify-between items-center">
+                ${category} <span class="transform transition-transform duration-200">▼</span>
             </div>
-        `).join('');
-
-        contentHtml += `
-            <div class="icon-picker-category">
-                <div class="icon-picker-category-header p-2 bg-gray-200 text-gray-800 font-bold rounded cursor-pointer flex justify-between items-center">
-                    ${category}
-                    <span class="transform transition-transform duration-200"> ▼ </span>
-                </div>
-                <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                    ${iconsHtml}
-                </div>
+            <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                ${icons.map(iconClass => `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}"><i class="${iconClass} fa-2x"></i></div>`).join('')}
             </div>
-        `;
-    }
-    return contentHtml;
+        </div>`).join('');
 }
 
 function editProgressTemplate(taskId, currentValue, max) {
-    return `
-        <input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
-        <button data-action="saveProgress" data-task-id="${taskId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
-        <button data-action="cancelProgress" data-task-id="${taskId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
-    `;
+    return `<input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
+            <button data-action="saveProgress" data-task-id="${taskId}" class="btn btn-confirm btn-xs ml-1">Save</button>
+            <button data-action="cancelProgress" data-task-id="${taskId}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
 }
 
 function editCategoryTemplate(categoryId, currentName) {
-    return `
-        <input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
-        <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
-    `;
+    return `<input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
+            <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="btn btn-confirm btn-xs ml-1">Save</button>
+            <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
 }
 
 function editStatusNameTemplate(statusKey, currentName) {
-    return `
-        <input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
-        <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-green text-xs ml-1 themed-button-secondary">Save</button>
-        <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="control-button control-button-gray text-xs ml-1 themed-button-tertiary">Cancel</button>
-    `;
+    return `<input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
+            <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="btn btn-confirm btn-xs ml-1">Save</button>
+            <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
 }
 
 function restoreDefaultsConfirmationTemplate() {
-    return `
-        <div class="flex flex-col items-center gap-2 text-center">
-            <p class="text-sm">Reset all view and theme settings to their original defaults? Your tasks, categories, and planner entries will not be affected.</p>
-            <div class="flex gap-2 mt-2">
-                <button data-action="confirmRestoreDefaults" data-confirmed="true" class="control-button control-button-red themed-button-tertiary">Yes, Reset</button>
-                <button data-action="confirmRestoreDefaults" data-confirmed="false" class="control-button control-button-gray themed-button-secondary">No, Cancel</button>
-            </div>
-        </div>
-    `;
+    return `<div class="flex flex-col items-center gap-2 text-center">
+                <p class="text-sm">Reset all view and theme settings to their original defaults?</p>
+                <div class="flex gap-2 mt-2">
+                    <button data-action="confirmRestoreDefaults" data-confirmed="true" class="btn btn-deny btn-md">Yes, Reset</button>
+                    <button data-action="confirmRestoreDefaults" data-confirmed="false" class="btn btn-secondary btn-md">No, Cancel</button>
+                </div>
+            </div>`;
 }
 
 function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
-    return `
-        <div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
-             data-group="${groupName}"
-             style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
-            <h4 class="font-bold">${groupName}</h4>
-            <span class="transform transition-transform duration-200"> ▼ </span>
-        </div>
-    `;
+    return `<div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
+                 data-group="${groupName}"
+                 style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
+                <h4 class="font-bold">${groupName}</h4>
+                <span class="transform transition-transform duration-200">▼</span>
+            </div>`;
 }
 
 function sensitivityControlsTemplate(settings) {
     const { sValue, isAdaptive } = settings;
     const sliderDisabled = isAdaptive ? 'disabled' : '';
-    const containerOpacity = isAdaptive ? 'opacity-50' : '';
-
-    return `
-        <div class="flex items-center justify-between">
-            <label for="adaptive-sensitivity-toggle" class="form-label mb-0">Use Adaptive Sensitivity:</label>
-            <input type="checkbox" id="adaptive-sensitivity-toggle" data-action="toggleAdaptiveSensitivity" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isAdaptive ? 'checked' : ''}>
-        </div>
-        <div id="manual-sensitivity-container" class="space-y-2 ${containerOpacity}">
-            <label for="sensitivity-slider" class="form-label">Manual Sensitivity:</label>
-            <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-500">Least</span>
-                <input type="range" id="sensitivity-slider" min="0" max="1" step="0.01" value="${sValue}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" ${sliderDisabled}>
-                <span class="text-sm text-gray-500">Most</span>
+    return `<div class="flex items-center justify-between">
+                <label for="adaptive-sensitivity-toggle" class="form-label mb-0">Adaptive Sensitivity:</label>
+                <input type="checkbox" id="adaptive-sensitivity-toggle" data-action="toggleAdaptiveSensitivity" class="toggle-checkbox" ${isAdaptive ? 'checked' : ''}>
             </div>
-            <p class="form-hint">Controls how early the system warns you about upcoming tasks. Disabled when adaptive mode is on.</p>
-        </div>
-    `;
+            <div class="space-y-2 ${isAdaptive ? 'opacity-50' : ''}">
+                <label for="sensitivity-slider" class="form-label">Manual Sensitivity:</label>
+                <div class="flex items-center space-x-4">
+                    <span>Least</span>
+                    <input type="range" id="sensitivity-slider" min="0" max="1" step="0.01" value="${sValue}" class="w-full" ${sliderDisabled}>
+                    <span>Most</span>
+                </div>
+            </div>`;
 }
 
 function notificationManagerTemplate(notificationSettings, categories) {
-    const categoryItems = categories.map(cat => {
-        // Default to true if not set
-        const isEnabled = notificationSettings.categories[cat.id] !== false;
-        return `
-            <div class="flex items-center justify-between p-2 border rounded-md">
-                <span class="font-medium">${cat.name}</span>
-                <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${isEnabled ? 'checked' : ''}>
+    const categoryItems = categories.map(cat => `
+        <div class="flex items-center justify-between p-2 border rounded-md">
+            <span class="font-medium">${cat.name}</span>
+            <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="toggle-checkbox" ${notificationSettings.categories[cat.id] !== false ? 'checked' : ''}>
+        </div>`).join('');
+    return `<div class="flex items-center justify-between">
+                <label for="master-notification-toggle" class="form-label mb-0">Enable All Notifications:</label>
+                <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="toggle-checkbox" ${notificationSettings.enabled ? 'checked' : ''}>
             </div>
-        `;
-    }).join('');
-
-    const categoryListHtml = categories.length > 0
-        ? categoryItems
-        : '<p class="text-gray-500 italic text-sm">No categories to configure.</p>';
-
-    return `
-        <div class="flex items-center justify-between">
-            <label for="master-notification-toggle" class="form-label mb-0">Enable All Notifications:</label>
-            <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer ${notificationSettings.enabled ? 'bg-green-500' : ''}" ${notificationSettings.enabled ? 'checked' : ''}>
-        </div>
-        <div id="notification-details" class="${notificationSettings.enabled ? '' : 'hidden'} space-y-4">
-            <div>
-                <label class="form-label">Notify no more than once per:</label>
-                <div class="flex space-x-2 items-center">
-                    <input type="number" id="notification-rate-amount" value="${notificationSettings.rateLimit.amount}" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 duration-input">
-                    <select id="notification-rate-unit" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white flex-grow">
-                        <option value="minutes" ${notificationSettings.rateLimit.unit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
-                        <option value="hours" ${notificationSettings.rateLimit.unit === 'hours' ? 'selected' : ''}>Hour(s)</option>
-                        <option value="days" ${notificationSettings.rateLimit.unit === 'days' ? 'selected' : ''}>Day(s)</option>
-                    </select>
+            <div id="notification-details" class="${notificationSettings.enabled ? '' : 'hidden'} space-y-4">
+                <div>
+                    <label class="form-label">Rate Limit:</label>
+                    <div class="flex space-x-2 items-center">
+                        <input type="number" id="notification-rate-amount" value="${notificationSettings.rateLimit.amount}" min="1" class="duration-input">
+                        <select id="notification-rate-unit" class="flex-grow">
+                            <option value="minutes" ${notificationSettings.rateLimit.unit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                            <option value="hours" ${notificationSettings.rateLimit.unit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                            <option value="days" ${notificationSettings.rateLimit.unit === 'days' ? 'selected' : ''}>Day(s)</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label class="form-label">Notify for categories:</label>
-                <div id="notification-category-list" class="space-y-2">
-                    ${categoryListHtml}
+                <div>
+                    <label class="form-label">Notify for categories:</label>
+                    <div id="notification-category-list" class="space-y-2">${categories.length > 0 ? categoryItems : '<p class="italic text-sm">No categories to configure.</p>'}</div>
                 </div>
-            </div>
-        </div>
-    `;
+            </div>`;
 }
 
 function kpiAutomationSettingsTemplate(settings) {
     const { autoKpiEnabled, autoKpiRemovable } = settings;
-    return `
-        <p class="form-hint">Automatically create KPIs for categories. The app will track how consistently you complete tasks in a category and score it like a GPA. This helps you see which habits are sticking.</p>
-        <div class="flex items-center justify-between">
-            <label for="auto-kpi-enabled-toggle" class="form-label mb-0" title="Automatically flag a task as a KPI when it reaches its max misses count.">Enable Auto-KPI:</label>
-            <input type="checkbox" id="auto-kpi-enabled-toggle" data-action="toggleAutoKpi" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${autoKpiEnabled ? 'checked' : ''}>
-        </div>
-        <div class="flex items-center justify-between mt-4">
-            <label for="auto-kpi-removable-toggle" class="form-label mb-0" title="If a task was automatically made a KPI, remove the KPI status once its miss count returns to zero.">Auto-remove on Recovery:</label>
-            <input type="checkbox" id="auto-kpi-removable-toggle" data-action="toggleAutoKpiRemovable" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${autoKpiRemovable ? 'checked' : ''}>
-        </div>
-    `;
+    return `<p class="form-hint">Automatically create KPIs for categories based on a GPA-like model.</p>
+            <div class="flex items-center justify-between">
+                <label for="auto-kpi-enabled-toggle" class="form-label mb-0" title="Auto-flag a task as a KPI when it reaches max misses.">Enable Auto-KPI:</label>
+                <input type="checkbox" id="auto-kpi-enabled-toggle" data-action="toggleAutoKpi" class="toggle-checkbox" ${autoKpiEnabled ? 'checked' : ''}>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <label for="auto-kpi-removable-toggle" class="form-label mb-0" title="Auto-remove KPI status on recovery.">Auto-remove on Recovery:</label>
+                <input type="checkbox" id="auto-kpi-removable-toggle" data-action="toggleAutoKpiRemovable" class="toggle-checkbox" ${autoKpiRemovable ? 'checked' : ''}>
+            </div>`;
 }
 
 export {
