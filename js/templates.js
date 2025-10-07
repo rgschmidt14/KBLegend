@@ -471,7 +471,7 @@ function bulkEditFormTemplate(categoryId, settings) {
 }
 
 function taskStatsTemplate(task, stats, historyHtml, hasChartData) {
-    const chartHtml = hasChartData ? `<div class="mt-4"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
+    const chartHtml = hasChartData ? `<div class="mt-4 gradient-bordered-content"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">

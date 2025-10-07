@@ -2,11 +2,22 @@
 
 Welcome to the Task & Mission Planner, a highly intelligent personal productivity application designed for users who want to go beyond simple to-do lists. This guide will walk you through the core philosophies, features, and in-depth mechanics of the application, explaining *what* the features do, *why* they exist, and *how* they work together to help you achieve your goals.
 
-## **Core Philosophy: The Feedback Loop**
+## **Core Philosophy: The Feedback Loop to Mastery**
 
-The planner is built on a simple but powerful idea: **to provide you with the feedback you need to make smarter decisions, re-evaluate your priorities, and build better goals.**
+This planner is built on a single, powerful principle: **Mastery comes from a tight feedback loop.** To get better at anything—planning, habits, goals—you need to see the consequences of your decisions, learn, and adapt.
 
-Unlike other planners that just list what's due, this application actively analyzes your workload and schedule pressure. It tells you not just *what* is due, but *how much time you actually have* to complete it after accounting for all your other commitments. This creates a powerful feedback loop that helps you become a more realistic and effective planner.
+Most tools show you *what* you need to do. This planner shows you the *impact* of your choices.
+
+It doesn't just list your tasks; it actively simulates your schedule, de-conflicts it, and calculates the real pressure you're under. The color-coded status of a task isn't just based on its due date, but on how much *actual, available time* you have left after all your other commitments are accounted for.
+
+This creates the critical feedback loop:
+
+1.  **You Plan:** You add tasks, appointments, and goals.
+2.  **The App Analyzes:** It tells you if your plan is realistic by simulating the schedule. A task due in three days might turn red *today* if the engine sees you're overcommitted.
+3.  **You See the Impact:** You get an immediate, visual warning about potential bottlenecks and unrealistic workloads.
+4.  **You Adapt & Improve:** Armed with this feedback, you can make smarter decisions—move a deadline, delegate a task, or change a goal.
+
+This loop transforms you from a passive list-follower into an active, intelligent planner who understands their own capacity and makes better choices over time.
 
 ---
 

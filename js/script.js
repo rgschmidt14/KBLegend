@@ -686,6 +686,7 @@ function HSLToHex(h, s, l) {
 function generateGradientPalette(baseColor, isDarkMode) {
     const baseHSL = hexToHSL(baseColor);
 
+    // Stop reversal is removed. The direction of the gradient will be handled in applyTheme.
     const stops = [
         { l: -45, s: 0 },   // Black
         { l: -30, s: 25 },  // Red
@@ -693,10 +694,6 @@ function generateGradientPalette(baseColor, isDarkMode) {
         { l: 0, s: 0 },     // Green (base)
         { l: 15, s: 10 }    // Blue
     ];
-
-    if (!isDarkMode) {
-        stops.reverse();
-    }
 
     const palette = {
         black:  HSLToHex(baseHSL.h, Math.min(100, baseHSL.s + stops[0].s), Math.max(0, Math.min(100, baseHSL.l + stops[0].l))),
@@ -788,21 +785,43 @@ function applyTheme() {
     const isDarkMode = effectiveMode === 'night';
     applyThemeMode(effectiveMode); // Apply .light-mode class if needed
 
+    // Generate a subtle background color from the base theme color
+    const baseHSL = hexToHSL(theming.baseColor);
+    const mainBgLightness = isDarkMode ? 8 : 97; // Very dark (8%) or very light (97%)
+    const mainBgSaturation = isDarkMode ? baseHSL.s * 0.4 : baseHSL.s * 0.6; // Desaturate for subtlety
+    const subtleBgColor = HSLToHex(baseHSL.h, Math.min(100, Math.max(0, mainBgSaturation)), mainBgLightness);
+
     // Generate color palettes
     const palette = generateComplementaryPalette(theming.baseColor, isDarkMode);
     const statusGradientPalette = generateGradientPalette(theming.baseColor, isDarkMode);
 
-    // The user wants the 5-color gradient for the calendar background.
-    // We will now use it by default when the theme is enabled.
-    const calendarGradient = theming.enabled
-        ? `linear-gradient(to top, ${statusGradientPalette.black}, ${statusGradientPalette.red}, ${statusGradientPalette.yellow}, ${statusGradientPalette.green}, ${statusGradientPalette.blue})`
-        : (isDarkMode ? 'var(--bg-secondary)' : '#FFFFFF');
+    // --- Gradient Logic ---
+    const gradientDirection = isDarkMode ? 'to top' : 'to bottom';
+    const statusColorsForGradient = [statusGradientPalette.black, statusGradientPalette.red, statusGradientPalette.yellow, statusGradientPalette.green, statusGradientPalette.blue];
+    // Reverse for light mode to have lighter colors at the bottom
+    if (!isDarkMode) {
+        statusColorsForGradient.reverse();
+    }
+    const statusGradient = `linear-gradient(${gradientDirection}, ${statusColorsForGradient.join(', ')})`;
+    const themeGradient = palette.main_gradient;
+
+    let activeGradient;
+    if (theming.calendarGradientSource === 'theme') {
+        activeGradient = themeGradient;
+    } else { // 'status' or default
+        activeGradient = statusGradient;
+    }
+
+    const calendarGradient = theming.enabled ? activeGradient : (isDarkMode ? 'var(--bg-secondary)' : '#FFFFFF');
+    const chartBgColor = theming.enabled ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#1F2937' : '#FFFFFF'); // gray-800 or white
 
     // Define theme properties
     const themeProperties = {
-        // Use neutral grays for main backgrounds to create a layered effect and reduce color overload.
-        '--bg-main': isDarkMode ? '#111827' : '#F9FAFB', // e.g., gray-900 | gray-50
+        // Use the new subtle theme color for the main background for a more cohesive look.
+        '--bg-main': theming.enabled ? subtleBgColor : (isDarkMode ? '#111827' : '#F9FAFB'),
         '--bg-secondary': isDarkMode ? '#1F2937' : '#FFFFFF',   // e.g., gray-800 | white
+        '--bg-chart': chartBgColor,
+        '--chart-gradient-border': theming.enabled ? activeGradient : 'transparent',
 
         // Modals and interactive elements can retain the theme color for accent.
         '--bg-modal': theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'),
@@ -907,10 +926,36 @@ function applyTheme() {
         .collapsible-header {
             background-color: var(--bg-secondary);
             padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible-header i {
+            transition: transform 0.3s ease-in-out;
         }
         .collapsible-content {
             background-color: var(--bg-main);
+            padding: 0 1rem; /* No padding when collapsed */
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+        }
+        .collapsible-section.open .collapsible-header i {
+            transform: rotate(180deg);
+        }
+        .collapsible-section.open .collapsible-content {
+            max-height: 100vh; /* A generous height to ensure content is not clipped */
             padding: 1rem;
+        }
+        .gradient-bordered-content {
+            background: var(--chart-gradient-border);
+            padding: 14px;
+            border-radius: 0.5rem;
+        }
+        .gradient-bordered-content > canvas {
+            background-color: var(--bg-chart);
+            border-radius: 0.25rem; /* Inner radius for the chart itself */
         }
 
     `;
