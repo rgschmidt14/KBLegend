@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -29,7 +29,9 @@ let appSettings = {
     title: "Task & Mission Planner",
     subtitle: "Organize your tasks, plan your week, and track your progress.",
     weeklyGoalLabel: "Mission/Goals for this Week",
-    use24HourFormat: false
+    use24HourFormat: false,
+    autoKpiEnabled: false,
+    autoKpiRemovable: false,
 };
 let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek', allowCreationOnClick: false };
 let lastBulkEditSettings = {};
@@ -288,6 +290,7 @@ function sanitizeAndUpgradeTask(task) {
         timeTargetAmount: null,
         timeTargetUnit: null,
         isKpi: false,
+        isAutoKpi: false,
         isAppointment: false,
         prepTimeAmount: null,
         prepTimeUnit: 'minutes',
@@ -1573,6 +1576,12 @@ function renderPerformanceSettings() {
     }
 }
 
+function renderKpiAutomationSettings() {
+    const container = document.getElementById('kpi-automation-settings');
+    if (!container) return;
+    container.innerHTML = kpiAutomationSettingsTemplate(appSettings);
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1586,6 +1595,7 @@ function openAdvancedOptionsModal() {
     renderVacationManager();
     renderJournalSettings();
     renderPerformanceSettings();
+    renderKpiAutomationSettings();
 
     // Apply saved collapse states
     const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
@@ -3018,6 +3028,12 @@ function confirmCompletionAction(taskId, confirmed) {
             task.misses = Math.max(0, missesBefore - completedCycles);
             task.completionReducedMisses = task.misses < missesBefore;
 
+            // Auto-KPI removal check
+            if (appSettings.autoKpiRemovable && task.isAutoKpi && task.misses === 0) {
+                task.isKpi = false;
+                task.isAutoKpi = false;
+            }
+
             const lastDueDate = pastDueDates.length > 0 ? pastDueDates[pastDueDates.length - 1] : baseDate;
             const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
             let nextDueDate = futureOccurrences.length > 0 ? futureOccurrences[0] : null;
@@ -3172,7 +3188,14 @@ function confirmMissAction(taskId, confirmed) {
             });
 
             if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
-            if (missesToApply > 0 && task.trackMisses) task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
+            if (missesToApply > 0 && task.trackMisses) {
+                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
+                // Auto-KPI check
+                if (appSettings.autoKpiEnabled && task.maxMisses && task.misses >= task.maxMisses && !task.isKpi) {
+                    task.isKpi = true;
+                    task.isAutoKpi = true; // Mark that this was set automatically
+                }
+            }
 
             const lastDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
@@ -4707,6 +4730,14 @@ function setupEventListeners() {
                          // The UI for the checkbox updates automatically. No re-render needed here.
                      });
                     break;
+                case 'toggleAutoKpi':
+                    appSettings.autoKpiEnabled = event.target.checked;
+                    saveData();
+                    break;
+                case 'toggleAutoKpiRemovable':
+                    appSettings.autoKpiRemovable = event.target.checked;
+                    saveData();
+                    break;
             }
         });
 
@@ -5940,4 +5971,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // All initialization is complete. It's now safe to save data.
     isInitializing = false;
     console.log("Initialization complete. Data saving is now enabled.");
+
+    initializeHints();
 });
+
+// --- Hints & Tips Banner ---
+const hints = [
+    "Did you know? You can set a 'Preparation Time' for tasks to get earlier reminders.",
+    "In the Calendar view, click on any empty time slot to quickly create a new task for that time.",
+    "Use the 'Vacation Mode' in Advanced Options to automatically push task due dates.",
+    "Categories can be set to 'bypass' vacation mode for important tasks you still need to do.",
+    "You can bulk-edit all tasks in a category from the Category Management section in Advanced Options.",
+    "Ctrl+Click (or Cmd+Click) on a task to open its details without closing the main view.",
+    "Set a task as a 'KPI' to track your completion accuracy on the Dashboard.",
+    "Use the Journal to reflect on your week and track your progress towards your goals.",
+    "The 'Sensitivity' slider changes how early the app warns you about upcoming tasks. Find what works for you!",
+    "Export your data from Advanced Options to create a backup of all your tasks and settings."
+];
+
+function initializeHints() {
+    const hintsBanner = document.getElementById('hints-banner');
+    if (!hintsBanner) return;
+
+    const showRandomHint = () => {
+        const hintContent = hintsBanner.querySelector('.hints-content span');
+        if (hintContent) {
+            const randomIndex = Math.floor(Math.random() * hints.length);
+            hintContent.textContent = `💡 ${hints[randomIndex]}`;
+        }
+    };
+
+    showRandomHint(); // Show a hint immediately on load
+    setInterval(showRandomHint, 30000); // Change the hint every 30 seconds
+}

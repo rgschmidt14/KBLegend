@@ -784,6 +784,20 @@ function notificationManagerTemplate(notificationSettings, categories) {
     `;
 }
 
+function kpiAutomationSettingsTemplate(settings) {
+    const { autoKpiEnabled, autoKpiRemovable } = settings;
+    return `
+        <div class="flex items-center justify-between">
+            <label for="auto-kpi-enabled-toggle" class="form-label mb-0" title="Automatically flag a task as a KPI when it reaches its max misses count.">Enable Auto-KPI:</label>
+            <input type="checkbox" id="auto-kpi-enabled-toggle" data-action="toggleAutoKpi" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${autoKpiEnabled ? 'checked' : ''}>
+        </div>
+        <div class="flex items-center justify-between mt-4">
+            <label for="auto-kpi-removable-toggle" class="form-label mb-0" title="If a task was automatically made a KPI, remove the KPI status once its miss count returns to zero.">Auto-remove on Recovery:</label>
+            <input type="checkbox" id="auto-kpi-removable-toggle" data-action="toggleAutoKpiRemovable" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${autoKpiRemovable ? 'checked' : ''}>
+        </div>
+    `;
+}
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
@@ -791,5 +805,5 @@ export {
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
-    appointmentConflictModalTemplate
+    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate
 };
