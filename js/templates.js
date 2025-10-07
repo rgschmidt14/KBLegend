@@ -300,7 +300,7 @@ function vacationChangeConfirmationModalTemplate(changedTasks) {
     `;
 }
 
-export const appointmentConflictModalTemplate = (conflictedTasks) => `
+const appointmentConflictModalTemplate = (conflictedTasks) => `
 <div class="modal-content themed-modal-primary">
     <button id="appointment-conflict-close-btn" class="close-button" aria-label="Close">&times;</button>
     <h2 class="text-2xl font-semibold mb-4">Appointment Conflict</h2>
@@ -319,16 +319,6 @@ export const appointmentConflictModalTemplate = (conflictedTasks) => `
     </div>
 </div>
 `;
-
-export {
-    taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
-    actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
-    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
-    taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
-    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
-    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
-    appointmentConflictModalTemplate
-};
 
 function vacationManagerTemplate(vacations, categories) {
     const vacationListHtml = vacations.length > 0 ? vacations.map(v => `
@@ -793,3 +783,13 @@ function notificationManagerTemplate(notificationSettings, categories) {
         </div>
     `;
 }
+
+export {
+    taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
+    actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
+    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
+    taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
+    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
+    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
+    appointmentConflictModalTemplate
+};
