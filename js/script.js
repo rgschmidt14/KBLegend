@@ -1002,6 +1002,14 @@ function applyTheme() {
             border-radius: 0.25rem; /* Inner radius for the chart itself */
         }
 
+        #advanced-options-content fieldset {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color-secondary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
     `;
 
     // Inject styles into the document head
@@ -3007,9 +3015,7 @@ function startTimerInterval(taskId) {
 function handleFormSubmit(event) {
     event.preventDefault();
     try {
-        // Immediately close the modal to provide quick feedback and prevent duplicate submissions.
-        closeModal();
-
+        const id = document.getElementById('task-id').value; // Get ID directly from the form
         const now = new Date();
 
         const taskData = {
@@ -3125,12 +3131,13 @@ function handleFormSubmit(event) {
             taskData.estimatedDurationAmount = estimatedDurationAmountInput.value ? parseInt(estimatedDurationAmountInput.value, 10) : null;
             taskData.estimatedDurationUnit = estimatedDurationUnitSelect.value;
         }
-        if (editingTaskId) {
-            const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
+        if (id) {
+            const taskIndex = tasks.findIndex(t => t.id === id);
             if (taskIndex > -1) {
                 const originalTask = tasks[taskIndex];
-                const mergedTask = { ...originalTask, ...taskData };
+                const mergedTask = { ...originalTask, ...taskData, id: id };
                 let updatedTask = sanitizeAndUpgradeTask(mergedTask);
+
                 if (originalTask.repetitionType !== 'none' && updatedTask.repetitionType !== 'none') {
                     updatedTask.misses = originalTask.misses;
                 } else {
@@ -3141,7 +3148,7 @@ function handleFormSubmit(event) {
                 } else {
                     updatedTask.currentProgress = 0;
                 }
-                tasks[taskIndex] = sanitizeAndUpgradeTask({ ...originalTask, ...taskData });
+                tasks[taskIndex] = updatedTask;
             }
         } else {
             taskData.id = generateId();
@@ -3152,6 +3159,9 @@ function handleFormSubmit(event) {
             const newTask = sanitizeAndUpgradeTask(taskData);
             tasks.push(newTask);
         }
+
+        closeModal(); // Now it's safe to close the modal
+
         // After adding or updating, immediately run the pipeline to get the correct status
         // and save before rendering.
         saveData();
@@ -6193,10 +6203,14 @@ function initializeCalendar() {
     // --- Swipe Navigation for Calendar ---
     let touchStartX = 0;
     let touchEndX = 0;
+    let lastSwipeDirection = null;
+    let lastSwipeTime = 0;
+    let swipeResetTimer = null;
+    const SWIPE_TIMEOUT = 500; // ms
 
     calendarEl.addEventListener('touchstart', function(event) {
         touchStartX = event.changedTouches[0].screenX;
-    }, { passive: true }); // Use passive listener for better scroll performance
+    }, { passive: true });
 
     calendarEl.addEventListener('touchend', function(event) {
         touchEndX = event.changedTouches[0].screenX;
@@ -6205,13 +6219,49 @@ function initializeCalendar() {
 
     function handleSwipeGesture() {
         const swipeThreshold = 50; // Minimum pixels for a swipe
-        // Swipe Left (Next)
+        const now = Date.now();
+        let currentSwipeDirection = null;
+
         if (touchStartX - touchEndX > swipeThreshold) {
-            calendar.next();
+            currentSwipeDirection = 'left'; // Next
+        } else if (touchEndX - touchStartX > swipeThreshold) {
+            currentSwipeDirection = 'right'; // Prev
         }
-        // Swipe Right (Prev)
-        else if (touchEndX - touchStartX > swipeThreshold) {
-            calendar.prev();
+
+        if (!currentSwipeDirection) return;
+
+        // Clear any pending reset timer
+        if (swipeResetTimer) {
+            clearTimeout(swipeResetTimer);
+            swipeResetTimer = null;
+        }
+
+        // Check for a consecutive swipe
+        if (lastSwipeDirection === currentSwipeDirection && (now - lastSwipeTime < SWIPE_TIMEOUT)) {
+            // This is the second swipe, trigger navigation
+            if (currentSwipeDirection === 'left') {
+                calendar.next();
+            } else {
+                calendar.prev();
+            }
+            // Reset state after successful double swipe
+            lastSwipeDirection = null;
+            lastSwipeTime = 0;
+            if (uiSettings.userInteractions) {
+                uiSettings.userInteractions.usedSwipeNavigation = true;
+            }
+
+        } else {
+            // This is the first swipe, or the direction/timeout didn't match.
+            // Set the state for the next potential swipe.
+            lastSwipeDirection = currentSwipeDirection;
+            lastSwipeTime = now;
+
+            // Set a timer to reset the swipe state if a second swipe doesn't happen soon.
+            swipeResetTimer = setTimeout(() => {
+                lastSwipeDirection = null;
+                lastSwipeTime = 0;
+            }, SWIPE_TIMEOUT);
         }
     }
 }
@@ -6321,6 +6371,11 @@ const hints = [
         id: 'dataCleanup',
         text: "Keep your data tidy by using the 'Orphaned History Cleanup' tool in Advanced Options under 'Data & Notifications'.",
         interaction: 'usedDataMigration'
+    },
+    {
+        id: 'swipeNav',
+        text: "To prevent accidental date changes on mobile, you now need to swipe twice in the same direction to navigate the calendar.",
+        interaction: 'usedSwipeNavigation'
     }
 ];
 
