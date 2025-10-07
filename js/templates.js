@@ -787,6 +787,7 @@ function notificationManagerTemplate(notificationSettings, categories) {
 function kpiAutomationSettingsTemplate(settings) {
     const { autoKpiEnabled, autoKpiRemovable } = settings;
     return `
+        <p class="form-hint">Automatically create KPIs for categories. The app will track how consistently you complete tasks in a category and score it like a GPA. This helps you see which habits are sticking.</p>
         <div class="flex items-center justify-between">
             <label for="auto-kpi-enabled-toggle" class="form-label mb-0" title="Automatically flag a task as a KPI when it reaches its max misses count.">Enable Auto-KPI:</label>
             <input type="checkbox" id="auto-kpi-enabled-toggle" data-action="toggleAutoKpi" class="toggle-checkbox h-6 w-12 rounded-full p-1 bg-gray-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 appearance-none cursor-pointer" ${autoKpiEnabled ? 'checked' : ''}>
