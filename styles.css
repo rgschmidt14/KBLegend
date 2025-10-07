@@ -228,11 +228,19 @@ body.modal-open {
 /* ======================================================================== */
 /* FORM ELEMENTS                                                            */
 /* ======================================================================== */
+.form-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem; /* Adds a little space when wrapping */
+    padding: 0.5rem 0;
+}
 .form-label {
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
-    margin-bottom: 0.25rem;
+    /* margin-bottom is removed to work better with flex align-items */
     color: var(--text-color-secondary);
 }
 .form-hint {
@@ -307,9 +315,9 @@ legend {
     position: absolute;
     left: 2px; top: 2px;
     width: 1.25rem; height: 1.25rem;
-    background-color: white;
+    background-color: var(--toggle-peg-color, white); /* Default to white */
     border-radius: 9999px;
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
     transform: scale(0.8);
 }
 .toggle-checkbox:checked::before {

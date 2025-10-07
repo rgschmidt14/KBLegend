@@ -140,9 +140,12 @@
                             </select>
                         </div>
                     </div>
-                    <button id="add-task-btn" class="btn btn-tertiary btn-md">
-                        Add New Task
-                    </button>
+                    <div>
+                        <button id="view-historical-tasks-btn" class="btn btn-secondary btn-md">View All History</button>
+                        <button id="add-task-btn" class="btn btn-tertiary btn-md">
+                            Add New Task
+                        </button>
+                    </div>
                 </div>
                 <div id="task-list" class="space-y-2"></div>
             </div>
@@ -481,32 +484,32 @@
                     <div class="collapsible-content">
                         <fieldset>
                             <legend>Theme</legend>
-                            <div id="theme-manager-content" class="space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <label class="form-label mb-0">Mode:</label>
+                            <div id="theme-manager-content">
+                                <div class="form-group">
+                                    <label class="form-label">Mode:</label>
                                     <div id="theme-mode-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
                                         <button data-mode="light" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Day</button>
                                         <button data-mode="night" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Night</button>
                                         <button data-mode="auto" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Auto</button>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="theme-enabled-toggle" class="form-label mb-0">Enable Custom Theme Engine:</label>
+                                <div class="form-group">
+                                    <label for="theme-enabled-toggle" class="form-label">Enable Custom Theme Engine:</label>
                                     <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="toggle-checkbox">
                                 </div>
                                 <div id="theme-controls" class="hidden space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <label for="theme-base-color" class="form-label mb-0">Theme Base Color:</label>
+                                    <div class="form-group">
+                                        <label for="theme-base-color" class="form-label">Theme Base Color:</label>
                                         <input type="color" id="theme-base-color" data-action="setThemeColor" class="h-8 w-12 border-none cursor-pointer rounded">
                                     </div>
                                     <button data-action="randomizeTheme" class="btn btn-tertiary btn-md w-full">Randomize Theme</button>
                                 </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="use-theme-for-status" class="form-label mb-0">Theme-Match Status Colors:</label>
+                                <div class="form-group">
+                                    <label for="use-theme-for-status" class="form-label">Theme-Match Status Colors:</label>
                                     <input type="checkbox" id="use-theme-for-status" data-action="toggleStatusTheme" class="toggle-checkbox">
                                 </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="calendar-gradient-toggle" class="form-label mb-0">Calendar Border Style:</label>
+                                <div class="form-group">
+                                    <label for="calendar-gradient-toggle" class="form-label">Calendar Border Style:</label>
                                     <div id="calendar-gradient-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
                                          <button data-action="setCalendarGradientSource" data-source="status" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Status Spectrum</button>
                                          <button data-action="setCalendarGradientSource" data-source="theme" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Theme Gradient</button>
@@ -687,6 +690,12 @@
                                 <button data-action="restoreDefaults" class="btn btn-deny btn-md w-full">Restore All View Defaults</button>
                             </div>
                         </fieldset>
+                        <fieldset>
+                            <legend>Hint Banners</legend>
+                            <div id="hint-manager-content" class="space-y-3">
+                                <!-- Hint management controls will be injected by script.js -->
+                            </div>
+                        </fieldset>
                     </div>
                 </div>
             </div>
@@ -700,6 +709,28 @@
             <button class="close-button" aria-label="Close Task View">&times;</button>
             <div id="task-view-content"></div>
             <div id="task-stats-content" class="hidden"></div>
+        </div>
+    </div>
+
+    <div id="historical-overview-modal" class="modal">
+        <div class="modal-content bg-modal" style="max-width: 800px;">
+            <button class="close-button">&times;</button>
+            <h2 class="text-2xl font-semibold mb-4">Historical Task Overview</h2>
+            <div class="flex justify-end items-center mb-4 gap-2">
+                <label for="historical-sort-by" class="form-label mb-0">Sort By:</label>
+                <select id="historical-sort-by">
+                    <option value="name">Name</option>
+                    <option value="lastCompleted">Last Completed</option>
+                    <option value="gpa">Average GPA</option>
+                </select>
+                <select id="historical-sort-direction">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
+            <div id="historical-overview-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto p-2">
+                <!-- Historical task cards will be injected here -->
+            </div>
         </div>
     </div>
 
