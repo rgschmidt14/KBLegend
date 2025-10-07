@@ -896,6 +896,23 @@ function applyTheme() {
             headerTitle.style.color = mainTextStyles['--text-color-primary'];
         }
 
+        // --- New Calendar Chrome Theming ---
+        if (calendarEl) {
+            const calendarBg = isDarkMode ? adjustColor(main, 0.08) : adjustColor(main, -0.04);
+            const calendarTextStyles = getContrastingTextColor(calendarBg);
+            const calendarTextColor = calendarTextStyles['--text-color-primary'];
+            const calendarBorderColor = isDarkMode ? adjustColor(main, 0.15) : adjustColor(main, -0.1);
+
+            // Set background and text color for the whole calendar component.
+            // This will be inherited by headers, time labels, etc., fixing the contrast issue.
+            calendarEl.style.backgroundColor = calendarBg;
+            calendarEl.style.color = calendarTextColor;
+
+            // Set border color for consistency
+            root.style.setProperty('--fc-border-color', calendarBorderColor);
+        }
+        // --- End New Calendar Chrome Theming ---
+
         const calendarGradient = `linear-gradient(to bottom, ${statusColors.blue}, ${statusColors.green}, ${statusColors.yellow}, ${statusColors.red}, ${statusColors.black})`;
         root.style.setProperty('--calendar-background', calendarGradient);
 
@@ -926,6 +943,10 @@ function applyTheme() {
     } else {
         // Logic for when theming is disabled
         document.body.style.backgroundColor = '';
+        if (calendarEl) { // Clear calendar-specific styles
+            calendarEl.style.backgroundColor = '';
+            calendarEl.style.color = '';
+        }
         root.style.cssText = ''; // Clear all root inline styles
         statusColors = { ...defaultStatusColors };
 
@@ -990,7 +1011,7 @@ function applyTheme() {
         calendar.updateSize();
     }
     // Run the contrast checker after a short delay to allow the DOM to update.
-    // setTimeout(checkAllElementsContrast, 100);
+    setTimeout(checkAllElementsContrast, 100);
 }
 
 
@@ -1814,7 +1835,7 @@ function renderTaskStats(taskId) {
 
             return `
             <div id="history-item-${h.historyId}" class="flex justify-between items-center text-sm p-1 rounded">
-                <span>${formattedDate}: <span style="color: ${statusColor};" class="font-semibold">${displayStatus}</span>${timeDiffText}</span>
+                <span>${formattedDate}: <span class="font-semibold">${displayStatus}</span>${timeDiffText}</span>
                 <button data-action="triggerHistoryDelete" data-history-id="${h.historyId}" data-task-id="${taskId}" class="themed-button-clear text-xs">Delete</button>
             </div>
         `}).join('')
@@ -2493,6 +2514,9 @@ function handleJournalFormSubmit(event) {
         entryData.createdAt = now;
         entryData.editedAt = null;
         appState.journal.push(entryData);
+        if (uiSettings.userInteractions) {
+            uiSettings.userInteractions.addedJournalEntry = true;
+        }
     }
 
     savePlannerData();
@@ -2701,6 +2725,10 @@ function handleAddVacation(event) {
             endDate,
         };
 
+        if (uiSettings.userInteractions) {
+            uiSettings.userInteractions.addedVacation = true;
+        }
+
         handleVacationChange(() => {
             appState.vacations.push(newVacation);
             renderVacationManager();
@@ -2780,6 +2808,10 @@ function handleFormSubmit(event) {
             prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
             prepTimeUnit: document.getElementById('prep-time-unit').value
         };
+
+        if (uiSettings.userInteractions && taskData.prepTimeAmount > 0) {
+            uiSettings.userInteractions.usedPrepTime = true;
+        }
 
         if (taskData.dueDateType === 'absolute') {
             if (taskData.timeInputType === 'start') {
@@ -3520,6 +3552,10 @@ function handleBulkEditSubmit(categoryId, form) {
         completionType: formData.get('completionType'),
     };
 
+    if (uiSettings.userInteractions) {
+        uiSettings.userInteractions.usedBulkEdit = true;
+    }
+
     saveData();
     updateAllTaskStatuses(true);
     if (calendar) calendar.refetchEvents();
@@ -3839,6 +3875,10 @@ function runMigration() {
         return;
     }
 
+    if (uiSettings.userInteractions) {
+        uiSettings.userInteractions.usedDataMigration = true;
+    }
+
     const fieldMapping = {};
 
     // Get mappings from the differences area (user-selected)
@@ -3896,6 +3936,9 @@ function runMigration() {
 // --- Data Portability Functions ---
 
 function exportData(exportType) {
+    if (uiSettings.userInteractions) {
+        uiSettings.userInteractions.exportedData = true;
+    }
     const dataToExport = {
         exportFormatVersion: '1.0',
         exportDate: new Date().toISOString(),
@@ -4711,6 +4754,9 @@ function setupEventListeners() {
                     break;
                 case 'toggleCreationOnClick':
                     calendarSettings.allowCreationOnClick = event.target.checked;
+                    if (uiSettings.userInteractions) {
+                        uiSettings.userInteractions.toggledCalendarClick = true;
+                    }
                     saveData();
                     break;
                 case 'deleteVacation':
@@ -4726,6 +4772,9 @@ function setupEventListeners() {
                          const categoryToUpdate = categories.find(c => c.id === catId);
                          if(categoryToUpdate) {
                              categoryToUpdate.bypassVacation = target.checked;
+                             if (uiSettings.userInteractions) {
+                                 uiSettings.userInteractions.usedVacationBypass = true;
+                             }
                          }
                          // The UI for the checkbox updates automatically. No re-render needed here.
                      });
@@ -4764,6 +4813,9 @@ function setupEventListeners() {
             const target = event.target;
             if (target.id === 'sensitivity-slider') {
                 sensitivitySettings.sValue = parseFloat(target.value);
+                if (uiSettings.userInteractions) {
+                    uiSettings.userInteractions.changedSensitivity = true;
+                }
                 // No need to re-render, just save.
                 saveData();
                 updateAllTaskStatuses(true); // Force a re-render of tasks with new settings
@@ -4825,6 +4877,9 @@ function setupEventListeners() {
                  const newColor = target.value;
                  if (statusColors.hasOwnProperty(statusKey)) {
                      statusColors[statusKey] = newColor;
+                     if (uiSettings.userInteractions) {
+                        uiSettings.userInteractions.changedStatusColor = true;
+                     }
                      saveData();
                      renderTasks();
                      renderStatusManager(); // Re-render the manager to show the change
@@ -4935,6 +4990,9 @@ function setupEventListeners() {
             const task = tasks.find(t => t.id === taskId);
             if (task) {
                 task.isKpi = true;
+                if (uiSettings.userInteractions) {
+                    uiSettings.userInteractions.setKpi = true;
+                }
                 saveData();
                 renderKpiList();
                 renderKpiTaskSelect();
@@ -5019,8 +5077,14 @@ function setupEventListeners() {
     }
     const journalSortBy = document.getElementById('journal-sort-by');
     const journalSortDir = document.getElementById('journal-sort-direction');
-    if(journalSortBy) journalSortBy.addEventListener('change', renderJournal);
-    if(journalSortDir) journalSortDir.addEventListener('change', renderJournal);
+    const journalSortHandler = () => {
+        if (uiSettings.userInteractions) {
+            uiSettings.userInteractions.sortedJournal = true;
+        }
+        renderJournal();
+    };
+    if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
+    if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
     if (journalForm) {
         journalForm.addEventListener('submit', handleJournalFormSubmit);
     }
@@ -5258,6 +5322,10 @@ function loadData() {
         try {
             const parsedSettings = JSON.parse(storedUiSettings);
             uiSettings = { ...uiSettings, ...parsedSettings };
+            // Ensure the userInteractions object exists after loading
+            if (!uiSettings.userInteractions) {
+                uiSettings.userInteractions = {};
+            }
         } catch (e) {
             console.error("Error parsing UI settings:", e);
         }
@@ -5747,8 +5815,9 @@ function initializeCalendar() {
                 // 3. Map to FullCalendar event objects
                 filteredOccurrences.forEach(occurrence => {
                     const category = categories.find(c => c.id === occurrence.categoryId);
-                    const borderColor = statusColors[occurrence.finalStatus] || '#FFFFFF';
+                    const borderColor = statusColors[occurrence.finalStatus] || statusColors.black;
                     const eventColor = category ? category.color : '#374151';
+                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
 
                     calendarEvents.push({
                         id: occurrence.id, // Unique ID per occurrence
@@ -5757,6 +5826,7 @@ function initializeCalendar() {
                         end: occurrence.scheduledEndTime,
                         backgroundColor: eventColor,
                         borderColor: borderColor,
+                        textColor: eventTextColor,
                         borderWidth: '2px',
                         extendedProps: {
                             taskId: occurrence.originalId,
@@ -5801,10 +5871,12 @@ function initializeCalendar() {
                     const luminance = getLuminance(baseColor);
                     const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
                     const eventColor = adjustColor(baseColor, dullFactor);
+                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
+
 
                     // The historical task now has a specific status ('blue', 'green', 'yellow', 'red', 'black').
                     // We can use it directly to set the border color.
-                    const borderColor = statusColors[ht.status] || statusColors.green; // Default to green if status is invalid
+                    const borderColor = statusColors[ht.status] || statusColors.black; // Default to black if status is invalid
 
                     // The event is placed on the calendar based on its original due date
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
@@ -5818,10 +5890,41 @@ function initializeCalendar() {
                         end: endDate,
                         backgroundColor: eventColor,
                         borderColor: borderColor,
+                        textColor: eventTextColor,
                         borderWidth: '2px',
                         extendedProps: {
                             taskId: ht.originalTaskId,
                             isHistorical: true
+                        }
+                    });
+                });
+
+                // 5. Add tasks that are awaiting overdue input, as they might not be in the pipeline
+                const eventTaskIds = new Set(calendarEvents.map(e => e.extendedProps.taskId));
+                const stuckTasks = tasks.filter(t => t.confirmationState === 'awaiting_overdue_input' && t.dueDate && !eventTaskIds.has(t.id));
+
+                stuckTasks.forEach(task => {
+                    const category = categories.find(c => c.id === task.categoryId);
+                    const eventColor = category ? category.color : '#374151'; // gray-700
+                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
+                    const borderColor = statusColors.black; // These are always overdue
+
+                    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || MS_PER_HOUR;
+                    const endDate = new Date(task.dueDate);
+                    const startDate = new Date(endDate.getTime() - durationMs);
+
+                    calendarEvents.push({
+                        id: task.id,
+                        title: task.name,
+                        start: startDate,
+                        end: endDate,
+                        backgroundColor: eventColor,
+                        borderColor: borderColor,
+                        textColor: eventTextColor,
+                        borderWidth: '2px',
+                        extendedProps: {
+                            taskId: task.id,
+                            isHistorical: false // It's an active task, just in a special state
                         }
                     });
                 });
@@ -5977,27 +6080,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Hints & Tips Banner ---
 const hints = [
-    "Did you know? You can set a 'Preparation Time' for tasks to get earlier reminders.",
-    "In the Calendar view, click on any empty time slot to quickly create a new task for that time.",
-    "Use the 'Vacation Mode' in Advanced Options to automatically push task due dates.",
-    "Categories can be set to 'bypass' vacation mode for important tasks you still need to do.",
-    "You can bulk-edit all tasks in a category from the Category Management section in Advanced Options.",
-    "Ctrl+Click (or Cmd+Click) on a task to open its details without closing the main view.",
-    "Set a task as a 'KPI' to track your completion accuracy on the Dashboard.",
-    "Use the Journal to reflect on your week and track your progress towards your goals.",
-    "The 'Sensitivity' slider changes how early the app warns you about upcoming tasks. Find what works for you!",
-    "Export your data from Advanced Options to create a backup of all your tasks and settings."
+    {
+        id: 'prepTime',
+        text: "Did you know? You can set a 'Preparation Time' for tasks to get earlier reminders in the task form.",
+        interaction: 'usedPrepTime'
+    },
+    {
+        id: 'calendarClickCreate',
+        text: "You can turn on 'Tap to Create' for the calendar in Advanced Options under 'Planner Integration' to quickly create events.",
+        interaction: 'toggledCalendarClick'
+    },
+    {
+        id: 'vacationMode',
+        text: "Going on a trip? Use 'Vacation Schedule' in Advanced Options to automatically push task due dates.",
+        interaction: 'addedVacation'
+    },
+    {
+        id: 'vacationBypass',
+        text: "For important tasks during a break, set their category to 'Bypass Vacation' in 'Vacation Schedule'.",
+        interaction: 'usedVacationBypass'
+    },
+    {
+        id: 'bulkEdit',
+        text: "Pro-tip: Bulk-edit all tasks in a category from 'Category Management' in Advanced Options.",
+        interaction: 'usedBulkEdit'
+    },
+    {
+        id: 'setKPI',
+        text: "Set a task as a 'KPI' from the Dashboard to track your completion accuracy over time.",
+        interaction: 'setKpi'
+    },
+    {
+        id: 'journaling',
+        text: "Use the Journal to reflect on your week. Entries can be tagged with icons and grouped.",
+        interaction: 'addedJournalEntry'
+    },
+    {
+        id: 'sensitivity',
+        text: "The 'Planner Sensitivity' slider changes how early the app warns you about upcoming tasks. Find what works for you!",
+        interaction: 'changedSensitivity'
+    },
+    {
+        id: 'exportData',
+        text: "Create a backup of your tasks and settings by using the 'Data & Notifications' section in Advanced Options.",
+        interaction: 'exportedData'
+    },
+    {
+        id: 'statusColors',
+        text: "Personalize the look of your task list by changing the Status Colors in Advanced Options.",
+        interaction: 'changedStatusColor'
+    },
+    {
+        id: 'sortJournal',
+        text: "Did you know you can sort your Journal entries by date or by icon?",
+        interaction: 'sortedJournal'
+    },
+    {
+        id: 'dataCleanup',
+        text: "Keep your data tidy by using the 'Orphaned History Cleanup' tool in Advanced Options under 'Data & Notifications'.",
+        interaction: 'usedDataMigration'
+    }
 ];
 
 function initializeHints() {
     const hintsBanner = document.getElementById('hints-banner');
     if (!hintsBanner) return;
 
+    if (!uiSettings.userInteractions) {
+        uiSettings.userInteractions = {};
+    }
+
     const showRandomHint = () => {
         const hintContent = hintsBanner.querySelector('.hints-content span');
-        if (hintContent) {
-            const randomIndex = Math.floor(Math.random() * hints.length);
-            hintContent.textContent = `💡 ${hints[randomIndex]}`;
+        if (!hintContent) return;
+
+        // Filter out hints for features the user has already interacted with.
+        const availableHints = hints.filter(hint => !uiSettings.userInteractions[hint.interaction]);
+
+        if (availableHints.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availableHints.length);
+            hintContent.textContent = `💡 ${availableHints[randomIndex].text}`;
+            hintsBanner.style.display = ''; // Ensure banner is visible
+        } else {
+            // If all hints have been "completed", hide the banner.
+            hintsBanner.style.display = 'none';
         }
     };
 

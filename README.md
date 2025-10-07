@@ -1,61 +1,70 @@
-# **Task & Mission Planner \- README**
+# **Task & Mission Planner: The Complete Guide**
 
-## **1\. High-Level Summary**
+Welcome to the Task & Mission Planner, a highly intelligent personal productivity application designed for users who want to go beyond simple to-do lists. This guide will walk you through the core philosophies, features, and in-depth mechanics of the application.
 
-The **Task & Mission Planner** is a comprehensive, highly intelligent personal productivity application designed for users who want to go beyond simple to-do lists. It integrates task management, visual scheduling, goal tracking, and personal reflection into a single, cohesive system. Its core purpose is to not only list what needs to be done but to provide a dynamic, real-time assessment of a user's workload and schedule pressure.
+## **Core Philosophy: The Feedback Loop**
 
-The application is structured around four main views:
+The planner is built on a simple but powerful idea: **to provide you with the feedback you need to make smarter decisions, re-evaluate your priorities, and build better goals.**
 
-1. **Dashboard:** A high-level overview featuring weekly goals and a Key Performance Indicator (KPI) section that charts completion accuracy for important, recurring tasks.  
-2. **Task Manager:** A powerful list-based view for creating, editing, and organizing tasks. It supports complex features like varied completion types (simple checkbox, count-based, or timed), intricate repetition schedules, and habit-failure tracking.  
-3. **Calendar:** A visual, interactive planner that automatically schedules and de-conflicts tasks. It prioritizes fixed appointments and high-urgency items, shifting flexible tasks to create a realistic, achievable timeline.  
-4. **Journal:** A dedicated space for reflection, where users can create entries and review their weekly goals, bridging the gap between planning and self-assessment.
+Unlike other planners that just list what's due, this application actively analyzes your workload and schedule pressure. It tells you not just *what* is due, but *how much time you actually have* to complete it, creating a feedback loop that helps you become a more realistic and effective planner.
 
-## **2\. Core Features**
+## **The Main Views**
 
-### **Intelligent Task & Schedule Management**
+The application is structured around four main views, each serving a distinct purpose:
 
-* **Dynamic GPA System:** Every task is assigned a "Task GPA" from 4.0 (perfect) down to 0.0 (failed). This score is derived from the task's proximity to its due date and its history of being missed.  
-* **User-Controlled Sensitivity:** Users can adjust a "sensitivity" slider that changes the GPA thresholds for what it means to be Green, Yellow, or Red, tailoring the app's urgency notifications to their personal planning style.  
-* **Automatic Scheduling & Deconfliction:** The Calendar view is powered by a "scheduling forward" engine. It places immovable appointments first, then sorts all other tasks by their GPA (lowest score first). It then places each task on the timeline in the first available open slot, automatically resolving all conflicts.  
-* **Real-Time Coloring:** The Task Manager uses a final calculation pass to adjust a task's color based on its true scheduled start time, providing an accurate, at-a-glance view of what to work on next.
+1.  **Dashboard:** Your mission control. It provides a high-level overview of your **Weekly Goals** and your **Key Performance Indicators (KPIs)**, which chart your completion accuracy for important, recurring tasks.
+2.  **Task Manager:** The heart of your daily operations. This is a powerful list-based view for creating, editing, and organizing your tasks.
+3.  **Calendar:** Your visual timeline. It automatically schedules and de-conflicts your tasks, creating a realistic, achievable plan for your day and week.
+4.  **Journal:** Your space for reflection. Here, you can write free-form entries and review your weekly goals, bridging the gap between doing and learning.
 
-### **Advanced Task Properties**
+---
 
-* **Prep Time:** A field to specify the preparation or travel time needed before a task, allowing for more realistic urgency calculations.  
-* **Completion Types:** Tasks can be simple check-offs, require a target count, or be tracked with a built-in timer.  
-* **Complex Repetition:** Supports relative intervals (e.g., every 3 days) and complex absolute schedules (e.g., the last Friday of every month).  
-* **Failure Tracking:** Tracks "misses" for repeating tasks, which directly impacts the task's GPA.
+## **Understanding Tasks: Current vs. Historical**
 
-### **Advanced Options & Customization**
+A key concept in this application is the distinction between **Current Tasks** and **Historical Tasks**.
 
-* **Category Management:** Full CRUD functionality for categories, including color, icons, and bulk-editing tools.  
-* **Vacation Mode:** Automatically pushes task due dates that fall within a defined vacation period, with the ability for specific categories to bypass this rule.  
-* **Theming Engine:** A powerful theme manager for customizing the app's appearance.  
-* **Data Portability:** Robust import/export tools for backing up and restoring all application data.
+*   **Current Tasks** are the active, editable items that appear in your **Task Manager**. These are the tasks you are actively working on. They have a due date, a status, and can be modified at any time. All current tasks with a due date will also appear on the **Calendar**.
 
-## **3\. Future Features & Improvements**
+*   **Historical Tasks** are immutable records of past events. When a current task is completed or missed, a historical task is created. This record is stored permanently and is used to power the statistics and charts throughout the application. Historical tasks are visible on the **Calendar** (with a duller color and a colored border indicating their outcome) and in the detailed statistics view for each task. They **do not** appear in the Task Manager.
 
-### **Auto-KPI System**
+This separation ensures that your main task list remains clean and focused on upcoming work, while still preserving a rich, detailed history of your performance for analysis.
 
-* **Concept:** This feature will help users identify and focus on tasks they consistently struggle with.  
-* **Implementation:**  
-  * There will be a setting to "Enable Auto-KPI".  
-  * When enabled, any task that reaches its maxMisses count will be automatically flagged as a KPI.  
-  * A sub-option will allow these auto-flagged KPIs to be automatically removed from the KPI list once their misses count is brought back down to 0 through consistent completion.  
-  * This feature will be separate from manually added KPIs. A manually added KPI will remain a KPI regardless of its miss count, ensuring the user retains full control over their primary focus items.
+---
 
-### **Calculation Horizon (Render Distance)**
+## **Core Features Explained**
 
-* **Concept:** To ensure performance remains fast for users with many repeating tasks, a setting will control how far into the future the app performs its intensive scheduling calculations.  
-* **Implementation Verbatim:** There will be an advanced option for a RELATIVE amount of time into the future the app should project repeating tasks and perform calculations. Suggest 1 year and start it there and suggest to shorten it to how far out their furthest task is for best results use lower render distance.
+### **The Intelligent Scheduling Engine (The "GPA" System)**
 
-## **4\. To-Do / Fix / Check List**
+The application's "smarts" come from a unique scheduling engine that treats your time like a valuable resource.
 
-* **\[BUG\]** The calculateStatus function has hiccups with tasks very close to the current time or tasks awaiting user input (confirming\_complete, confirming\_miss). The new GPA pipeline must resolve this.  
-* **\[BUG\]** The Calendar border color sometimes does not accurately reflect the true, final status of a task after deconfliction.  
-* **\[CHECK\]** Thoroughly test Vacation Mode. Ensure that adding or removing a vacation correctly triggers a recalculation of all affected task occurrences.  
-* **\[REFACTOR\]** Implement the Final V11 Blueprint for the GPA calculation and scheduling pipeline. This is the top priority.  
-* **\[FEATURE\]** Add the "Prep Time" field to the task modal.  
-* **\[FEATURE\]** Implement the Appointment/Vacation conflict-warning modal.  
-* **\[UX\]** Add a scrolling hints/tips feature to help users discover advanced settings like vacation bypasses for categories.
+1.  **Task Prioritization:** Every task is assigned a "Positioning GPA" based on its due date and how many times it has been missed. Tasks with lower GPAs (i.e., more urgent or problematic tasks) are given higher priority.
+2.  **De-confliction:** The Calendar view places your tasks on a timeline. It starts by placing **Appointments** first, as these are immovable. Then, it takes all your other tasks, sorted by their priority, and places them in the first available open time slot. This "scheduling forward" process creates a conflict-free, realistic timeline.
+3.  **Final Coloring:** After the calendar is de-conflicted, the system does one final pass. It calculates a "Coloring GPA" for each task based on its *actual scheduled start time*. This is what determines the final color (Green, Yellow, Red, Black) you see in the Task Manager, providing an accurate, at-a-glance view of what you should be working on *right now*.
+
+### **Advanced Task Options**
+
+The task creation modal offers a wealth of powerful features in its "Advanced" section:
+
+*   **Prep Time:** Specify preparation or travel time. The scheduling engine will use this time (instead of the task's duration) to calculate its urgency, giving you earlier warnings.
+*   **Completion Types:**
+    *   **Simple:** A standard checkbox for basic to-dos.
+    *   **Count:** Track progress towards a numerical goal (e.g., read 50 pages).
+    *   **Time:** Use a built-in timer to track work sessions.
+*   **Complex Repetition:** Create tasks that repeat on almost any schedule imaginable, from "every 3 days" to "the last Friday of every month."
+*   **Failure Tracking:** For repeating tasks, you can set a "max misses" threshold. The task's urgency will increase as you approach this limit, providing a clear visual indicator when a habit is at risk.
+
+### **Customization & Management**
+
+The **Advanced Options** modal is your hub for tailoring the application to your exact needs.
+
+*   **Category Management:** Create color-coded categories for your tasks. You can assign icons, set a category to bypass vacation mode, and even **bulk-edit** all tasks within a category at once.
+*   **Vacation Schedule:** Schedule time off to automatically pause and reschedule your tasks. Any task due during your vacation will be pushed to the day you get back.
+*   **Theming Engine:** Choose a single base color and let the application generate a complete, cohesive, and high-contrast theme that is applied everywhere, from buttons to calendar highlights.
+*   **Data & Notifications:**
+    *   **Data Portability:** Export your entire application data (tasks, settings, history) to a JSON file for backup or transfer. You can also import this data, either overwriting or merging with your existing setup.
+    *   **Orphaned History Cleanup:** This tool automatically finds and helps you remove historical records from tasks that have been deleted, keeping your data clean.
+*   **Hints & Tips Banner:** The application features a smart banner that provides tips for features you haven't used yet. Once you use a feature (e.g., add your first vacation), the banner will stop showing you hints about it.
+
+---
+
+This guide provides a comprehensive overview of the Task & Mission Planner. We encourage you to explore the Advanced Options and discover all the ways you can customize the application to build your perfect productivity system.
