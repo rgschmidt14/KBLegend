@@ -72,25 +72,28 @@
 
             <!-- Calendar View -->
             <div id="calendar-view" class="hidden">
-                <div id="mainPlannerSection" class="bg-secondary">
-                    <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
-                        <button id="prevWeekBtn" class="btn btn-primary-small">&lt; Prev Week</button>
-                        <button id="todayBtn" class="btn btn-primary-small">Today</button>
-                        <h2 id="weekStatus" class="text-xl md:text-2xl font-bold"></h2>
-                        <button id="nextWeekBtn" class="btn btn-primary-small">Next Week &gt;</button>
-                    </div>
-
-                    <div class="flex flex-wrap justify-between items-center p-3 rounded-t-lg gap-2">
-                        <div class="flex flex-wrap items-center space-x-2">
-                            <span class="font-semibold mr-2">View:</span>
-                            <button data-view="daily" class="btn btn-primary-smaller">Day</button>
-                            <button data-view="weekly" class="btn btn-primary-smaller">Week</button>
-                            <button data-view="month" class="btn btn-primary-smaller">Month</button>
+                <div id="mainPlannerSection">
+                    <div id="calendar-inner-wrapper">
+                        <div class="calendar-header p-3 space-y-3">
+                            <div class="calendar-title-row">
+                                <h2 id="weekStatus" class="text-xl md:text-2xl font-bold text-center"></h2>
+                            </div>
+                            <div class="calendar-nav-row">
+                                <button id="prevWeekBtn" class="btn btn-secondary btn-sm">&lt; Prev</button>
+                                <button id="todayBtn" class="btn btn-secondary btn-sm">Today</button>
+                                <button id="nextWeekBtn" class="btn btn-secondary btn-sm">Next &gt;</button>
+                            </div>
+                            <div class="calendar-view-row">
+                                <div class="flex items-center space-x-2">
+                                    <button data-view="daily" class="btn btn-secondary btn-sm view-btn">Day</button>
+                                    <button data-view="weekly" class="btn btn-secondary btn-sm view-btn">Week</button>
+                                    <button data-view="month" class="btn btn-secondary btn-sm view-btn">Month</button>
+                                </div>
+                                <button id="addNewTaskBtnPlanner" class="btn btn-tertiary btn-md">Add New Task</button>
+                            </div>
                         </div>
-                        <button id="addNewTaskBtnPlanner" class="btn btn-tertiary btn-md">Add New Task</button>
+                        <div id="calendar" class="p-4"></div>
                     </div>
-
-                    <div id="calendar" class="rounded-b-lg p-4"></div>
                 </div>
             </div>
 
@@ -488,7 +491,7 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <label for="theme-enabled-toggle" class="form-label mb-0">Enable Gradient Theme:</label>
+                                    <label for="theme-enabled-toggle" class="form-label mb-0">Enable Custom Theme Engine:</label>
                                     <input type="checkbox" id="theme-enabled-toggle" data-action="toggleTheme" class="toggle-checkbox">
                                 </div>
                                 <div id="theme-controls" class="hidden space-y-2">
@@ -499,14 +502,14 @@
                                     <button data-action="randomizeTheme" class="btn btn-tertiary btn-md w-full">Randomize Theme</button>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <label for="use-theme-for-status" class="form-label mb-0">Use Theme for Status Colors:</label>
+                                    <label for="use-theme-for-status" class="form-label mb-0">Theme-Match Status Colors:</label>
                                     <input type="checkbox" id="use-theme-for-status" data-action="toggleStatusTheme" class="toggle-checkbox">
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <label for="calendar-gradient-toggle" class="form-label mb-0">Calendar Gradient Source:</label>
+                                    <label for="calendar-gradient-toggle" class="form-label mb-0">Calendar Border Style:</label>
                                     <div id="calendar-gradient-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
-                                         <button data-action="setCalendarGradientSource" data-source="status" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Status</button>
-                                         <button data-action="setCalendarGradientSource" data-source="theme" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Theme</button>
+                                         <button data-action="setCalendarGradientSource" data-source="status" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Status Spectrum</button>
+                                         <button data-action="setCalendarGradientSource" data-source="theme" class="btn btn-secondary btn-sm flex-1 calendar-gradient-btn">Theme Gradient</button>
                                     </div>
                                 </div>
                             </div>
