@@ -33,16 +33,16 @@
         <!-- Main View Navigation -->
         <div id="main-view-nav" class="mt-6 mb-6 flex flex-wrap justify-between items-center gap-2">
             <div class="flex flex-wrap space-x-2">
-                <button id="show-dashboard-btn" type="button" class="btn btn-primary btn-lg active-view-btn">
+                <button id="show-dashboard-btn" type="button" class="btn btn-primary btn-lg active-view-btn view-toggle-btn">
                     <i class="fa-solid fa-chart-line mr-2"></i>Dashboard
                 </button>
-                <button id="show-calendar-btn" type="button" class="btn btn-primary btn-lg">
+                <button id="show-calendar-btn" type="button" class="btn btn-primary btn-lg view-toggle-btn">
                     <i class="fa-solid fa-calendar-days mr-2"></i>Calendar
                 </button>
-                <button id="show-task-manager-btn" type="button" class="btn btn-primary btn-lg">
+                <button id="show-task-manager-btn" type="button" class="btn btn-primary btn-lg view-toggle-btn">
                     <i class="fa-solid fa-tasks mr-2"></i>Task Manager
                 </button>
-                <button id="show-journal-btn" type="button" class="btn btn-primary btn-lg">
+                <button id="show-journal-btn" type="button" class="btn btn-primary btn-lg view-toggle-btn">
                     <i class="fa-solid fa-book-journal-whills mr-2"></i>Journal
                 </button>
             </div>
@@ -479,12 +479,12 @@
                         <fieldset>
                             <legend>Theme</legend>
                             <div id="theme-manager-content" class="space-y-4">
-                                <div>
-                                    <label class="form-label">Mode:</label>
+                                <div class="flex items-center justify-between">
+                                    <label class="form-label mb-0">Mode:</label>
                                     <div id="theme-mode-selector" class="flex space-x-1 rounded-md p-1 bg-secondary">
-                                        <button data-mode="light" class="btn btn-secondary btn-sm flex-1">Day</button>
-                                        <button data-mode="night" class="btn btn-secondary btn-sm flex-1">Night</button>
-                                        <button data-mode="auto" class="btn btn-secondary btn-sm flex-1">Auto</button>
+                                        <button data-mode="light" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Day</button>
+                                        <button data-mode="night" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Night</button>
+                                        <button data-mode="auto" class="btn btn-secondary btn-sm flex-1 theme-mode-btn">Auto</button>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between">
@@ -498,23 +498,187 @@
                                     </div>
                                     <button data-action="randomizeTheme" class="btn btn-tertiary btn-md w-full">Randomize Theme</button>
                                 </div>
+                                <div class="flex items-center justify-between">
+                                    <label for="use-theme-for-status" class="form-label mb-0">Use Theme for Status Colors:</label>
+                                    <input type="checkbox" id="use-theme-for-status" data-action="toggleStatusTheme" class="toggle-checkbox">
+                                </div>
                             </div>
                         </fieldset>
                         <fieldset>
                             <legend>Status Colors</legend>
-                            <div class="space-y-2" id="status-color-manager">
-                                <!-- This content is now rendered by renderStatusManager() in script.js -->
-                            </div>
+                            <div class="space-y-2" id="status-color-manager"></div>
                         </fieldset>
+                    </div>
+                </div>
+
+                <!-- Naming Section -->
+                <div class="collapsible-section" data-section-key="naming">
+                    <h3 class="collapsible-header"><span>Naming</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content">
                         <fieldset>
-                            <legend>View Options</legend>
-                            <div id="restore-defaults-container" class="mt-4">
-                                <button data-action="restoreDefaults" class="btn btn-secondary btn-md w-full">Restore All View Defaults</button>
+                            <legend>Application Branding</legend>
+                            <div class="space-y-3">
+                                <div>
+                                    <label for="app-title-input" class="form-label">App Title:</label>
+                                    <input type="text" id="app-title-input" class="w-full">
+                                </div>
+                                <div>
+                                    <label for="app-subtitle-input" class="form-label">App Subtitle:</label>
+                                    <input type="text" id="app-subtitle-input" class="w-full">
+                                </div>
+                                <div>
+                                    <label for="app-goal-label-input" class="form-label">Weekly Goal Label:</label>
+                                    <input type="text" id="app-goal-label-input" class="w-full">
+                                </div>
                             </div>
                         </fieldset>
                     </div>
                 </div>
-                <!-- Other sections will be rendered here by JS -->
+
+                <!-- Category Management Section -->
+                <div class="collapsible-section" data-section-key="categories">
+                    <h3 class="collapsible-header"><span>Category Management</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content">
+                        <div id="category-manager-list" class="space-y-2"></div>
+                        <div id="add-category-form-container" class="mt-4"></div>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="collapsible-section" data-section-key="filters">
+                    <h3 class="collapsible-header"><span>Filters</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Task Manager Category Filter</legend>
+                            <div id="category-filter-list" class="space-y-1"></div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Planner Integration Section -->
+                <div class="collapsible-section" data-section-key="planner">
+                    <h3 class="collapsible-header"><span>Planner Integration</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Task Creation</legend>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <label for="allow-creation-on-click-toggle" class="form-label mb-0">Allow Task Creation on Calendar Click:</label>
+                                    <input type="checkbox" id="allow-creation-on-click-toggle" data-action="toggleCreationOnClick" class="toggle-checkbox">
+                                </div>
+                                <div>
+                                    <label for="planner-default-category" class="form-label">Default Category for New Planner Tasks:</label>
+                                    <select id="planner-default-category" class="w-full"></select>
+                                </div>
+                                <div>
+                                    <label for="planner-default-icon" class="form-label">Default Icon for New Planner Tasks:</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="text" id="planner-default-icon" class="flex-grow">
+                                        <button type="button" data-action="openIconPicker" data-context="planner" class="btn btn-clear">Choose</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                             <legend>Planner Sensitivity</legend>
+                             <div class="space-y-3">
+                                 <div class="flex items-center justify-between">
+                                     <label for="planner-sensitivity-default-toggle" class="form-label mb-0">Use Default Sensitivity:</label>
+                                     <input type="checkbox" id="planner-sensitivity-default-toggle" class="toggle-checkbox">
+                                 </div>
+                                 <div class="flex items-center space-x-3">
+                                     <span>Easy</span>
+                                     <input type="range" id="planner-sensitivity-slider" min="0" max="1" step="0.01" class="w-full">
+                                     <span>Hard</span>
+                                 </div>
+                             </div>
+                         </fieldset>
+                    </div>
+                </div>
+
+                <!-- Vacation Schedule Section -->
+                <div class="collapsible-section" data-section-key="vacation">
+                    <h3 class="collapsible-header"><span>Vacation Schedule</span><i class="fas fa-chevron-down"></i></h3>
+                    <div id="vacation-manager-content" class="collapsible-content"></div>
+                </div>
+
+                <!-- Performance Section -->
+                <div class="collapsible-section" data-section-key="performance">
+                    <h3 class="collapsible-header"><span>Performance</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content space-y-4">
+                        <fieldset>
+                             <legend>Calculation Horizon</legend>
+                             <p class="form-hint mb-2">Defines how far into the future to calculate repeating tasks. Shorter horizons can improve performance on devices with many complex tasks.</p>
+                             <div class="flex items-center space-x-2">
+                                 <input type="number" id="calculation-horizon-amount" value="1" min="1" class="w-20">
+                                 <select id="calculation-horizon-unit">
+                                     <option value="weeks">Weeks</option>
+                                     <option value="months">Months</option>
+                                     <option value="years">Years</option>
+                                 </select>
+                             </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>KPI Automation</legend>
+                            <div id="kpi-automation-settings"></div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Other Features Section -->
+                <div class="collapsible-section" data-section-key="features">
+                    <h3 class="collapsible-header"><span>Other Features</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content space-y-4">
+                        <fieldset>
+                            <legend>Task Card Display Options</legend>
+                            <div id="task-card-display-options" class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showDueDate" class="task-display-toggle"><span>Show Due Date</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showRepetition" class="task-display-toggle"><span>Show Repetition</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showDuration" class="task-display-toggle"><span>Show Duration</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showCategory" class="task-display-toggle"><span>Show Category</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showCountdown" class="task-display-toggle"><span>Show Countdown</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showProgress" class="task-display-toggle"><span>Show Progress Bar</span></label>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Journal</legend>
+                             <div id="journal-settings-content" class="space-y-3"></div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Time Format</legend>
+                             <div class="flex items-center justify-between">
+                                <label for="time-format-toggle" class="form-label mb-0">Use 24-Hour Time Format:</label>
+                                <input type="checkbox" id="time-format-toggle" data-action="toggleTimeFormat" class="toggle-checkbox">
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Data & Notifications Section -->
+                <div class="collapsible-section" data-section-key="data">
+                    <h3 class="collapsible-header"><span>Data & Notifications</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content space-y-4">
+                        <fieldset>
+                            <legend>Desktop Notifications</legend>
+                            <div id="notification-manager-content"></div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Data Management</legend>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button data-action="exportData" data-export-type="all" class="btn btn-secondary btn-md">Export All Data</button>
+                                <button data-action="exportData" data-export-type="tasks" class="btn btn-secondary btn-md">Export Tasks Only</button>
+                                <button data-action="importData" class="btn btn-secondary btn-md col-span-2">Import from File</button>
+                                <button data-action="openMigrationTool" class="btn btn-secondary btn-md col-span-2">Open Data Migration / Cleanup Tool</button>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Danger Zone</legend>
+                            <div id="restore-defaults-container" class="mt-2">
+                                <button data-action="restoreDefaults" class="btn btn-deny btn-md w-full">Restore All View Defaults</button>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
