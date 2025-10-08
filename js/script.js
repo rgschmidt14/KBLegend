@@ -936,6 +936,11 @@ function applyTheme() {
         '--toggle-peg-color': isDarkMode ? '#FFFFFF' : '#1F2937', // White in dark mode, gray-800 in light
     };
 
+    // Calculate main text styles and add them to the root properties for global availability
+    const mainTextStyles = getContrastingTextColor(themeProperties['--bg-main']);
+    Object.assign(themeProperties, mainTextStyles);
+
+
     // Generate CSS rules string
     let css = ':root {\n';
     for (const [key, value] of Object.entries(themeProperties)) {
@@ -968,12 +973,10 @@ function applyTheme() {
     });
 
     // Add rules for backgrounds and text
-    const mainTextStyles = getContrastingTextColor(themeProperties['--bg-main']);
-
     css += `
         body.bg-main {
             background: var(--bg-main);
-            color: ${mainTextStyles['--text-color-primary']};
+            color: var(--text-color-primary);
         }
         .bg-secondary {
             background-color: var(--bg-secondary);
@@ -1884,15 +1887,16 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         switch (action) {
             case 'confirmCompletion':
                 confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
-                refreshModal(); // Re-render the modal to show the next state
+                // Re-open the view to reflect the new state. This handles both "Yes" and "No" paths.
+                openTaskView(eventId, isHistorical, occurrenceDate);
                 break;
             case 'confirmMiss':
                 confirmMissAction(taskId, target.dataset.confirmed === 'true');
-                refreshModal(); // Re-render the modal to show the next state
+                openTaskView(eventId, isHistorical, occurrenceDate);
                 break;
             case 'confirmUndo':
                 confirmUndoAction(taskId, target.dataset.confirmed === 'true');
-                refreshModal(); // Re-render the modal to show the next state
+                openTaskView(eventId, isHistorical, occurrenceDate);
                 break;
             case 'confirmDeleteFromView':
             case 'confirmDeleteHistoryRecordFromView':
