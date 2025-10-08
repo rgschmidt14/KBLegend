@@ -167,7 +167,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
     const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
 
     return `<div class="flex-grow pr-4">
-                <div class="flex justify-between items-baseline">
+                <div class="task-card-header">
                     <h3 class="text-lg font-semibold">${iconHtml}${task.name || 'Unnamed Task'}</h3>
                     ${categoryHtml}
                 </div>
@@ -601,22 +601,49 @@ function commonButtonsTemplate(task) {
 }
 
 function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
-    const toggleHtml = `
-        <div class="flex items-center justify-between mb-4 p-2 border-b">
-            <label for="status-theme-toggle" class="form-label mb-0">Use Theme Gradient for Statuses:</label>
-            <input type="checkbox" id="status-theme-toggle" data-action="toggleStatusTheme" class="toggle-checkbox" ${theming.useThemeForStatus ? 'checked' : ''}>
-        </div>`;
-    const statusItems = Object.keys(defaultStatusNames).map(statusKey => `
-        <div class="flex items-center justify-between p-2 border-b" id="status-item-${statusKey}">
-            <div id="status-display-${statusKey}" class="flex-grow flex items-center space-x-3">
-                <div class="w-4 h-4 rounded-full" style="background-color: ${statusColors[statusKey] || '#ccc'};"></div>
-                <span class="font-medium cursor-pointer" data-action="triggerStatusNameEdit" data-status-key="${statusKey}">${statusNames[statusKey] || defaultStatusNames[statusKey]}</span>
-            </div>
+    const isThemeEnabled = theming.enabled;
+    const isUsingThemeForStatus = theming.useThemeForStatus;
+
+    const statusOrder = ['blue', 'green', 'yellow', 'red', 'black'];
+
+    const statusRows = statusOrder.map(key => `
+        <div id="status-display-${key}" class="grid grid-cols-3 items-center gap-4 py-2">
+            <span class="font-semibold">${statusNames[key]}</span>
             <div class="flex items-center space-x-2">
-                <input type="color" value="${statusColors[statusKey] || '#ccc'}" data-status-key="${statusKey}" class="status-color-picker h-8 w-12 border-none cursor-pointer rounded" ${theming.useThemeForStatus ? 'disabled' : ''}>
+                <input type="color"
+                       class="status-color-picker p-1 h-10 w-14 block bg-white border border-gray-200 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none"
+                       value="${statusColors[key]}"
+                       data-status-key="${key}"
+                       ${isThemeEnabled && isUsingThemeForStatus ? 'disabled' : ''}>
+                <span class="text-xs">${isThemeEnabled && isUsingThemeForStatus ? '(From Theme)' : ''}</span>
             </div>
-        </div>`).join('');
-    return toggleHtml + statusItems;
+            <div>
+                <button data-action="triggerStatusNameEdit" data-status-key="${key}" class="btn btn-secondary btn-sm">Rename</button>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+        <div class="space-y-4">
+            <p class="text-sm text-gray-400">Customize the names and colors for task statuses. These colors are used in the task list. When theming is on, you can choose to derive status colors from the theme.</p>
+
+             <div class="flex items-center justify-between py-2 border-y border-gray-700">
+                <label for="theme-for-status-toggle" class="font-semibold">Use Theme Gradient for Statuses</label>
+                <div class="flex items-center">
+                    <span class="text-xs mr-2 ${!isThemeEnabled ? 'text-gray-500' : ''}">${isThemeEnabled ? (isUsingThemeForStatus ? 'On' : 'Off') : 'Theme Disabled'}</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="theme-for-status-toggle" class="sr-only peer" data-action="toggleThemeForStatus" ${isUsingThemeForStatus ? 'checked' : ''} ${!isThemeEnabled ? 'disabled' : ''}>
+                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            ${statusRows}
+            <div class="pt-4 border-t border-gray-700">
+                <button data-action="restoreDefaults" class="btn btn-tertiary w-full">Restore Status Colors & Names to Default</button>
+            </div>
+        </div>
+    `;
 }
 
 function categoryFilterTemplate(categories, categoryFilter) {
