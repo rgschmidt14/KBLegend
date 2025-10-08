@@ -543,6 +543,53 @@ legend {
 /* ======================================================================== */
 /* RESPONSIVE GRIDS & FLEX CONTAINERS                                       */
 /* ======================================================================== */
+
+.confirm-miss-area {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.confirm-miss-area .action-area-text {
+    flex-grow: 1;
+    text-align: right;
+}
+
+.confirm-miss-area .miss-input {
+    width: 60px; /* Give it a fixed width */
+    flex-shrink: 0;
+}
+
+.confirm-miss-area .button-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .confirm-miss-area {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .confirm-miss-area .action-area-text {
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    .confirm-miss-area .miss-input {
+        width: 100%;
+    }
+    .confirm-miss-area .button-group {
+        width: 100%;
+        justify-content: center;
+    }
+    .confirm-miss-area .button-group > button {
+        flex-grow: 1;
+    }
+}
+
 .responsive-button-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

@@ -244,14 +244,60 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
         }
     }
 
-    const actionsHtml = isHistorical ? `
-        <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm">Delete This Record</button>
-        <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="btn btn-clear">View Parent Task Stats</button>
-    ` : `
-        <button data-action="triggerDeleteFromView" data-task-id="${task.id}" class="btn btn-deny btn-sm">Delete Task</button>
-        <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">View Statistics</button>
-        <button data-action="editTaskFromView" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Edit Task</button>
-    `;
+    let actionsHtml;
+    let progressHtml = '';
+    let missesHtml = '';
+
+    if (isHistorical) {
+        actionsHtml = `
+            <div id="task-view-actions-${task.originalTaskId}" class="mt-6 responsive-button-grid">
+                <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm">Delete This Record</button>
+                <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="btn btn-clear">View Parent Task Stats</button>
+            </div>
+            <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
+        `;
+    } else {
+        // Replicate the structure from the main task list for consistency
+        const actionAreaContent = actionAreaTemplate(task);
+        const modalButtonOptions = { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' };
+        const commonButtonsContent = commonButtonsTemplate(task, modalButtonOptions);
+
+        if (task.status !== 'blue' && (task.completionType === 'count' || task.completionType === 'time')) {
+             progressHtml = `<div id="progress-container-${task.id}" class="mt-2 text-sm">`;
+            let progressText = '';
+            if (task.completionType === 'count' && task.countTarget) {
+                progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
+            } else if (task.completionType === 'time' && task.timeTargetAmount) {
+                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+                progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
+            }
+            progressHtml += `<span class="font-semibold">Progress:</span> <span id="progress-${task.id}">${progressText}</span>`;
+            if (!task.confirmationState) {
+                 progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs ml-2">[Edit]</button>`;
+            }
+            progressHtml += `</div>`;
+        }
+
+        if (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses) {
+            missesHtml = `<p class="text-sm">Misses: ${task.misses}/${task.maxMisses}</p>`;
+        }
+
+        actionsHtml = `
+            <div class="mt-6 flex flex-col items-end">
+                <div id="task-view-action-area-${task.id}" class="w-full flex justify-end">
+                    ${actionAreaContent}
+                </div>
+                <div id="task-view-confirmation-${task.id}" class="mt-4 w-full"></div>
+                <div class="flex justify-between w-full items-center mt-4">
+                    <div>${missesHtml}</div>
+                    <div class="flex items-center space-x-2">
+                        <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">Stats</button>
+                        ${commonButtonsContent}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     return `
         <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
@@ -517,9 +563,9 @@ function actionAreaTemplate(task) {
                 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}`
                 : '';
 
-            return `<div class="flex flex-wrap items-center justify-end gap-2 w-full">
-                        <span class="action-area-text flex-grow text-right">${promptText} ${inputControl}</span>
-                        <div class="flex space-x-2 flex-shrink-0">
+            return `<div class="confirm-miss-area">
+                        <span class="action-area-text">${promptText} ${inputControl}</span>
+                        <div class="button-group">
                             <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button>
                             <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button>
                         </div>

@@ -65,6 +65,7 @@ let uiSettings = {
     calculationHorizonAmount: 1,
     calculationHorizonUnit: 'years',
     hintsDisabled: false,
+    closeModalAfterAction: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1693,6 +1694,14 @@ function renderHintManager() {
     container.innerHTML = hintManagerTemplate(hints, uiSettings);
 }
 
+function renderOtherFeaturesSettings() {
+    const closeModalToggle = document.getElementById('close-modal-after-action-toggle');
+    if (closeModalToggle) {
+        closeModalToggle.checked = uiSettings.closeModalAfterAction;
+    }
+    // Any other settings for this section would be rendered here
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1707,6 +1716,7 @@ function openAdvancedOptionsModal() {
     renderPerformanceSettings();
     renderKpiAutomationSettings();
     renderHintManager();
+    renderOtherFeaturesSettings(); // Render the new settings
 
     // Apply saved collapse states
     const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
@@ -1739,54 +1749,38 @@ function renderVacationManager() {
 
 function openTaskView(eventId, isHistorical, occurrenceDate) {
     let taskOrHistoryItem;
-    // Helper to robustly get the base task ID from a composite ID
     const getBaseId = (id) => {
-        if (!id.includes('_')) return id;
+        if (!id || !id.includes('_')) return id;
         const lastUnderscoreIndex = id.lastIndexOf('_');
         return id.substring(0, lastUnderscoreIndex);
     };
 
     if (isHistorical) {
-        // For historical events from the calendar, the eventId is 'hist_taskId_completionDate'
         taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
-
-        // If not found, it might be a raw taskId from the historical overview.
-        // A historical task could be an active (repeating) task, or a completed non-repeating one (in archivedTasks).
         if (!taskOrHistoryItem) {
             taskOrHistoryItem = tasks.find(t => t.id === eventId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === eventId));
         }
     } else {
-        // For active tasks, first try a direct match.
         taskOrHistoryItem = tasks.find(t => t.id === eventId);
-
-        // If not found, it's likely a recurring event with a composite ID.
-        if (!taskOrHistoryItem && eventId.includes('_')) {
+        if (!taskOrHistoryItem && eventId && eventId.includes('_')) {
             const baseTaskId = getBaseId(eventId);
             taskOrHistoryItem = tasks.find(t => t.id === baseTaskId);
         }
     }
 
-    // Fallback: If an active task was not found (e.g., completed just before click), check history.
     if (!taskOrHistoryItem && !isHistorical) {
         const baseTaskId = getBaseId(eventId);
         if (baseTaskId) {
             const matchingHistory = appState.historicalTasks
                 .filter(h => h.originalTaskId === baseTaskId)
                 .sort((a, b) => new Date(b.actionDate) - new Date(a.actionDate));
-
             if (matchingHistory.length > 0) {
-                // If an occurrenceDate is available, try to find the exact historical match.
                 if (occurrenceDate) {
-                    const exactMatch = matchingHistory.find(h => new Date(h.completionDate).getTime() === occurrenceDate.getTime());
-                    if (exactMatch) {
-                        taskOrHistoryItem = exactMatch;
-                    }
+                    const exactMatch = matchingHistory.find(h => new Date(h.completionDate).getTime() === new Date(occurrenceDate).getTime());
+                    if (exactMatch) taskOrHistoryItem = exactMatch;
                 }
-                // If no exact match or no date, fall back to the most recent record.
-                if (!taskOrHistoryItem) {
-                    taskOrHistoryItem = matchingHistory[0];
-                }
-                isHistorical = true; // We found it in history, so treat it as such.
+                if (!taskOrHistoryItem) taskOrHistoryItem = matchingHistory[0];
+                isHistorical = true;
             }
         }
     }
@@ -1796,14 +1790,10 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         return;
     }
 
-    // The template needs a consistent ID property, so we ensure it exists.
     if (isHistorical && !taskOrHistoryItem.id) {
-        // Sanitize the eventId to make it a valid CSS selector part.
-        // Replace spaces, colons, and other problematic characters with an underscore.
         taskOrHistoryItem.id = eventId.replace(/[^a-zA-Z0-9_-]/g, '_');
     }
 
-    // JIT lookup of DOM elements to fix null reference errors.
     const taskViewContentEl = document.getElementById('task-view-content');
     const taskStatsContentEl = document.getElementById('task-stats-content');
     const taskViewModalEl = document.getElementById('task-view-modal');
@@ -1818,15 +1808,12 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         if (!borderWrapper) return;
         let gpaPercent = 0;
         const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
-
         if (isHistorical) {
             gpaPercent = (gpaMap[task.status] || 0) / 4.0;
         } else {
             const currentTask = tasks.find(t => t.id === task.id);
             if (currentTask) {
-                gpaPercent = typeof currentTask.coloringGpa === 'number'
-                    ? currentTask.coloringGpa
-                    : (gpaMap[currentTask.status] || 0) / 4.0;
+                gpaPercent = typeof currentTask.coloringGpa === 'number' ? currentTask.coloringGpa : (gpaMap[currentTask.status] || 0) / 4.0;
             }
         }
         const baseColor = interpolateFiveColors(gpaPercent);
@@ -1837,92 +1824,140 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         borderWrapper.style.background = gradient;
     };
 
-    updateBorder(taskOrHistoryItem); // Set initial border color
+    updateBorder(taskOrHistoryItem);
 
-    // Set a data attribute on the modal to hold the currently viewed task's ID.
-    // This allows the main update loop to find it and update the border.
     if (!isHistorical) {
         taskViewModalEl.dataset.viewingTaskId = taskOrHistoryItem.id;
     } else {
         delete taskViewModalEl.dataset.viewingTaskId;
     }
 
-
     taskViewContentEl.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
-    taskViewContentEl.classList.remove('hidden', 'task-confirming-delete');
+    taskViewContentEl.classList.remove('hidden');
     taskStatsContentEl.classList.add('hidden');
     taskStatsContentEl.innerHTML = '';
 
-    // Replace the node to clear old event listeners, then add the new one.
     const newContentView = taskViewContentEl.cloneNode(true);
     taskViewContentEl.parentNode.replaceChild(newContentView, taskViewContentEl);
+
+    const afterAction = (andRefreshCalendar = true) => {
+        if (uiSettings.closeModalAfterAction) {
+            deactivateModal(taskViewModalEl);
+            delete taskViewModalEl.dataset.viewingTaskId;
+        }
+        if (andRefreshCalendar && calendar) calendar.refetchEvents();
+    };
 
     newContentView.addEventListener('click', (e) => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
         const action = target.dataset.action;
-        const taskId = target.dataset.taskId; // This will be the original task ID
+        const taskId = target.dataset.taskId || (isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id);
         const historyEventId = target.dataset.historyEventId;
+        let task = tasks.find(t => t.id === taskId);
 
-        const confirmationDiv = newContentView.querySelector(`#task-view-confirmation-${taskOrHistoryItem.id}`);
-        const actionsDiv = newContentView.querySelector(`#task-view-actions-${taskOrHistoryItem.id}`);
+        const refreshModal = () => {
+            // Re-find the task in case it was modified by the action
+            const currentTask = tasks.find(t => t.id === taskId);
+            if (currentTask) {
+                openTaskView(taskId, false, occurrenceDate);
+            } else {
+                // If task is no longer in active list, it must have been completed/archived.
+                // Close the modal and refresh the calendar.
+                afterAction(true);
+            }
+        };
+
+        const checkCompletionAndRefresh = () => {
+            task = tasks.find(t => t.id === taskId); // Re-fetch task state
+            if (task && !task.confirmationState) {
+                refreshModal();
+            } else if (task && task.confirmationState) {
+                refreshModal(); // show confirmation
+            } else {
+                afterAction(true); // closed because task was completed/archived
+            }
+        };
 
         switch (action) {
+            case 'confirmCompletion':
+            case 'confirmMiss':
+            case 'confirmUndo':
+            case 'confirmDeleteFromView':
+            case 'confirmDeleteHistoryRecordFromView':
+                if (action === 'confirmCompletion') confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
+                if (action === 'confirmMiss') confirmMissAction(taskId, target.dataset.confirmed === 'true');
+                if (action === 'confirmUndo') confirmUndoAction(taskId, target.dataset.confirmed === 'true');
+                if (action === 'confirmDeleteFromView') {
+                    confirmDeleteAction(taskId, true);
+                }
+                if (action === 'confirmDeleteHistoryRecordFromView') {
+                    appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
+                    saveData();
+                }
+                afterAction();
+                break;
+
+            case 'triggerCompletion':
+                if (task) { triggerCompletion(taskId); refreshModal(); }
+                break;
+            case 'handleOverdue':
+                if (task) { handleOverdueChoice(taskId, target.dataset.choice); refreshModal(); }
+                break;
+            case 'triggerDeleteFromView':
+                if (task) { triggerDelete(taskId); refreshModal(); }
+                break;
+            case 'triggerUndo':
+                if (task) { triggerUndoConfirmation(taskId); refreshModal(); }
+                break;
+            case 'incrementCount':
+                if (task) { incrementCount(taskId); checkCompletionAndRefresh(); }
+                break;
+            case 'decrementCount':
+                if (task) { decrementCount(taskId); refreshModal(); }
+                break;
+            case 'toggleTimer':
+                if (task) { toggleTimer(taskId); checkCompletionAndRefresh(); }
+                break;
+            case 'editProgress':
+                if (task) { editProgress(taskId); }
+                break;
+            case 'saveProgress':
+                if (task) { saveProgressEdit(taskId); checkCompletionAndRefresh(); }
+                break;
+            case 'cancelProgress':
+                if (task) { cancelProgressEdit(taskId); refreshModal(); }
+                break;
+            case 'cancelDeleteFromView':
+                if (task) {
+                    task.confirmationState = null;
+                    const taskInList = tasks.find(t => t.id === taskId);
+                    if(taskInList) taskInList.confirmationState = null;
+                    saveData();
+                    refreshModal();
+                }
+                break;
+            case 'cancelDeleteHistoryRecordFromView':
+                openTaskView(historyEventId, true);
+                break;
             case 'viewTaskStats':
                 renderTaskStats(taskId);
                 break;
             case 'editTaskFromView':
-                deactivateModal(taskViewModalEl);
+                afterAction(false);
                 openModal(taskId, { occurrenceDate });
                 break;
-            case 'triggerDeleteFromView':
-                if (confirmationDiv && actionsDiv) {
-                    actionsDiv.classList.add('hidden');
-                    confirmationDiv.innerHTML = taskViewDeleteConfirmationTemplate(taskId);
-                    newContentView.classList.add('task-confirming-delete');
-                }
-                break;
-            case 'cancelDeleteFromView':
-                if (confirmationDiv && actionsDiv) {
-                    confirmationDiv.innerHTML = '';
-                    actionsDiv.classList.remove('hidden');
-                    newContentView.classList.remove('task-confirming-delete');
-                }
-                break;
-            case 'confirmDeleteFromView':
-                stopAllTimers();
-                tasks = tasks.filter(t => t.id !== taskId);
-                saveData();
-                renderTasks();
-                renderKpiTaskSelect();
-                renderKpiList();
-                if (calendar) calendar.refetchEvents();
-                deactivateModal(taskViewModalEl);
-                break;
             case 'triggerDeleteHistoryRecordFromView':
+                const confirmationDiv = newContentView.querySelector(`#task-view-confirmation-${taskOrHistoryItem.id}`);
+                const actionsDiv = newContentView.querySelector('.responsive-button-grid');
                 if (confirmationDiv && actionsDiv) {
                     actionsDiv.classList.add('hidden');
                     confirmationDiv.innerHTML = taskViewHistoryDeleteConfirmationTemplate(historyEventId, taskId);
-                    newContentView.classList.add('task-confirming-delete');
                 }
-                break;
-            case 'cancelDeleteHistoryRecordFromView':
-                 if (confirmationDiv && actionsDiv) {
-                    confirmationDiv.innerHTML = '';
-                    actionsDiv.classList.remove('hidden');
-                    newContentView.classList.remove('task-confirming-delete');
-                }
-                break;
-            case 'confirmDeleteHistoryRecordFromView':
-                appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
-                saveData();
-                if (calendar) calendar.refetchEvents();
-                deactivateModal(taskViewModalEl);
                 break;
         }
     });
-
     activateModal(taskViewModalEl);
 }
 
@@ -5185,6 +5220,10 @@ function setupEventListeners() {
                         renderHintManager(); // Re-render the manager to show all hints as unchecked
                     }
                     break;
+                case 'toggleCloseModalAfterAction':
+                    uiSettings.closeModalAfterAction = event.target.checked;
+                    saveData();
+                    break;
             }
         });
 
@@ -5872,12 +5911,28 @@ function updateAllTaskStatuses(forceRender = false) {
     }
 }
 function startMainUpdateLoop() {
-    if (mainUpdateInterval) clearInterval(mainUpdateInterval);
-    // The initial update is handled in loadData(), so the immediate timeout is removed.
-    mainUpdateInterval = setInterval(() => {
+    if (mainUpdateInterval) {
+        clearTimeout(mainUpdateInterval);
+        mainUpdateInterval = null;
+    }
+
+    const scheduledUpdate = () => {
+        // These are the actions that were in the setInterval
         updateAdaptiveSensitivity();
         updateAllTaskStatuses(false);
-    }, STATUS_UPDATE_INTERVAL);
+
+        // Schedule the next execution, ensuring it stays aligned
+        const now = new Date();
+        const delay = 15000 - (now.getSeconds() % 15 * 1000 + now.getMilliseconds());
+        mainUpdateInterval = setTimeout(scheduledUpdate, delay);
+    };
+
+    // Kick off the first aligned execution.
+    // The `loadData` function already performs an immediate update on page load.
+    // This timeout sets up the first of the recurring, clock-aligned updates.
+    const now = new Date();
+    const initialDelay = 15000 - (now.getSeconds() % 15 * 1000 + now.getMilliseconds());
+    mainUpdateInterval = setTimeout(scheduledUpdate, initialDelay);
 }
 
 // =================================================================================
@@ -6286,33 +6341,65 @@ function initializeCalendar() {
                     });
                 });
 
-                // 5. Add tasks that are awaiting overdue input, as they might not be in the pipeline
-                const eventTaskIds = new Set(calendarEvents.map(e => e.extendedProps.taskId));
-                const stuckTasks = tasks.filter(t => t.confirmationState === 'awaiting_overdue_input' && t.dueDate && !eventTaskIds.has(t.id));
+                // 5. Add all pending overdue cycles for tasks awaiting input.
+                const stuckTasks = tasks.filter(t => t.confirmationState === 'awaiting_overdue_input');
 
                 stuckTasks.forEach(task => {
                     const category = categories.find(c => c.id === task.categoryId);
-                    const eventColor = category ? category.color : '#374151'; // gray-700
+                    const eventColor = category ? category.color : '#374151';
                     const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
                     const borderColor = statusColors.black; // These are always overdue
-
                     const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || MS_PER_HOUR;
-                    const endDate = new Date(task.dueDate);
-                    const startDate = new Date(endDate.getTime() - durationMs);
 
-                    calendarEvents.push({
-                        id: task.id,
-                        title: task.name,
-                        start: startDate,
-                        end: endDate,
-                        backgroundColor: eventColor,
-                        borderColor: borderColor,
-                        textColor: eventTextColor,
-                        borderWidth: '2px',
-                        extendedProps: {
-                            taskId: task.id,
-                            isHistorical: false // It's an active task, just in a special state
+                    // Get all missed occurrences since the task became overdue.
+                    const firstMissedDate = new Date(task.overdueStartDate || task.dueDate);
+                    let missedOccurrences = [];
+                    if (task.repetitionType !== 'none') {
+                        missedOccurrences = getOccurrences(task, firstMissedDate, now);
+                    }
+
+                    // If getOccurrences returns nothing (e.g., for non-repeating tasks), use the original due date.
+                    if (missedOccurrences.length === 0 && task.dueDate) {
+                        // Ensure the date is valid before pushing
+                        const dueDate = new Date(task.dueDate);
+                        if (!isNaN(dueDate)) {
+                            missedOccurrences.push(dueDate);
                         }
+                    }
+
+                    missedOccurrences.forEach(occurrenceDate => {
+                        const endDate = new Date(occurrenceDate);
+                        const startDate = new Date(endDate.getTime() - durationMs);
+
+                        // Only add the event if it's within the current calendar view
+                        if (startDate > viewEndDate || endDate < viewStartDate) {
+                            return;
+                        }
+
+                        // Create a unique ID for this specific missed occurrence
+                        const occurrenceId = `${task.id}_${occurrenceDate.toISOString()}`;
+
+                        // Avoid adding duplicates if the main pipeline somehow already included it.
+                        if (calendarEvents.some(e => e.id === occurrenceId)) {
+                            return;
+                        }
+
+                        calendarEvents.push({
+                            id: occurrenceId,
+                            title: `${task.name} (Pending)`,
+                            start: startDate,
+                            end: endDate,
+                            backgroundColor: eventColor,
+                            borderColor: borderColor,
+                            textColor: eventTextColor,
+                            borderWidth: '2px',
+                            classNames: ['overdue-pending-event'],
+                            extendedProps: {
+                                taskId: task.id,
+                                occurrenceDueDate: occurrenceDate.toISOString(),
+                                isHistorical: false
+                            }
+                        });
                     });
                 });
 
