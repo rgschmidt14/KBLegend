@@ -67,7 +67,6 @@
     border: 1px solid transparent;
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
     cursor: pointer;
-    text-wrap: nowrap;
 }
 .btn:focus-visible {
     outline: 2px solid var(--focus-ring-color);

@@ -968,8 +968,7 @@ function applyTheme() {
     });
 
     // Add rules for backgrounds and text
-    const mainBgForText = isDarkMode ? '#111827' : '#F9FAFB';
-    const mainTextStyles = getContrastingTextColor(mainBgForText);
+    const mainTextStyles = getContrastingTextColor(themeProperties['--bg-main']);
 
     css += `
         body.bg-main {
@@ -1013,6 +1012,7 @@ function applyTheme() {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
         }
         .collapsible-header i {
             transition: transform 0.3s ease-in-out;
@@ -1883,21 +1883,27 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
 
         switch (action) {
             case 'confirmCompletion':
+                confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
+                refreshModal(); // Re-render the modal to show the next state
+                break;
             case 'confirmMiss':
+                confirmMissAction(taskId, target.dataset.confirmed === 'true');
+                refreshModal(); // Re-render the modal to show the next state
+                break;
             case 'confirmUndo':
+                confirmUndoAction(taskId, target.dataset.confirmed === 'true');
+                refreshModal(); // Re-render the modal to show the next state
+                break;
             case 'confirmDeleteFromView':
             case 'confirmDeleteHistoryRecordFromView':
-                if (action === 'confirmCompletion') confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
-                if (action === 'confirmMiss') confirmMissAction(taskId, target.dataset.confirmed === 'true');
-                if (action === 'confirmUndo') confirmUndoAction(taskId, target.dataset.confirmed === 'true');
                 if (action === 'confirmDeleteFromView') {
-                    confirmDeleteAction(taskId, true);
+                    confirmDeleteAction(taskId, true); // This will remove the task
                 }
                 if (action === 'confirmDeleteHistoryRecordFromView') {
                     appState.historicalTasks = appState.historicalTasks.filter(h => 'hist_' + h.originalTaskId + '_' + h.completionDate !== historyEventId);
                     saveData();
                 }
-                afterAction();
+                afterAction(); // Correct for delete actions, as the view should close or calendar should update
                 break;
 
             case 'triggerCompletion':
@@ -3456,7 +3462,8 @@ function confirmCompletionAction(taskId, confirmed) {
             });
             task.completed = true;
             task.status = 'blue';
-            task.cycleEndDate = new Date(baseDate);
+            // Set lock for 5 seconds in the future to allow for an undo grace period.
+            task.cycleEndDate = new Date(now.getTime() + 5000);
         }
 
         // --- Common Cleanup ---
@@ -3618,11 +3625,28 @@ function confirmMissAction(taskId, confirmed) {
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
         } else { // non-repeating task
-            task.originalDueDate = new Date(baseDate);
-            archiveNonRepeatingTask(task, 'missed', progress);
+            let historicalStatus = 'black'; // Full miss
+            if (progress > 0 && progress < 1) {
+                historicalStatus = 'yellow'; // Partial miss
+            }
+            appState.historicalTasks.push({
+                originalTaskId: task.id, name: task.name,
+                completionDate: new Date(baseDate),
+                actionDate: now,
+                status: historicalStatus,
+                categoryId: task.categoryId,
+                durationAmount: task.estimatedDurationAmount,
+                durationUnit: task.estimatedDurationUnit,
+                progress: progress,
+                originalDueDate: new Date(baseDate)
+            });
+            task.completed = true;
+            task.status = 'blue';
+            // Set lock for 5 seconds in the future to allow for an undo grace period.
+            task.cycleEndDate = new Date(now.getTime() + 5000);
         }
 
-        task.cycleEndDate = null;
+        // Common cleanup for confirmed actions
         task.currentProgress = 0;
         task.confirmationState = null;
         delete task.pendingCycles;
