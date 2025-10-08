@@ -566,8 +566,8 @@ function actionAreaTemplate(task) {
             return `<div class="confirm-miss-area">
                         <span class="action-area-text">${promptText} ${inputControl}</span>
                         <div class="button-group">
-                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button>
-                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button>
+                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-xs">Yes</button>
+                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-xs">No</button>
                         </div>
                     </div>`;
         case 'confirming_delete':

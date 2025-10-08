@@ -235,7 +235,9 @@ body.modal-open {
 .countdown-timer {
     font-size: 0.75rem;
     font-style: italic;
-    min-height: 1rem;
+    line-height: 1.2; /* Ensure line height is tight */
+    padding-bottom: 0.25rem; /* Add a little space at the bottom */
+    min-height: 1rem; /* Keep a min-height to prevent jank when empty */
     color: var(--text-color-secondary);
 }
 .progress-display {
@@ -579,14 +581,15 @@ legend {
 @media (max-width: 480px) {
     .confirm-miss-area {
         flex-direction: column;
-        align-items: stretch;
+        align-items: center; /* Center items horizontally */
     }
     .confirm-miss-area .action-area-text {
         text-align: center;
         margin-bottom: 0.5rem;
     }
     .confirm-miss-area .miss-input {
-        width: 100%;
+        width: 80%; /* Don't take full width, allow for some padding */
+        max-width: 150px; /* Prevent it from getting too large on slightly wider small screens */
     }
     .confirm-miss-area .button-group {
         width: 100%;
@@ -594,6 +597,7 @@ legend {
     }
     .confirm-miss-area .button-group > button {
         flex-grow: 1;
+        max-width: 100px; /* Give the buttons a max width to keep them reasonable */
     }
 }
 
