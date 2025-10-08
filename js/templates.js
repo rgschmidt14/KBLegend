@@ -575,8 +575,8 @@ function actionAreaTemplate(task) {
         case 'confirming_undo':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
     }
-    if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
     if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
+    if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
     switch (task.completionType) {
         case 'count':
             return `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">+</button> </div>`;
@@ -607,7 +607,7 @@ function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, th
     const statusOrder = ['blue', 'green', 'yellow', 'red', 'black'];
 
     const statusRows = statusOrder.map(key => `
-        <div id="status-display-${key}" class="grid grid-cols-3 items-center gap-4 py-2">
+        <div id="status-display-${key}" class="grid grid-cols-1 md:grid-cols-3 items-center gap-4 py-2">
             <span class="font-semibold">${statusNames[key]}</span>
             <div class="flex items-center space-x-2">
                 <input type="color"
