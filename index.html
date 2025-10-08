@@ -62,7 +62,7 @@
                             <option value="desc">Descending</option>
                             <option value="asc">Ascending</option>
                         </select>
-                        <button id="add-journal-entry-btn" class="btn btn-tertiary btn-md">New Entry</button>
+                        <button id="add-journal-entry-btn" data-action="addJournal" class="btn btn-tertiary btn-md">New Entry</button>
                     </div>
                 </div>
                 <div id="journal-list" class="space-y-4"></div>
@@ -711,10 +711,13 @@
     <div id="data-migration-modal" class="modal"><div class="modal-content bg-modal"></div></div>
 
     <div id="task-view-modal" class="modal">
-        <div class="modal-content bg-modal">
-            <button class="close-button" aria-label="Close Task View">&times;</button>
-            <div id="task-view-content"></div>
-            <div id="task-stats-content" class="hidden"></div>
+        <!-- This new wrapper will hold the gradient border -->
+        <div id="task-view-modal-border-wrapper" style="border-radius: 0.75rem; padding: 14px; transition: background 0.5s ease;">
+            <div class="modal-content bg-modal">
+                <button class="close-button" aria-label="Close Task View">&times;</button>
+                <div id="task-view-content"></div>
+                <div id="task-stats-content" class="hidden"></div>
+            </div>
         </div>
     </div>
 

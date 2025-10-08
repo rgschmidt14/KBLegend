@@ -476,10 +476,21 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
         ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md mt-6">Reinstate Task</button>`
         : '';
 
+    const overallGpaHtml = stats.overallGpa
+        ? `<span class="font-bold inline-block text-center w-10 rounded py-1 ml-2"
+                 style="background-color: ${stats.overallGpa.color}; color: ${stats.overallGpa.textColor}; text-shadow: ${stats.overallGpa.textShadow};">
+              ${stats.overallGpa.grade}
+           </span>`
+        : '';
+
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
-            <p><strong>Completion Rate:</strong> ${stats.completionRate}% (${stats.completions} / ${stats.total})</p>
+            <div class="flex items-center">
+                <strong>Completion Rate:</strong>
+                <span class="ml-2">${stats.completionRate}% (${stats.completions} / ${stats.total})</span>
+                ${overallGpaHtml}
+            </div>
         </div>
         <h4 class="text-lg font-semibold mt-6 mb-2">Performance</h4>
         ${chartHtml}
@@ -501,8 +512,18 @@ function actionAreaTemplate(task) {
         case 'awaiting_overdue_input':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button></div>`;
         case 'confirming_miss':
-            const input = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> / ${cycles} cycles?` : '?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Misses ${input}</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
+            const promptText = cycles > 1 ? 'Confirm Misses:' : 'Confirm Miss?';
+            const inputControl = cycles > 1
+                ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}`
+                : '';
+
+            return `<div class="flex flex-wrap items-center justify-end gap-2 w-full">
+                        <span class="action-area-text flex-grow text-right">${promptText} ${inputControl}</span>
+                        <div class="flex space-x-2 flex-shrink-0">
+                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button>
+                            <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button>
+                        </div>
+                    </div>`;
         case 'confirming_delete':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
         case 'confirming_undo':
