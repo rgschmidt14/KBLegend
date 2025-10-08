@@ -980,12 +980,10 @@ function applyTheme() {
         }
         .bg-secondary {
             background-color: var(--bg-secondary);
-            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
             box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
         }
         .bg-modal {
             background: var(--bg-modal);
-            color: ${getContrastingTextColor(theming.enabled ? palette.main : (isDarkMode ? '#2d3748' : '#FFFFFF'))['--text-color-primary']};
         }
         .fc-col-header-cell {
             background-color: var(--bg-calendar-header) !important;
@@ -1015,7 +1013,6 @@ function applyTheme() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
         }
         .collapsible-header i {
             transition: transform 0.3s ease-in-out;
@@ -1046,7 +1043,6 @@ function applyTheme() {
 
         #advanced-options-content fieldset {
             background-color: var(--bg-secondary);
-            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
             border: 1px solid var(--border-color-secondary);
             padding: 1rem;
             border-radius: 0.5rem;
