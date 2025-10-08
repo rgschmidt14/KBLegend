@@ -1043,6 +1043,7 @@ function applyTheme() {
 
         #advanced-options-content fieldset {
             background-color: var(--bg-secondary);
+            color: ${getContrastingTextColor(themeProperties['--bg-secondary'])['--text-color-primary']};
             border: 1px solid var(--border-color-secondary);
             padding: 1rem;
             border-radius: 0.5rem;
@@ -5133,19 +5134,23 @@ function setupEventListeners() {
                     theming.enabled = event.target.checked;
                     applyTheme();
                     renderThemeControls();
+                    renderStatusManager(); // Re-render to update the disabled state of the status toggle
                     saveData();
                     break;
                 case 'setCalendarGradientSource':
                     const source = target.dataset.source;
                     if (source) {
                         theming.calendarGradientSource = source;
-                        // This choice now also dictates if status colors are derived from the theme.
-                        theming.useThemeForStatus = (source === 'theme');
                         applyTheme();
                         renderThemeControls();
-                        renderStatusManager(); // Re-render status manager as its appearance might change
                         saveData();
                     }
+                    break;
+                case 'toggleThemeForStatus':
+                    theming.useThemeForStatus = target.checked;
+                    applyTheme();
+                    renderStatusManager();
+                    saveData();
                     break;
                 case 'randomizeTheme':
                     theming.baseColor = getRandomColor();
