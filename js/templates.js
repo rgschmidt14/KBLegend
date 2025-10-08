@@ -803,7 +803,7 @@ function hintManagerTemplate(hints, uiSettings) {
     `;
 }
 
-function calendarCategoryFilterTemplate(categories, filterSettings = {}) {
+function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterTargetView = 'all') {
     const renderRow = (id, name, isItalic = false) => {
         const settings = filterSettings[id] || { show: true, schedule: true };
         const nameClass = isItalic ? 'italic' : 'font-semibold';
@@ -829,9 +829,44 @@ function calendarCategoryFilterTemplate(categories, filterSettings = {}) {
 
     return `
         <div class="space-y-1 p-2 bg-main rounded-lg mt-4">
-            <h4 class="font-bold text-center mb-2">Calendar Category Filters</h4>
+            <div class="flex justify-between items-center mb-2">
+                 <h4 class="font-bold">Calendar Category Filters</h4>
+                 <div class="flex items-center space-x-2">
+                    <label for="calendar-filter-view-select" class="text-sm">Apply to:</label>
+                    <select id="calendar-filter-view-select" data-action="setCalendarFilterView" class="text-sm p-1 rounded-md">
+                        <option value="all" ${filterTargetView === 'all' ? 'selected' : ''}>All Views</option>
+                        <option value="timeGridDay" ${filterTargetView === 'timeGridDay' ? 'selected' : ''}>Day</option>
+                        <option value="timeGridWeek" ${filterTargetView === 'timeGridWeek' ? 'selected' : ''}>Week</option>
+                        <option value="dayGridMonth" ${filterTargetView === 'dayGridMonth' ? 'selected' : ''}>Month</option>
+                    </select>
+                </div>
+            </div>
             ${categoryRows}
             ${uncategorizedRow}
+        </div>
+    `;
+}
+
+function monthViewEventTemplate(event, settings, groupCount = 1) {
+    const { showIcon, showTime, showName } = settings;
+    const category = event.extendedProps.category;
+    const iconClass = event.extendedProps.icon || (category ? category.icon : null);
+
+    // Use category color for the icon
+    const iconColor = category ? category.color : 'var(--text-color-tertiary)';
+    const iconHtml = showIcon && iconClass ? `<i class="${iconClass} month-view-icon" style="color: ${iconColor};"></i>` : '';
+
+    const timeHtml = showTime ? `<span class="month-view-time">${event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>` : '';
+    const nameHtml = showName ? `<span class="month-view-name">${event.title}</span>` : '';
+    const groupHtml = groupCount > 1 ? `<span class="month-view-group-count">x${groupCount}</span>` : '';
+
+    // The border color is the event's status color (GPA based)
+    return `
+        <div class="month-view-event-item" style="border-left-color: ${event.borderColor};">
+            ${iconHtml}
+            ${timeHtml}
+            ${nameHtml}
+            ${groupHtml}
         </div>
     `;
 }
@@ -844,5 +879,5 @@ export {
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
-    calendarCategoryFilterTemplate
+    calendarCategoryFilterTemplate, monthViewEventTemplate
 };

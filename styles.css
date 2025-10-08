@@ -645,3 +645,55 @@ legend {
 .kpi-chart-stack-wrapper .gradient-bordered-content:last-child {
     margin-bottom: 0; /* No margin on the last chart */
 }
+
+/* ======================================================================== */
+/* NEW MONTH VIEW STYLES                                                    */
+/* ======================================================================== */
+.month-view-event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.month-view-event-item {
+    display: flex;
+    align-items: center;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background-color: var(--bg-secondary);
+    border-left: 3px solid; /* color is set inline */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.75rem; /* 12px */
+    line-height: 1.2;
+}
+
+.month-view-icon {
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.month-view-time {
+    margin-right: 4px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.month-view-name {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.month-view-group-count {
+    margin-left: 4px;
+    font-weight: bold;
+    background-color: var(--bg-main);
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+}
