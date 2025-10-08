@@ -41,6 +41,7 @@ let editingTaskId = null;
 let editingCategoryIdForIcon = null;
 let kpiChart = null; // For single chart view
 let kpiCharts = []; // For stacked chart view
+// let taskViewBorderInterval = null; // This is no longer needed
 // isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
 let mainUpdateInterval = null;
@@ -621,60 +622,97 @@ function gpaToLetterGrade(gpa) {
 }
 
 
-function processTaskHistoryForChart(history) {
-    if (!history || history.length === 0) {
+function processTaskHistoryForChart(task, history) {
+    if ((!history || history.length === 0) && !task) {
         return { labels: [], completions: [], misses: [] };
     }
 
-    // Group history items by day
-    const dailyData = {};
-    history.forEach(item => {
-        const date = new Date(item.completionDate);
-        if (isNaN(date)) return;
+    // 1. Group history items by day
+    const dailyData = new Map();
+    if (history) {
+        history.forEach(item => {
+            const date = new Date(item.completionDate);
+            if (isNaN(date)) return;
 
-        const dayKey = format(date, 'yyyy-MM-dd');
+            const dayKey = format(date, 'yyyy-MM-dd');
+            if (!dailyData.has(dayKey)) {
+                dailyData.set(dayKey, { completions: 0, misses: 0 });
+            }
+            const stats = dailyData.get(dayKey);
+            const completionStatuses = ['blue', 'green', 'yellow'];
+            if (completionStatuses.includes(item.status)) {
+                stats.completions++;
+            } else {
+                stats.misses++;
+            }
+        });
+    }
 
-        if (!dailyData[dayKey]) {
-            dailyData[dayKey] = { completions: 0, misses: 0 };
+    // 2. Determine the date range for the chart
+    const today = new Date();
+    let chartStartDate;
+    if (history && history.length > 0) {
+        chartStartDate = new Date(history.reduce((min, h) => Math.min(min, new Date(h.completionDate).getTime()), Date.now()));
+    } else {
+        chartStartDate = new Date(task.createdAt || today);
+    }
+    chartStartDate.setHours(0,0,0,0);
+
+
+    let lastEventDate;
+     if (history && history.length > 0) {
+        lastEventDate = new Date(history.reduce((max, h) => Math.max(max, new Date(h.completionDate).getTime()), 0));
+    } else {
+        lastEventDate = today;
+    }
+    const chartEndDate = today > lastEventDate ? today : lastEventDate;
+    chartEndDate.setHours(23,59,59,999);
+
+
+    // 3. Decide on the X-axis generation strategy
+    const repetitionIntervalMs = (task && task.repetitionType === 'relative') ? getDurationMs(task.repetitionAmount, task.repetitionUnit) : 0;
+    const isSparse = (task && task.repetitionType === 'absolute') || repetitionIntervalMs > MS_PER_DAY;
+
+    let labels = [];
+    if (isSparse && task.repetitionType !== 'none') {
+        const occurrences = getOccurrences(task, chartStartDate, chartEndDate);
+        labels = occurrences.map(d => format(d, 'yyyy-MM-dd'));
+        const todayKey = format(today, 'yyyy-MM-dd');
+        if (!labels.includes(todayKey) && chartEndDate.toDateString() === today.toDateString()) {
+             labels.push(todayKey);
+             labels.sort();
         }
-
-        // Use new status categories to correctly identify completions and misses
-        const completionStatuses = ['blue', 'green', 'yellow'];
-        const missStatuses = ['red', 'black'];
-
-        if (completionStatuses.includes(item.status)) {
-            dailyData[dayKey].completions++;
-        } else if (missStatuses.includes(item.status)) {
-            dailyData[dayKey].misses++;
+    } else {
+        let currentDate = new Date(chartStartDate);
+        while (currentDate <= chartEndDate) {
+            labels.push(format(currentDate, 'yyyy-MM-dd'));
+            currentDate.setDate(currentDate.getDate() + 1);
         }
+    }
+
+    if (labels.length === 0 && task) {
+        labels.push(format(today, 'yyyy-MM-dd'));
+    }
+
+    // 4. Populate datasets based on labels
+    const completions = [];
+    const misses = [];
+    labels.forEach(label => {
+        const dataForDay = dailyData.get(label) || { completions: 0, misses: 0 };
+        completions.push(dataForDay.completions);
+        misses.push(dataForDay.misses);
     });
 
-    const sortedDays = Object.keys(dailyData).sort();
-    if (sortedDays.length === 0) {
-        return { labels: [], completions: [], misses: [] };
+    if (history && history.length === 0 && task) {
+        const todayKey = format(new Date(), 'yyyy-MM-dd');
+        if (!labels.includes(todayKey)) {
+             labels.push(todayKey);
+             completions.push(0);
+             misses.push(0);
+        }
     }
 
-    // Create a continuous timeline from the first to the last event
-    const allLabels = [];
-    const allCompletions = [];
-    const allMisses = [];
-
-    const firstDate = new Date(sortedDays[0]);
-    const lastDate = new Date(sortedDays[sortedDays.length - 1]);
-
-    let currentDate = firstDate;
-    while (currentDate <= lastDate) {
-        const dayKey = format(currentDate, 'yyyy-MM-dd');
-        allLabels.push(dayKey);
-
-        const dataForDay = dailyData[dayKey] || { completions: 0, misses: 0 };
-        allCompletions.push(dataForDay.completions);
-        allMisses.push(dataForDay.misses);
-
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return { labels: allLabels, completions: allCompletions, misses: allMisses };
+    return { labels, completions, misses };
 }
 
 
@@ -1769,11 +1807,46 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     const taskViewContentEl = document.getElementById('task-view-content');
     const taskStatsContentEl = document.getElementById('task-stats-content');
     const taskViewModalEl = document.getElementById('task-view-modal');
+    const borderWrapper = document.getElementById('task-view-modal-border-wrapper');
 
-    if (!taskViewContentEl || !taskStatsContentEl || !taskViewModalEl) {
+    if (!taskViewContentEl || !taskStatsContentEl || !taskViewModalEl || !borderWrapper) {
         console.error("Could not find task view modal elements in the DOM.");
         return;
     }
+
+    const updateBorder = (task) => {
+        if (!borderWrapper) return;
+        let gpaPercent = 0;
+        const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
+
+        if (isHistorical) {
+            gpaPercent = (gpaMap[task.status] || 0) / 4.0;
+        } else {
+            const currentTask = tasks.find(t => t.id === task.id);
+            if (currentTask) {
+                gpaPercent = typeof currentTask.coloringGpa === 'number'
+                    ? currentTask.coloringGpa
+                    : (gpaMap[currentTask.status] || 0) / 4.0;
+            }
+        }
+        const baseColor = interpolateFiveColors(gpaPercent);
+        const isDarkMode = !document.body.classList.contains('light-mode');
+        const topColor = adjustColor(baseColor, isDarkMode ? 0.2 : -0.2);
+        const bottomColor = adjustColor(baseColor, isDarkMode ? -0.2 : 0.2);
+        const gradient = `linear-gradient(to bottom, ${topColor}, ${bottomColor})`;
+        borderWrapper.style.background = gradient;
+    };
+
+    updateBorder(taskOrHistoryItem); // Set initial border color
+
+    // Set a data attribute on the modal to hold the currently viewed task's ID.
+    // This allows the main update loop to find it and update the border.
+    if (!isHistorical) {
+        taskViewModalEl.dataset.viewingTaskId = taskOrHistoryItem.id;
+    } else {
+        delete taskViewModalEl.dataset.viewingTaskId;
+    }
+
 
     taskViewContentEl.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
     taskViewContentEl.classList.remove('hidden', 'task-confirming-delete');
@@ -1890,8 +1963,24 @@ function renderTaskStats(taskId) {
         completions,
         misses,
         total,
-        completionRate: total > 0 ? ((completions / total) * 100).toFixed(1) : 'N/A'
+        completionRate: total > 0 ? ((completions / total) * 100).toFixed(1) : 'N/A',
+        overallGpa: null
     };
+
+    if (total > 0) {
+        const totalGpaPoints = history.reduce((sum, h) => sum + (gpaMap[h.status] || 0), 0);
+        const averageGpa = totalGpaPoints / total;
+        const gpaPercent = averageGpa / 4.0;
+        const gpaColor = interpolateFiveColors(gpaPercent);
+        const textStyles = getContrastingTextColor(gpaColor);
+
+        stats.overallGpa = {
+            grade: gpaToLetterGrade(averageGpa),
+            color: gpaColor,
+            textColor: textStyles['--text-color-primary'],
+            textShadow: textStyles['--text-shadow']
+        };
+    }
 
     const historyHtml = history.length > 0
         ? history.map(h => {
@@ -1920,7 +2009,7 @@ function renderTaskStats(taskId) {
         }).join('')
         : '<div class="italic p-2">No history yet.</div>';
 
-    const chartData = processTaskHistoryForChart(history);
+    const chartData = processTaskHistoryForChart(task, history);
     const hasChartData = chartData.labels.length > 0;
 
     taskStatsContentEl.innerHTML = taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyCompleted);
@@ -2336,9 +2425,13 @@ function renderKpiList() {
             if (!dailyData.has(dateKey)) {
                 dailyData.set(dateKey, { completions: 0, misses: 0 });
             }
-            if (h.status === 'completed') {
+            // Use new status categories to correctly identify completions and misses
+            const completionStatuses = ['blue', 'green', 'yellow'];
+            const missStatuses = ['red', 'black'];
+
+            if (completionStatuses.includes(h.status)) {
                 dailyData.get(dateKey).completions++;
-            } else if (h.status === 'missed') {
+            } else if (missStatuses.includes(h.status)) {
                 dailyData.get(dateKey).misses++;
             }
         });
@@ -2499,8 +2592,8 @@ function openIconPicker(context = 'task') {
 function renderJournalEntry(entry) {
     const buttonsHtml = entry.isWeeklyGoal ? '' : `
         <div class="flex justify-end space-x-2 mt-2">
-            <button data-action="editJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Edit</button>
-            <button data-action="deleteJournal" data-id="${entry.id}" class="themed-button-clear text-xs">Delete</button>
+            <button data-action="editJournal" data-id="${entry.id}" class="btn btn-clear text-xs">Edit</button>
+            <button data-action="deleteJournal" data-id="${entry.id}" class="btn btn-clear text-xs">Delete</button>
         </div>
     `;
 
@@ -2509,12 +2602,16 @@ function renderJournalEntry(entry) {
     let contentHtml;
     let toggleButtonHtml = '';
 
+    // Use a unique ID for the content display area for easier targeting
+    const contentDisplayId = `journal-content-${entry.id}`;
+
     if (contentLength > truncateLength) {
         const truncatedContent = entry.content.substring(0, truncateLength);
-        contentHtml = `<div class="prose mt-2 max-w-none journal-content-display">${truncatedContent}...</div>`;
-        toggleButtonHtml = `<button data-action="toggleJournalContent" data-entry-id="${entry.id}" class="themed-button-clear text-xs mt-2">Show More</button>`;
+        contentHtml = `<div id="${contentDisplayId}" class="prose mt-2 max-w-none journal-content-display">${truncatedContent}...</div>`;
+        // Pass the content display ID to the button
+        toggleButtonHtml = `<button data-action="toggleJournalContent" data-entry-id="${entry.id}" data-content-id="${contentDisplayId}" class="btn btn-clear text-xs mt-2">Show More</button>`;
     } else {
-        contentHtml = `<div class="prose mt-2 max-w-none journal-content-display">${entry.content}</div>`;
+        contentHtml = `<div id="${contentDisplayId}" class="prose mt-2 max-w-none journal-content-display">${entry.content}</div>`;
     }
 
     return `
@@ -4650,7 +4747,11 @@ function setupEventListeners() {
     if (taskViewModalEl) {
         const taskViewCloseButton = taskViewModalEl.querySelector('.close-button');
         if (taskViewCloseButton) {
-            taskViewCloseButton.addEventListener('click', () => deactivateModal(taskViewModalEl));
+            taskViewCloseButton.addEventListener('click', () => {
+                deactivateModal(taskViewModalEl);
+                // When closing, remove the dataset attribute so the main loop stops updating it.
+                delete taskViewModalEl.dataset.viewingTaskId;
+            });
         }
     }
 
@@ -4729,6 +4830,13 @@ function setupEventListeners() {
                 document.getElementById('repetition-relative-group').classList.toggle('hidden', type !== 'relative');
                 document.getElementById('repetition-absolute-group').classList.toggle('hidden', type !== 'absolute');
                 document.getElementById('repeating-options-group').classList.toggle('hidden', type === 'none');
+                if (type === 'relative') {
+                    // Set default to hours when switching to relative
+                    const repetitionUnitSelect = document.getElementById('repetition-unit');
+                    if (repetitionUnitSelect) {
+                        repetitionUnitSelect.value = 'hours';
+                    }
+                }
                 if(type === 'absolute') {
                     toggleAbsoluteRepetitionFields(document.getElementById('absolute-frequency').value);
                 }
@@ -5303,22 +5411,83 @@ function setupEventListeners() {
         }
     });
 
-    // --- Journal Listeners ---
-    const addJournalEntryBtn = document.getElementById('add-journal-entry-btn');
-    if (addJournalEntryBtn) {
-        addJournalEntryBtn.addEventListener('click', () => openJournalModal());
+    // --- Journal Listeners (Event Delegation) ---
+    const journalViewEl = document.getElementById('journal-view');
+    if (journalViewEl) {
+        journalViewEl.addEventListener('click', (event) => {
+            const target = event.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            const entryId = target.dataset.id || target.dataset.entryId;
+
+            switch(action) {
+                case 'addJournal':
+                    openJournalModal();
+                    break;
+                case 'editJournal':
+                    openJournalModal(entryId);
+                    break;
+                case 'deleteJournal':
+                    if (confirm('Are you sure you want to delete this journal entry?')) {
+                        appState.journal = appState.journal.filter(e => e.id !== entryId);
+                        savePlannerData();
+                        renderJournal();
+                    }
+                    break;
+                case 'toggleJournalContent':
+                    const contentId = target.dataset.contentId;
+                    const contentDiv = document.getElementById(contentId);
+                    const entryDiv = target.closest('.journal-entry');
+                    if (contentDiv && entryDiv) {
+                        const fullContent = decodeURIComponent(entryDiv.dataset.fullContent);
+                        const isTruncated = contentDiv.textContent.endsWith('...');
+
+                        if (isTruncated) {
+                            contentDiv.textContent = fullContent;
+                            target.textContent = 'Show Less';
+                        } else {
+                            contentDiv.textContent = fullContent.substring(0, 500) + '...';
+                            target.textContent = 'Show More';
+                        }
+                    }
+                    break;
+                case 'toggleJournalIconGroup':
+                    const iconGroup = target.dataset.iconGroup;
+                    const entriesContainer = journalViewEl.querySelector(`.journal-entries-container[data-icon-entries="${iconGroup}"]`);
+                    const chevron = target.querySelector('i.fa-solid');
+                    if (entriesContainer) {
+                        const isCollapsed = entriesContainer.style.display === 'none';
+                        if (isCollapsed) {
+                            entriesContainer.style.display = '';
+                            if (chevron) {
+                                chevron.classList.remove('fa-chevron-right');
+                                chevron.classList.add('fa-chevron-down');
+                            }
+                            uiSettings.journalIconCollapseState[iconGroup] = false;
+                        } else {
+                            entriesContainer.style.display = 'none';
+                             if (chevron) {
+                                chevron.classList.remove('fa-chevron-down');
+                                chevron.classList.add('fa-chevron-right');
+                            }
+                            uiSettings.journalIconCollapseState[iconGroup] = true;
+                        }
+                        saveData();
+                    }
+                    break;
+            }
+        });
+
+        const journalSortBy = document.getElementById('journal-sort-by');
+        const journalSortDir = document.getElementById('journal-sort-direction');
+        const journalSortHandler = () => {
+            if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
+            renderJournal();
+        };
+        if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
+        if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
     }
-
-    const journalSortBy = document.getElementById('journal-sort-by');
-    const journalSortDir = document.getElementById('journal-sort-direction');
-    const journalSortHandler = () => {
-        if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
-        renderJournal();
-    };
-    if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
-    if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
-
-
 }
 
 function saveData() {
@@ -5633,20 +5802,27 @@ function updateAllTaskStatuses(forceRender = false) {
         // Determine the final display status
         const nextOccurrence = nextOccurrenceMap.get(task.id);
         let newStatus;
+        let newGpa = 0; // Default GPA for color interpolation (0-1 scale)
 
         if (task.status === 'blue' && task.cycleEndDate && new Date(task.cycleEndDate) > now) {
             newStatus = 'blue';
+            newGpa = 1.0; // 4.0 GPA
         } else if (task.confirmationState === 'awaiting_overdue_input') {
             newStatus = 'black';
+            newGpa = 0.0; // 0.0 GPA
         } else if (nextOccurrence) {
             newStatus = nextOccurrence.finalStatus;
+            newGpa = nextOccurrence.coloringGpa; // Use the precise GPA from the pipeline
         } else {
+            // If no future occurrence, it's likely completed or unscheduled. Default to green.
             newStatus = 'green';
+            newGpa = 0.75; // 3.0 GPA
         }
 
         if (task.status !== newStatus) {
             task.status = newStatus;
         }
+        task.coloringGpa = newGpa; // Store the GPA (0-1 scale) on the task object
 
         if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
             changed = true;
@@ -5671,6 +5847,28 @@ function updateAllTaskStatuses(forceRender = false) {
     if (changed || forceRender) {
         saveData();
         renderTasks();
+    }
+
+    // New logic: Check if the task view modal is open and update its border
+    const taskViewModalEl = document.getElementById('task-view-modal');
+    if (taskViewModalEl && taskViewModalEl.classList.contains('active')) {
+        const viewingTaskId = taskViewModalEl.dataset.viewingTaskId;
+        if (viewingTaskId) {
+            const task = tasks.find(t => t.id === viewingTaskId);
+            const borderWrapper = document.getElementById('task-view-modal-border-wrapper');
+            if (task && borderWrapper) {
+                 let gpaPercent = typeof task.coloringGpa === 'number'
+                    ? task.coloringGpa
+                    : ((gpaMap[task.status] || 0) / 4.0);
+
+                const baseColor = interpolateFiveColors(gpaPercent);
+                const isDarkMode = !document.body.classList.contains('light-mode');
+                const topColor = adjustColor(baseColor, isDarkMode ? 0.2 : -0.2);
+                const bottomColor = adjustColor(baseColor, isDarkMode ? -0.2 : 0.2);
+                const gradient = `linear-gradient(to bottom, ${topColor}, ${bottomColor})`;
+                borderWrapper.style.background = gradient;
+            }
+        }
     }
 }
 function startMainUpdateLoop() {
@@ -5709,7 +5907,8 @@ const savePlannerData = () => {
     localStorage.setItem(DATA_KEY, JSON.stringify({
         weeks: appState.weeks,
         indicators: appState.indicators,
-        journal: appState.journal
+        journal: appState.journal,
+        archivedTasks: appState.archivedTasks // Persist archived tasks
         // historicalTasks is now saved separately
     }));
 };
@@ -5727,6 +5926,19 @@ const loadPlannerData = () => {
         });
         appState.indicators = parsedData.indicators || appState.indicators;
         appState.journal = parsedData.journal || [];
+        // Load archived tasks, ensuring dates are correctly parsed
+        if (parsedData.archivedTasks && Array.isArray(parsedData.archivedTasks)) {
+            appState.archivedTasks = parsedData.archivedTasks.map(task => {
+                 let tempTask = { ...task };
+                tempTask.dueDate = task.dueDate ? new Date(task.dueDate) : null;
+                tempTask.createdAt = task.createdAt ? new Date(task.createdAt) : new Date();
+                tempTask.cycleEndDate = task.cycleEndDate ? new Date(task.cycleEndDate) : null;
+                return tempTask;
+            });
+        } else {
+            appState.archivedTasks = [];
+        }
+
 
         // One-time migration for historical tasks from old storage format.
         if (parsedData.historicalTasks && Array.isArray(parsedData.historicalTasks) && parsedData.historicalTasks.length > 0) {
