@@ -203,11 +203,20 @@ function adjustDateForVacation(date, vacations, taskCategoryId, allCategories) {
 function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_testing) {
     const now = now_for_testing || new Date();
     const nowMs = now.getTime();
-    const { sensitivity, vacations, categories } = settings;
+    const { sensitivity, vacations, categories, calendarCategoryFilters } = settings;
+
+    // --- Step 0: Filter tasks based on calendar 'schedule' settings ---
+    const filteredTasks = tasks.filter(task => {
+        if (!calendarCategoryFilters) return true; // If setting doesn't exist, don't filter
+        const catId = task.categoryId || 'null';
+        const filter = calendarCategoryFilters[catId];
+        // A category is excluded ONLY if its 'schedule' property is explicitly false.
+        return !filter || filter.schedule !== false;
+    });
 
     // --- Step 1: Generate all occurrences ---
     let allOccurrences = [];
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
         if (!task.dueDate) return;
         const dueDates = getOccurrences(task, now, calculationHorizon);
         dueDates.forEach(dueDate => {

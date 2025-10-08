@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -66,6 +66,7 @@ let uiSettings = {
     calculationHorizonUnit: 'years',
     hintsDisabled: false,
     closeModalAfterAction: false,
+    calendarCategoryFilters: {},
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -346,24 +347,24 @@ function sanitizeAndUpgradeTask(task) {
     return upgradedTask;
 }
 function getRandomColor() {
-    if (theming.enabled) {
-        const palette = generateComplementaryPalette(theming.baseColor);
-        const accentColors = [palette.accent1, palette.accent2, palette.accent3];
-        return accentColors[Math.floor(Math.random() * accentColors.length)];
-    }
-    // Original random pastel color logic
-    const hue = Math.floor(Math.random() * 360);
-    const hslToHex = (h, s, l) => {
-        l /= 100;
-        const a = s * Math.min(l, 1 - l) / 100;
-        const f = n => {
-            const k = (n + h / 30) % 12;
-            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-            return Math.round(255 * color).toString(16).padStart(2, '0');
-        };
-        return `#${f(0)}${f(8)}${f(4)}`;
-    };
-    return hslToHex(hue, 80, 85);
+    // Get the current base color's HSL value.
+    // If no base color exists, start with a random hue.
+    const currentHue = theming.baseColor ? hexToHSL(theming.baseColor).h : Math.floor(Math.random() * 360);
+
+    let newHue;
+    let attempts = 0;
+    do {
+        newHue = Math.floor(Math.random() * 360);
+        attempts++;
+        // After 10 attempts, just accept the color to prevent an infinite loop in the unlikely case it's hard to find a distant color.
+    } while (Math.min(Math.abs(currentHue - newHue), 360 - Math.abs(currentHue - newHue)) < 90 && attempts < 10);
+
+    // Generate a color with the new hue, but with a controlled saturation and lightness for a pleasant look.
+    // High saturation and mid-to-high lightness generally produce vibrant but not jarring colors.
+    const newSaturation = 70 + Math.random() * 20; // Saturation between 70% and 90%
+    const newLightness = 60 + Math.random() * 10; // Lightness between 60% and 70%
+
+    return HSLToHex(newHue, newSaturation, newLightness);
 }
 // New helper function to get the luminance of a color (WCAG compliant)
 function getLuminance(hexColor) {
@@ -2154,6 +2155,27 @@ function renderTaskStats(taskId) {
             }
         });
     }
+}
+
+function renderCalendarCategoryFilters() {
+    const container = document.getElementById('calendar-category-filters');
+    if (!container) return;
+
+    // Ensure all categories have a default setting
+    if (!uiSettings.calendarCategoryFilters) {
+        uiSettings.calendarCategoryFilters = {};
+    }
+    categories.forEach(cat => {
+        if (!uiSettings.calendarCategoryFilters[cat.id]) {
+            uiSettings.calendarCategoryFilters[cat.id] = { show: true, schedule: true };
+        }
+    });
+    // Ensure 'uncategorized' has a default setting
+    if (!uiSettings.calendarCategoryFilters['null']) {
+        uiSettings.calendarCategoryFilters['null'] = { show: true, schedule: true };
+    }
+
+    container.innerHTML = calendarCategoryFilterTemplate(categories, uiSettings.calendarCategoryFilters);
 }
 
 function renderHistoricalOverview(sortBy = 'lastCompleted', sortDir = 'desc') {
@@ -5233,10 +5255,11 @@ function setupEventListeners() {
                     appSettings.autoKpiRemovable = event.target.checked;
                     saveData();
                     break;
-                case 'disableAllHints':
+                case 'toggleAllHints':
                     uiSettings.hintsDisabled = event.target.checked;
                     saveData();
-                    // Hide or show the banner immediately
+                    renderHintManager(); // Re-render to apply the disabled state
+                    // Also hide/show the banner itself immediately
                     const hintsBanner = document.getElementById('hints-banner');
                     if (hintsBanner) {
                         hintsBanner.style.display = uiSettings.hintsDisabled ? 'none' : '';
@@ -5247,12 +5270,19 @@ function setupEventListeners() {
                         if (!uiSettings.userInteractions) {
                             uiSettings.userInteractions = {};
                         }
-                        // Set all known hint interactions to false instead of wiping the object
+                        // Set all known hint interactions to false
                         hints.forEach(hint => {
                             uiSettings.userInteractions[hint.interaction] = false;
                         });
+                        // Also re-enable the hints system
+                        uiSettings.hintsDisabled = false;
                         saveData();
-                        renderHintManager(); // Re-render the manager to show all hints as unchecked
+                        renderHintManager(); // Re-render the manager to show all hints as unchecked and re-enable controls
+                        // Ensure banner is visible again
+                        const banner = document.getElementById('hints-banner');
+                        if (banner) {
+                            banner.style.display = '';
+                        }
                     }
                     break;
                 case 'toggleCloseModalAfterAction':
@@ -5465,7 +5495,10 @@ function setupEventListeners() {
                     item.view.classList.remove('hidden');
                     item.btn.classList.add('active-view-btn');
                     uiSettings.activeView = item.id;
-                    if (item.id === 'calendar-view' && calendar) calendar.updateSize();
+                if (item.id === 'calendar-view' && calendar) {
+                    calendar.updateSize();
+                    renderCalendarCategoryFilters();
+                }
                     if (item.id === 'dashboard-view') renderDashboardContent();
                     if (item.id === 'journal-view') renderJournal();
                 } else {
@@ -5561,6 +5594,31 @@ function setupEventListeners() {
         };
         if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
         if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
+    }
+
+    // --- Calendar View Listeners ---
+    const calendarViewEl = document.getElementById('calendar-view');
+    if (calendarViewEl) {
+        calendarViewEl.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action="toggleCalendarFilter"]');
+            if (!target) return;
+
+            const categoryId = target.dataset.categoryId;
+            const filterType = target.dataset.filterType;
+            const isEnabled = target.checked;
+
+            if (!uiSettings.calendarCategoryFilters[categoryId]) {
+                uiSettings.calendarCategoryFilters[categoryId] = { show: true, schedule: true };
+            }
+
+            uiSettings.calendarCategoryFilters[categoryId][filterType] = isEnabled;
+
+            saveData();
+            updateAllTaskStatuses(true);
+            if (calendar) {
+                calendar.refetchEvents();
+            }
+        });
     }
 }
 
@@ -5833,7 +5891,8 @@ function updateAllTaskStatuses(forceRender = false) {
     const settings = {
         sensitivity: sensitivitySettings,
         vacations: appState.vacations,
-        categories: categories
+        categories: categories,
+        calendarCategoryFilters: uiSettings.calendarCategoryFilters
     };
 
     // The pipeline returns all future occurrences, processed.
@@ -6275,13 +6334,14 @@ function initializeCalendar() {
                 const settings = {
                     sensitivity: sensitivitySettings,
                     vacations: appState.vacations,
-                    categories: categories
+                    categories: categories,
+                    calendarCategoryFilters: uiSettings.calendarCategoryFilters || {}
                 };
 
                 // 1. Get all scheduled task occurrences from the single source of truth.
                 const allScheduledOccurrences = runCalculationPipeline(tasks, calculationHorizon, settings);
 
-                // 2. Filter occurrences for the current view and category filter.
+                // 2. Filter occurrences for the current view and category 'show' filter.
                 const filteredOccurrences = allScheduledOccurrences.filter(occurrence => {
                     if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return false;
 
@@ -6290,11 +6350,16 @@ function initializeCalendar() {
                         return false;
                     }
 
-                    // Filter by category
-                    if (categoryFilter.length === 0) return true;
-                    if (!occurrence.categoryId) return categoryFilter.includes(null);
-                    return categoryFilter.includes(occurrence.categoryId);
+                    // Filter by calendar category 'show' toggle
+                    const catId = occurrence.categoryId || 'null';
+                    const filter = uiSettings.calendarCategoryFilters[catId];
+                    if (filter && filter.show === false) {
+                        return false;
+                    }
+
+                    return true;
                 });
+
 
                 // 3. Map to FullCalendar event objects
                 filteredOccurrences.forEach(occurrence => {
@@ -6342,9 +6407,13 @@ function initializeCalendar() {
                         return false;
                     }
 
-                    if (categoryFilter.length === 0) return true;
-                    if (!ht.categoryId) return categoryFilter.includes(null);
-                    return categoryFilter.includes(ht.categoryId);
+                    // Filter by calendar category 'show' toggle
+                    const catId = ht.categoryId || 'null';
+                    const filter = uiSettings.calendarCategoryFilters[catId];
+                    if (filter && filter.show === false) {
+                        return false;
+                    }
+                    return true;
                 });
 
                 filteredHistory.forEach(ht => {

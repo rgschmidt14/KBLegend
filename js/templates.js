@@ -607,18 +607,18 @@ function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, th
     const statusOrder = ['blue', 'green', 'yellow', 'red', 'black'];
 
     const statusRows = statusOrder.map(key => `
-        <div id="status-display-${key}" class="grid grid-cols-1 md:grid-cols-3 items-center gap-4 py-2">
+        <div id="status-display-${key}" class="flex items-center justify-between py-2">
             <span class="font-semibold">${statusNames[key]}</span>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-3">
                 <input type="color"
                        class="status-color-picker p-1 h-10 w-14 block bg-white border border-gray-200 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none"
                        value="${statusColors[key]}"
                        data-status-key="${key}"
                        ${isThemeEnabled && isUsingThemeForStatus ? 'disabled' : ''}>
-                <span class="text-xs">${isThemeEnabled && isUsingThemeForStatus ? '(From Theme)' : ''}</span>
-            </div>
-            <div>
-                <button data-action="triggerStatusNameEdit" data-status-key="${key}" class="btn btn-secondary btn-sm">Rename</button>
+                <span class="text-xs text-gray-400">${isThemeEnabled && isUsingThemeForStatus ? '(From Theme)' : ''}</span>
+                <button data-action="triggerStatusNameEdit" data-status-key="${key}" class="btn btn-clear" title="Rename ${statusNames[key]}">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
             </div>
         </div>
     `).join('');
@@ -783,7 +783,7 @@ function hintManagerTemplate(hints, uiSettings) {
         return `
             <label class="flex items-center justify-between p-2 border rounded-md text-sm">
                 <span>${hint.text.replace('💡', '').trim()}</span>
-                <input type="checkbox" data-action="toggleHint" data-interaction="${hint.interaction}" class="h-4 w-4 rounded" ${isCompleted ? 'checked' : ''}>
+                <input type="checkbox" data-interaction="${hint.interaction}" class="h-4 w-4 rounded hint-seen-checkbox" ${isCompleted ? 'checked' : ''}>
             </label>
         `;
     }).join('');
@@ -793,12 +793,45 @@ function hintManagerTemplate(hints, uiSettings) {
             <label for="disable-hints-toggle" class="form-label mb-0">Disable All Hint Banners:</label>
             <input type="checkbox" id="disable-hints-toggle" data-action="toggleAllHints" class="toggle-checkbox" ${uiSettings.hintsDisabled ? 'checked' : ''}>
         </div>
-        <div id="hint-details-container" class="space-y-3 mt-3 ${uiSettings.hintsDisabled ? 'hidden' : ''}">
+        <fieldset id="hint-details-container" class="space-y-3 mt-3 border-none p-0" ${uiSettings.hintsDisabled ? 'disabled' : ''}>
             <p class="text-xs italic">Uncheck hints to see them again. The banner shows one random, un-checked hint at a time.</p>
             <div id="hint-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
                 ${hintItemsHtml}
             </div>
             <button data-action="resetAllHints" class="btn btn-secondary btn-md w-full">Reset All Hints (Show All)</button>
+        </fieldset>
+    `;
+}
+
+function calendarCategoryFilterTemplate(categories, filterSettings = {}) {
+    const renderRow = (id, name, isItalic = false) => {
+        const settings = filterSettings[id] || { show: true, schedule: true };
+        const nameClass = isItalic ? 'italic' : 'font-semibold';
+        return `
+            <div class="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                <span class="${nameClass}">${name}</span>
+                <div class="flex items-center space-x-4">
+                    <label class="text-xs flex items-center space-x-2 cursor-pointer" title="Show/hide tasks from this category on the calendar view.">
+                        <span>Show</span>
+                        <input type="checkbox" data-action="toggleCalendarFilter" data-filter-type="show" data-category-id="${id}" class="toggle-checkbox" ${settings.show ? 'checked' : ''}>
+                    </label>
+                    <label class="text-xs flex items-center space-x-2 cursor-pointer" title="Include/exclude tasks from this category in scheduling calculations (e.g., GPA, status changes).">
+                        <span>Schedule</span>
+                        <input type="checkbox" data-action="toggleCalendarFilter" data-filter-type="schedule" data-category-id="${id}" class="toggle-checkbox" ${settings.schedule ? 'checked' : ''}>
+                    </label>
+                </div>
+            </div>
+        `;
+    };
+
+    const categoryRows = categories.map(cat => renderRow(cat.id, cat.name)).join('');
+    const uncategorizedRow = renderRow('null', 'Uncategorized', true);
+
+    return `
+        <div class="space-y-1 p-2 bg-main rounded-lg mt-4">
+            <h4 class="font-bold text-center mb-2">Calendar Category Filters</h4>
+            ${categoryRows}
+            ${uncategorizedRow}
         </div>
     `;
 }
@@ -810,5 +843,6 @@ export {
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
-    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate
+    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
+    calendarCategoryFilterTemplate
 };
