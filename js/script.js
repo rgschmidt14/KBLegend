@@ -3966,14 +3966,20 @@ function confirmRestoreDefaultsAction(confirmed) {
         theming.enabled = false;
 
         saveData();
-        sortBySelect.value = sortBy;
-        sortDirectionSelect.value = sortDirection;
-        applyTheme();
-        openAdvancedOptionsModal();
+
+        // Re-render all necessary components
+        applyTheme(); // This will apply the new non-themed state
+        renderStatusManager(); // This will update the status manager UI
+        renderTasks(); // This will re-render tasks with default colors
+
+        // Also update the sort dropdowns in the UI
+        if(sortBySelect) sortBySelect.value = sortBy;
+        if(sortDirectionSelect) sortDirectionSelect.value = sortDirection;
     }
 
+    // Always restore the button, whether confirmed or cancelled.
     if (container) {
-        container.innerHTML = `<button data-action="restoreDefaults" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Restore All Defaults</button>`;
+        container.innerHTML = `<button data-action="restoreDefaults" class="btn btn-tertiary w-full">Restore Status Colors & Names to Default</button>`;
     }
 }
 
@@ -5863,10 +5869,17 @@ function updateAllTaskStatuses(forceRender = false) {
             newGpa = 0.75; // 3.0 GPA
         }
 
+    // Only update the visual status (color/group) if the task is not awaiting a final "Yes/No" confirmation.
+    // This prevents the task from jumping around the list while the user is deciding.
+    const isPendingConfirmation = ['confirming_complete', 'confirming_miss', 'confirming_delete', 'confirming_undo'].includes(task.confirmationState);
+
+    if (!isPendingConfirmation) {
         if (task.status !== newStatus) {
             task.status = newStatus;
         }
         task.coloringGpa = newGpa; // Store the GPA (0-1 scale) on the task object
+        }
+
 
         if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
             changed = true;
