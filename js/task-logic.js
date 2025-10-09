@@ -133,9 +133,8 @@ function getOccurrences(task, startDate, endDate) {
     const initialDueDate = new Date(task.dueDate);
 
     if (task.repetitionType === 'none') {
-        // Corrected logic: A non-repeating task occurs on its due date.
-        // The function should simply check if that single date falls within the requested window.
-        if (initialDueDate.getTime() >= startDate.getTime() && initialDueDate.getTime() <= endDate.getTime()) {
+        // A non-repeating task is considered an "occurrence" if its due date is within the window.
+        if (initialDueDate >= startDate && initialDueDate <= endDate) {
             dueDates.push(initialDueDate);
         }
     } else if (task.repetitionType === 'absolute') {
@@ -220,15 +219,30 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     let allOccurrences = [];
     filteredTasks.forEach(task => {
         if (!task.dueDate) return;
-        const dueDates = getOccurrences(task, now, calculationHorizon);
-        dueDates.forEach(dueDate => {
-            allOccurrences.push({
-                ...task,
-                originalId: task.id,
-                id: `${task.id}_${dueDate.toISOString()}`,
-                occurrenceDueDate: dueDate,
+
+        if (task.repetitionType === 'none') {
+            // For non-repeating tasks, just add them if they are not completed.
+            // The pipeline will handle their status based on due date.
+            if (!task.completed) {
+                 allOccurrences.push({
+                    ...task,
+                    originalId: task.id,
+                    id: `${task.id}_${new Date(task.dueDate).toISOString()}`,
+                    occurrenceDueDate: new Date(task.dueDate),
+                });
+            }
+        } else {
+            // For repeating tasks, get only future occurrences.
+            const dueDates = getOccurrences(task, now, calculationHorizon);
+            dueDates.forEach(dueDate => {
+                allOccurrences.push({
+                    ...task,
+                    originalId: task.id,
+                    id: `${task.id}_${dueDate.toISOString()}`,
+                    occurrenceDueDate: dueDate,
+                });
             });
-        });
+        }
     });
 
     // --- Step 2.1: Calculate "Positioning GPA" & Prioritize ---
