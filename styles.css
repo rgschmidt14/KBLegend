@@ -410,41 +410,38 @@ legend {
 }
 .fc-event-main-inner {
     display: flex;
-    flex-direction: row; /* Explicitly set direction */
-    align-items: flex-start; /* Align items to the top */
+    flex-wrap: wrap; /* Key change: allow content to wrap */
+    align-items: baseline; /* Aligns icon, time, and title nicely */
     height: 100%;
     overflow: hidden;
-    gap: 4px; /* Add a small gap between icon and details */
+    gap: 0 4px; /* No vertical gap, 4px horizontal for space between items */
 }
 
-.fc-event-details {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    flex-grow: 1;
-}
+/* .fc-event-details is no longer used */
 
 .fc-event-icon {
-    margin-top: 2px; /* Align icon slightly better with the first line of text */
     text-shadow: 0 0 3px rgba(0,0,0,0.5);
 }
 
-.fc-event-title {
-    white-space: normal; /* Allow text to wrap by default */
-    word-wrap: break-word;
-    overflow: visible;
-    text-overflow: clip;
+.fc-event-time {
+    /* This class is now a direct child of main-inner */
+    font-weight: 600; /* Make time stand out */
 }
 
-/* Special class for short events to prevent wrapping */
+.fc-event-title {
+    white-space: normal; /* Default behavior to allow wrapping */
+    word-break: break-word; /* Prevent long words from overflowing */
+    flex-grow: 1; /* Allow title to take remaining space if needed */
+    min-width: 0; /* Important for flex items to allow shrinking and wrapping */
+}
+
+/* For events under 30min, which only have a title, prevent wrapping */
 .fc-event-short .fc-event-title {
     white-space: nowrap !important;
     text-overflow: ellipsis !important;
     overflow: hidden !important;
-}
-
-.fc-event-short .fc-event-time {
-    display: none; /* Hide time on very short events to save space */
+    display: block; /* Ensure it takes up the block for overflow to work */
+    width: 100%;
 }
 .fc .fc-timegrid-now-indicator-line {
     border-width: 2px;
