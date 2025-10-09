@@ -565,6 +565,22 @@
                             <div id="category-filter-list" class="space-y-1"></div>
                         </fieldset>
                         <fieldset>
+                            <legend>Calendar Category Filters</legend>
+                            <div class="flex items-center justify-between">
+                                <label for="show-calendar-filters-toggle" class="form-label mb-0">Show Category Filters Below Calendar:</label>
+                                <input type="checkbox" id="show-calendar-filters-toggle" data-action="toggleShowCalendarFilters" class="toggle-checkbox">
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Month View Display</legend>
+                            <div id="month-view-display-options" class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showIcon" class="month-view-display-toggle"><span>Show Icon</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showTime" class="month-view-display-toggle"><span>Show Time</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="showName" class="month-view-display-toggle"><span>Show Name</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" name="groupTasks" class="month-view-display-toggle"><span>Group Repeated Tasks</span></label>
+                            </div>
+                        </fieldset>
+                        <fieldset>
                             <legend>Task Card Display Options</legend>
                             <div id="task-card-display-options" class="grid grid-cols-2 gap-2">
                                 <label class="flex items-center space-x-2"><input type="checkbox" name="showDueDate" class="task-display-toggle"><span>Show Due Date</span></label>

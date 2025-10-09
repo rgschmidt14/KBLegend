@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, monthViewEventTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -67,6 +67,13 @@ let uiSettings = {
     hintsDisabled: false,
     closeModalAfterAction: false,
     calendarCategoryFilters: {},
+    showCalendarFilters: true, // New setting
+    monthView: { // New settings for month view
+        showIcon: true,
+        showTime: false,
+        showName: true,
+        groupTasks: true,
+    },
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1703,6 +1710,20 @@ function renderOtherFeaturesSettings() {
     // Any other settings for this section would be rendered here
 }
 
+function renderMonthViewSettings() {
+    const container = document.getElementById('month-view-display-options');
+    if (!container) return;
+    if (!uiSettings.monthView) { // Ensure the object exists
+        uiSettings.monthView = { showIcon: true, showTime: false, showName: true, groupTasks: true };
+    }
+    for (const key in uiSettings.monthView) {
+        const checkbox = container.querySelector(`input[name="${key}"]`);
+        if (checkbox) {
+            checkbox.checked = uiSettings.monthView[key];
+        }
+    }
+}
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1718,6 +1739,14 @@ function openAdvancedOptionsModal() {
     renderKpiAutomationSettings();
     renderHintManager();
     renderOtherFeaturesSettings(); // Render the new settings
+    renderMonthViewSettings(); // Render the new month view settings
+
+    // Render the toggle for showing/hiding calendar filters
+    const showFiltersToggle = document.getElementById('show-calendar-filters-toggle');
+    if (showFiltersToggle) {
+        showFiltersToggle.checked = uiSettings.showCalendarFilters;
+    }
+
 
     // Apply saved collapse states
     const sections = advancedOptionsModal.querySelectorAll('.collapsible-section');
@@ -2161,6 +2190,11 @@ function renderCalendarCategoryFilters() {
     const container = document.getElementById('calendar-category-filters');
     if (!container) return;
 
+    if (!uiSettings.showCalendarFilters) {
+        container.innerHTML = '';
+        return;
+    }
+
     // Ensure all categories have a default setting
     if (!uiSettings.calendarCategoryFilters) {
         uiSettings.calendarCategoryFilters = {};
@@ -2175,7 +2209,7 @@ function renderCalendarCategoryFilters() {
         uiSettings.calendarCategoryFilters['null'] = { show: true, schedule: true };
     }
 
-    container.innerHTML = calendarCategoryFilterTemplate(categories, uiSettings.calendarCategoryFilters);
+    container.innerHTML = calendarCategoryFilterTemplate(categories, uiSettings.calendarCategoryFilters, calendarSettings.filterTargetView);
 }
 
 function renderHistoricalOverview(sortBy = 'lastCompleted', sortDir = 'desc') {
@@ -5121,6 +5155,11 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'toggleShowCalendarFilters':
+                    uiSettings.showCalendarFilters = event.target.checked;
+                    saveData();
+                    renderCalendarCategoryFilters(); // Re-render to show/hide
+                    break;
                 case 'toggleApplyIcon':
                     const category = categories.find(c => c.id === categoryId);
                     if (category) {
@@ -5325,6 +5364,16 @@ function setupEventListeners() {
 
         advancedOptionsContentEl.addEventListener('change', (event) => {
             const target = event.target;
+
+            if (target.classList.contains('month-view-display-toggle')) {
+                const key = target.name;
+                if (uiSettings.monthView.hasOwnProperty(key)) {
+                    uiSettings.monthView[key] = target.checked;
+                    saveData();
+                    if (calendar) calendar.refetchEvents();
+                }
+                return;
+            }
 
             if (target.classList.contains('hint-seen-checkbox')) {
                 const interaction = target.dataset.interaction;
@@ -5599,6 +5648,17 @@ function setupEventListeners() {
     // --- Calendar View Listeners ---
     const calendarViewEl = document.getElementById('calendar-view');
     if (calendarViewEl) {
+        calendarViewEl.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.id === 'calendar-filter-view-select') {
+                calendarSettings.filterTargetView = target.value;
+                saveData();
+                if (calendar) {
+                    calendar.refetchEvents();
+                }
+            }
+        });
+
         calendarViewEl.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action="toggleCalendarFilter"]');
             if (!target) return;
@@ -5848,13 +5908,15 @@ function loadData() {
                 return sanitizeAndUpgradeTask(tempTask);
             });
 
-            const lastCheck = localStorage.getItem('lastMigrationCheck');
-            const today = new Date().toDateString();
-            if (needsMigration && lastCheck !== today) {
-                // Pass the original parsed tasks to the migration tool automatically
-                openDataMigrationModal(parsedTasks);
-                localStorage.setItem('lastMigrationCheck', today);
-            }
+            // The automatic opening of the migration modal on startup is causing issues
+            // with testing and can be confusing for users. This should be a manual action.
+            // const lastCheck = localStorage.getItem('lastMigrationCheck');
+            // const today = new Date().toDateString();
+            // if (needsMigration && lastCheck !== today) {
+            //     // Pass the original parsed tasks to the migration tool automatically
+            //     openDataMigrationModal(parsedTasks);
+            //     localStorage.setItem('lastMigrationCheck', today);
+            // }
 
 
             tasks.forEach(task => {
@@ -6264,6 +6326,74 @@ function applyActiveView() {
     }
 }
 
+function renderCustomMonthView() {
+    if (calendar.view.type !== 'dayGridMonth') return;
+
+    const currentView = calendar.view.type;
+    const filterTargetView = calendarSettings.filterTargetView || 'all';
+    const applyFilters = filterTargetView === 'all' || filterTargetView === currentView;
+
+    const allEvents = calendar.getEvents();
+    document.querySelectorAll('.fc-daygrid-day').forEach(dayEl => {
+        const dayGridContent = dayEl.querySelector('.fc-daygrid-day-events');
+        if (!dayGridContent) return;
+
+        dayGridContent.innerHTML = ''; // Clear default rendering
+
+        const dayStart = new Date(dayEl.dataset.date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart.getTime() + 86400000);
+
+        let dayEvents = allEvents.filter(event => {
+            const eventStart = event.start;
+            const eventEnd = event.end || event.start;
+
+            if (eventStart >= dayEnd || eventEnd <= dayStart) {
+                return false;
+            }
+
+            if (applyFilters) {
+                const catId = event.extendedProps.category ? event.extendedProps.category.id : 'null';
+                const filter = uiSettings.calendarCategoryFilters[catId];
+                if (filter && filter.show === false) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        dayEvents.forEach(event => {
+            event.startForSort = (event.start < dayStart) ? dayStart : event.start;
+        });
+
+        dayEvents.sort((a, b) => a.startForSort - b.startForSort);
+
+        let groupedEvents = [];
+        if (uiSettings.monthView.groupTasks && dayEvents.length > 0) {
+            let currentGroup = { event: dayEvents[0], count: 1 };
+            for (let i = 1; i < dayEvents.length; i++) {
+                if (dayEvents[i].extendedProps.taskId === dayEvents[i - 1].extendedProps.taskId) {
+                    currentGroup.count++;
+                } else {
+                    groupedEvents.push(currentGroup);
+                    currentGroup = { event: dayEvents[i], count: 1 };
+                }
+            }
+            groupedEvents.push(currentGroup);
+        } else {
+            groupedEvents = dayEvents.map(event => ({ event: event, count: 1 }));
+        }
+
+        if (groupedEvents.length > 0) {
+            const eventListContainer = document.createElement('div');
+            eventListContainer.className = 'month-view-event-list';
+            const eventHtml = groupedEvents.map(group => monthViewEventTemplate(group.event, uiSettings.monthView, group.count)).join('');
+            eventListContainer.innerHTML = eventHtml;
+            dayGridContent.appendChild(eventListContainer);
+        }
+    });
+}
+
 function initializeCalendar() {
     if (!calendarEl) {
         console.error("Calendar element not found!");
@@ -6287,6 +6417,25 @@ function initializeCalendar() {
             return a.start - b.start;
         },
         eventContent: function(arg) {
+            const currentView = arg.view.type;
+            const filterTargetView = calendarSettings.filterTargetView || 'all';
+            const applyFilters = filterTargetView === 'all' || filterTargetView === currentView;
+
+            if (applyFilters) {
+                const catId = arg.event.extendedProps.category ? arg.event.extendedProps.category.id : 'null';
+                const filter = uiSettings.calendarCategoryFilters[catId];
+                if (filter && filter.show === false) {
+                    return { domNodes: [] }; // Render nothing if filtered out
+                }
+            }
+
+            // If we are in the new month view, prevent default rendering.
+            // The loading callback will handle all rendering.
+            if (currentView === 'dayGridMonth') {
+                return { domNodes: [] }; // Return an empty array of nodes
+            }
+
+            // --- Original logic for other views (Week, Day) ---
             let eventEl = document.createElement('div');
             eventEl.classList.add('fc-event-main-inner');
 
@@ -6295,26 +6444,13 @@ function initializeCalendar() {
 
             if (isShort) {
                 // arg.el is not available in eventContent, this was causing a crash.
-                // The fc-event-short class can be moved to eventDidMount if needed,
-                // but for now, we remove the line to fix the critical error.
-            }
-
-            // Check if the event is in a timegrid view and appears narrow
-            const view = arg.view;
-            if (view.type.includes('timeGrid')) {
-                 // A simple proxy for "half-width" is to check the element's actual width.
-                 // This is brittle as it runs before the element might be fully rendered and sized.
-                 // A more robust way might be to check for overlapping events, but that's complex.
-                 // Let's try a simple, direct approach first.
-                 // NOTE: arg.el.offsetWidth is not reliable here as the layout might not be complete.
-                 // We will rely on the short duration for now as the primary driver of style change.
             }
 
             let timeText = arg.timeText;
             let titleText = arg.event.title;
 
             // In weekly or day view, if the event is short, omit the time
-            if ((view.type === 'timeGridWeek' || view.type === 'timeGridDay') && isShort) {
+            if ((arg.view.type === 'timeGridWeek' || arg.view.type === 'timeGridDay') && isShort) {
                 eventEl.innerHTML = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
             } else {
                  eventEl.innerHTML = `<div class="fc-event-time">${timeText}</div><div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
@@ -6341,19 +6477,17 @@ function initializeCalendar() {
                 // 1. Get all scheduled task occurrences from the single source of truth.
                 const allScheduledOccurrences = runCalculationPipeline(tasks, calculationHorizon, settings);
 
-                // 2. Filter occurrences for the current view and category 'show' filter.
+                // The filtering based on the "show" toggle is now handled in the display-level callbacks
+                // (`eventContent` and `renderCustomMonthView`) where the view context is available.
+                // The `runCalculationPipeline` already handles filtering based on the "schedule" toggle.
+
+
+                // 2. Filter occurrences for the current view.
                 const filteredOccurrences = allScheduledOccurrences.filter(occurrence => {
                     if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return false;
 
                     // Filter by calendar view window
                     if (new Date(occurrence.scheduledStartTime) >= viewEndDate || new Date(occurrence.scheduledEndTime) <= viewStartDate) {
-                        return false;
-                    }
-
-                    // Filter by calendar category 'show' toggle
-                    const catId = occurrence.categoryId || 'null';
-                    const filter = uiSettings.calendarCategoryFilters[catId];
-                    if (filter && filter.show === false) {
                         return false;
                     }
 
@@ -6368,6 +6502,7 @@ function initializeCalendar() {
                     const eventColor = category ? category.color : '#374151';
                     const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
 
+                    const task = tasks.find(t => t.id === occurrence.originalId);
                     calendarEvents.push({
                         id: occurrence.id, // Unique ID per occurrence
                         title: occurrence.name,
@@ -6380,7 +6515,9 @@ function initializeCalendar() {
                         extendedProps: {
                             taskId: occurrence.originalId,
                             occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
-                            isHistorical: false
+                            isHistorical: false,
+                            category: category,
+                            icon: task ? task.icon : null
                         }
                     });
                 });
@@ -6407,11 +6544,13 @@ function initializeCalendar() {
                         return false;
                     }
 
-                    // Filter by calendar category 'show' toggle
-                    const catId = ht.categoryId || 'null';
-                    const filter = uiSettings.calendarCategoryFilters[catId];
-                    if (filter && filter.show === false) {
-                        return false;
+                    // Conditionally apply category filters based on view
+                    if (applyFilters) {
+                        const catId = ht.categoryId || 'null';
+                        const filter = uiSettings.calendarCategoryFilters[catId];
+                        if (filter && filter.show === false) {
+                            return false;
+                        }
                     }
                     return true;
                 });
@@ -6536,6 +6675,7 @@ function initializeCalendar() {
                 prevText = '&lt; Prev Month';
                 nextText = 'Next Month &gt;';
                 activeView = 'month';
+                 // The custom rendering is now handled by the `loading` callback.
             } else if (viewType === 'timeGridWeek') {
                 prevText = '&lt; Prev Week';
                 nextText = 'Next Week &gt;';
@@ -6558,6 +6698,14 @@ function initializeCalendar() {
             });
             // Use a timeout to ensure this runs after the button classes have been set, avoiding a race condition.
             setTimeout(() => applyTheme(), 0);
+        },
+        loading: function(isLoading) {
+            // `this` is bound to the calendar instance in FC callbacks.
+            // Add a guard clause to ensure `this.view` is defined before accessing its properties,
+            // as this callback can fire during initialization before the view is ready.
+            if (!isLoading && this.view && this.view.type === 'dayGridMonth') {
+                renderCustomMonthView();
+            }
         },
         eventClick: (info) => {
             const eventId = info.event.id;
