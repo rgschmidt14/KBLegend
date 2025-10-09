@@ -6323,74 +6323,6 @@ function applyActiveView() {
     }
 }
 
-function renderCustomMonthView() {
-    if (calendar.view.type !== 'dayGridMonth') return;
-
-    const currentView = calendar.view.type;
-    const filterTargetView = calendarSettings.filterTargetView || 'all';
-    const applyFilters = filterTargetView === 'all' || filterTargetView === currentView;
-
-    const allEvents = calendar.getEvents();
-    document.querySelectorAll('.fc-daygrid-day').forEach(dayEl => {
-        const dayGridContent = dayEl.querySelector('.fc-daygrid-day-events');
-        if (!dayGridContent) return;
-
-        dayGridContent.innerHTML = ''; // Clear default rendering
-
-        const dayStart = new Date(dayEl.dataset.date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(dayStart.getTime() + 86400000);
-
-        let dayEvents = allEvents.filter(event => {
-            const eventStart = event.start;
-            const eventEnd = event.end || event.start;
-
-            if (eventStart >= dayEnd || eventEnd <= dayStart) {
-                return false;
-            }
-
-            if (applyFilters) {
-                const catId = event.extendedProps.category ? event.extendedProps.category.id : 'null';
-                const filter = uiSettings.calendarCategoryFilters[catId];
-                if (filter && filter.show === false) {
-                    return false;
-                }
-            }
-            return true;
-        });
-
-        dayEvents.forEach(event => {
-            event.startForSort = (event.start < dayStart) ? dayStart : event.start;
-        });
-
-        dayEvents.sort((a, b) => a.startForSort - b.startForSort);
-
-        let groupedEvents = [];
-        if (uiSettings.monthView.groupTasks && dayEvents.length > 0) {
-            let currentGroup = { event: dayEvents[0], count: 1 };
-            for (let i = 1; i < dayEvents.length; i++) {
-                if (dayEvents[i].extendedProps.taskId === dayEvents[i - 1].extendedProps.taskId) {
-                    currentGroup.count++;
-                } else {
-                    groupedEvents.push(currentGroup);
-                    currentGroup = { event: dayEvents[i], count: 1 };
-                }
-            }
-            groupedEvents.push(currentGroup);
-        } else {
-            groupedEvents = dayEvents.map(event => ({ event: event, count: 1 }));
-        }
-
-        if (groupedEvents.length > 0) {
-            const eventListContainer = document.createElement('div');
-            eventListContainer.className = 'month-view-event-list';
-            const eventHtml = groupedEvents.map(group => monthViewEventTemplate(group.event, uiSettings.monthView, group.count)).join('');
-            eventListContainer.innerHTML = eventHtml;
-            dayGridContent.appendChild(eventListContainer);
-        }
-    });
-}
-
 function initializeCalendar() {
     if (!calendarEl) {
         console.error("Calendar element not found!");
@@ -6429,14 +6361,17 @@ function initializeCalendar() {
             }
 
             // --- Custom Rendering Logic ---
-            // For the custom month view, all rendering is handled by a separate function.
             if (view.type === 'dayGridMonth') {
-                return { domNodes: [] };
+                // For month view, we use a simple, clean template.
+                // The `monthViewEventTemplate` is imported from templates.js
+                const monthHtml = monthViewEventTemplate(event, uiSettings.monthView);
+                return { html: monthHtml };
             }
 
             // --- Rendering for TimeGrid Day/Week Views ---
             const iconClass = extendedProps.icon;
-            const iconColor = event.backgroundColor; // The icon should match the event background (category color)
+            // FIX: Icon color should match text color for contrast
+            const iconColor = event.textColor;
             const iconHtml = iconClass ? `<i class="${iconClass} fc-event-icon" style="color: ${iconColor};"></i>` : '';
 
             const durationMs = event.end - event.start;
@@ -6671,7 +6606,6 @@ function initializeCalendar() {
                 prevText = '&lt; Prev Month';
                 nextText = 'Next Month &gt;';
                 activeView = 'month';
-                 // The custom rendering is now handled by the `loading` callback.
             } else if (viewType === 'timeGridWeek') {
                 prevText = '&lt; Prev Week';
                 nextText = 'Next Week &gt;';
@@ -6694,14 +6628,6 @@ function initializeCalendar() {
             });
             // Use a timeout to ensure this runs after the button classes have been set, avoiding a race condition.
             setTimeout(() => applyTheme(), 0);
-        },
-        loading: function(isLoading) {
-            // `this` is bound to the calendar instance in FC callbacks.
-            // Add a guard clause to ensure `this.view` is defined before accessing its properties,
-            // as this callback can fire during initialization before the view is ready.
-            if (!isLoading && this.view && this.view.type === 'dayGridMonth') {
-                renderCustomMonthView();
-            }
         },
         eventClick: (info) => {
             const eventId = info.event.id;

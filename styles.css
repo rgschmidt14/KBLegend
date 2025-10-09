@@ -419,10 +419,11 @@ legend {
     text-shadow: 0 0 3px rgba(0,0,0,0.5); /* Add a shadow to make icon pop */
 }
 .fc-event-title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal; /* Allow text to wrap */
+    word-wrap: break-word; /* Break long words if necessary */
     flex-grow: 1;
+    overflow: visible; /* Ensure content isn't clipped */
+    text-overflow: clip; /* Don't show ellipsis */
 }
 .fc-event-short, .fc-timegrid-event-short {
     font-size: 0.7rem !important;
