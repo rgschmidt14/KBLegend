@@ -133,8 +133,10 @@ function getOccurrences(task, startDate, endDate) {
     const initialDueDate = new Date(task.dueDate);
 
     if (task.repetitionType === 'none') {
+        // Corrected logic: A non-repeating task occurs on its due date.
+        // The function should simply check if that single date falls within the requested window.
         if (initialDueDate.getTime() >= startDate.getTime() && initialDueDate.getTime() <= endDate.getTime()) {
-             dueDates.push(initialDueDate);
+            dueDates.push(initialDueDate);
         }
     } else if (task.repetitionType === 'absolute') {
         return generateAbsoluteOccurrences(task, startDate, endDate);
