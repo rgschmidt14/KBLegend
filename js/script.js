@@ -6338,18 +6338,27 @@ function initializeCalendar() {
         nowIndicator: true, // Show the current time indicator
         navLinks: true, // Allow clicking on day/week numbers to navigate
         eventOrder: (a, b) => {
-            const durationA = a.end - a.start;
-            const durationB = b.end - b.start;
+            // Defensive check for invalid event dates
+            if (!a.start || !a.end || !b.start || !b.end || typeof a.start.getTime !== 'function' || typeof b.start.getTime !== 'function') {
+                console.error("Invalid event object passed to eventOrder. Skipping sort.", { a, b });
+                return 0; // Return a neutral sort order to prevent crashing
+            }
+
+            const durationA = a.end.getTime() - a.start.getTime();
+            const durationB = b.end.getTime() - b.start.getTime();
+
             // Primary sort: duration (longer events first)
             if (durationA !== durationB) {
                 return durationB - durationA;
             }
+
             // Secondary sort: start time
             const startA = a.start.getTime();
             const startB = b.start.getTime();
             if (startA !== startB) {
                 return startA - startB;
             }
+
             // Tertiary sort: alphabetical by title
             return a.title.localeCompare(b.title);
         },
