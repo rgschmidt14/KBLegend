@@ -852,17 +852,17 @@ function monthViewEventTemplate(event, settings, groupCount = 1) {
     const category = event.extendedProps.category;
     const iconClass = event.extendedProps.icon || (category ? category.icon : null);
 
-    // Use category color for the icon
-    const iconColor = category ? category.color : 'var(--text-color-tertiary)';
+    // Use the event's background color (the category color) for the icon.
+    const iconColor = event.backgroundColor || (category ? category.color : 'var(--text-color-tertiary)');
     const iconHtml = showIcon && iconClass ? `<i class="${iconClass} month-view-icon" style="color: ${iconColor};"></i>` : '';
 
     const timeHtml = showTime ? `<span class="month-view-time">${event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>` : '';
     const nameHtml = showName ? `<span class="month-view-name">${event.title}</span>` : '';
     const groupHtml = groupCount > 1 ? `<span class="month-view-group-count">x${groupCount}</span>` : '';
 
-    // The border color is the event's status color (GPA based)
+    // The border color is the event's status color (GPA based). Use a full border.
     return `
-        <div class="month-view-event-item" style="border-left-color: ${event.borderColor};">
+        <div class="month-view-event-item" style="border: 1px solid ${event.borderColor};">
             ${iconHtml}
             ${timeHtml}
             ${nameHtml}

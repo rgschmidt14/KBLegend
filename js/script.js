@@ -5744,9 +5744,6 @@ function loadData() {
     const storedUiSettings = localStorage.getItem('uiSettings');
     const storedJournalSettings = localStorage.getItem('journalSettings');
 
-    tasks = [];
-    categories = [];
-
     if (storedColors) {
         try {
             const parsedColors = JSON.parse(storedColors);
@@ -6417,46 +6414,50 @@ function initializeCalendar() {
             return a.start - b.start;
         },
         eventContent: function(arg) {
-            const currentView = arg.view.type;
-            const filterTargetView = calendarSettings.filterTargetView || 'all';
-            const applyFilters = filterTargetView === 'all' || filterTargetView === currentView;
+            const { event, timeText, view } = arg;
+            const { extendedProps } = event;
 
+            // --- Filtering Logic ---
+            const filterTargetView = calendarSettings.filterTargetView || 'all';
+            const applyFilters = filterTargetView === 'all' || filterTargetView === view.type;
             if (applyFilters) {
-                const catId = arg.event.extendedProps.category ? arg.event.extendedProps.category.id : 'null';
+                const catId = extendedProps.category ? extendedProps.category.id : 'null';
                 const filter = uiSettings.calendarCategoryFilters[catId];
                 if (filter && filter.show === false) {
                     return { domNodes: [] }; // Render nothing if filtered out
                 }
             }
 
-            // If we are in the new month view, prevent default rendering.
-            // The loading callback will handle all rendering.
-            if (currentView === 'dayGridMonth') {
-                return { domNodes: [] }; // Return an empty array of nodes
+            // --- Custom Rendering Logic ---
+            // For the custom month view, all rendering is handled by a separate function.
+            if (view.type === 'dayGridMonth') {
+                return { domNodes: [] };
             }
 
-            // --- Original logic for other views (Week, Day) ---
-            let eventEl = document.createElement('div');
-            eventEl.classList.add('fc-event-main-inner');
+            // --- Rendering for TimeGrid Day/Week Views ---
+            const iconClass = extendedProps.icon;
+            const iconColor = event.backgroundColor; // The icon should match the event background (category color)
+            const iconHtml = iconClass ? `<i class="${iconClass} fc-event-icon" style="color: ${iconColor};"></i>` : '';
 
-            const durationMs = arg.event.end - arg.event.start;
-            const isShort = durationMs < (30 * 60 * 1000); // Less than 30 minutes
+            const durationMs = event.end - event.start;
+            const isShort = durationMs < (30 * 60 * 1000); // Less than 30 mins
+            const timeHtml = (view.type === 'timeGridWeek' || view.type === 'timeGridDay') && isShort
+                ? ''
+                : `<div class="fc-event-time">${timeText}</div>`;
 
-            if (isShort) {
-                // arg.el is not available in eventContent, this was causing a crash.
-            }
+            const titleHtml = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${event.title}</div></div>`;
 
-            let timeText = arg.timeText;
-            let titleText = arg.event.title;
+            // We construct the inner HTML directly.
+            // Using a container div allows flexbox styling to align icon, time, and title.
+            const innerHtml = `
+                <div class="fc-event-main-inner">
+                    ${iconHtml}
+                    ${timeHtml}
+                    ${titleHtml}
+                </div>
+            `;
 
-            // In weekly or day view, if the event is short, omit the time
-            if ((arg.view.type === 'timeGridWeek' || arg.view.type === 'timeGridDay') && isShort) {
-                eventEl.innerHTML = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
-            } else {
-                 eventEl.innerHTML = `<div class="fc-event-time">${timeText}</div><div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${titleText}</div></div>`;
-            }
-
-            return { domNodes: [eventEl] };
+            return { html: innerHtml };
         },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
@@ -6527,6 +6528,8 @@ function initializeCalendar() {
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+                // The view-specific filtering is now handled in eventContent and renderCustomMonthView
+                // where the view object is reliably available.
                 const filteredHistory = appState.historicalTasks.filter(ht => {
                     const completionDate = new Date(ht.completionDate);
                     if (isNaN(completionDate)) return false;
@@ -6544,14 +6547,7 @@ function initializeCalendar() {
                         return false;
                     }
 
-                    // Conditionally apply category filters based on view
-                    if (applyFilters) {
-                        const catId = ht.categoryId || 'null';
-                        const filter = uiSettings.calendarCategoryFilters[catId];
-                        if (filter && filter.show === false) {
-                            return false;
-                        }
-                    }
+                    // The more detailed filtering happens at the rendering stage.
                     return true;
                 });
 
