@@ -6340,7 +6340,7 @@ function initializeCalendar() {
         eventOrder: (a, b) => {
             // Defensive check for invalid event dates
             if (!a.start || !a.end || !b.start || !b.end || typeof a.start.getTime !== 'function' || typeof b.start.getTime !== 'function') {
-                console.error("Invalid event object passed to eventOrder. Skipping sort.", { a, b });
+                console.warn("Invalid event object passed to eventOrder. Skipping sort.", { a, b });
                 return 0; // Return a neutral sort order to prevent crashing
             }
 
@@ -6372,49 +6372,40 @@ function initializeCalendar() {
             if (applyFilters) {
                 const catId = extendedProps.category ? extendedProps.category.id : 'null';
                 const filter = uiSettings.calendarCategoryFilters[catId];
-                if (filter && filter.show === false) {
-                    return { domNodes: [] }; // Render nothing if filtered out
+                if (filter && !filter.show) {
+                    return { domNodes: [] };
                 }
             }
 
-            // --- Unified Rendering Logic ---
-            const iconClass = extendedProps.icon;
-            const iconColor = event.backgroundColor; // Use the category color for the icon
-            const iconHtml = iconClass && uiSettings.monthView.showIcon ? `<i class="${iconClass} fa-fw month-view-icon" style="color: ${iconColor};"></i>` : '';
-
             // --- Month View Rendering ---
             if (view.type === 'dayGridMonth') {
+                const iconHtml = extendedProps.icon && uiSettings.monthView.showIcon ? `<i class="${extendedProps.icon} fa-fw month-view-icon"></i>` : '';
                 const timeHtml = uiSettings.monthView.showTime ? `<span class="month-view-time">${timeText}</span>` : '';
                 const nameHtml = uiSettings.monthView.showName ? `<span class="month-view-name">${event.title}</span>` : '';
-                const eventHtml = `
-                    <div class="month-view-event-item" style="border-color: ${event.borderColor};">
-                        ${iconHtml}
-                        ${timeHtml}
-                        ${nameHtml}
-                    </div>`;
-                return { html: eventHtml };
+                return { html: `<div class="month-view-event-item">${iconHtml} ${timeHtml} ${nameHtml}</div>` };
             }
 
             // --- TimeGrid Day/Week View Rendering ---
             const durationMs = event.end - event.start;
             const isShort = durationMs < (30 * 60 * 1000);
-            // The 'fc-event-short' class is now added via the eventClassNames callback.
-            // No need to modify arg.el here.
 
-            const timeHtmlGrid = `<div class="fc-event-time">${timeText}</div>`;
-            const titleHtmlGrid = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${event.title}</div></div>`;
-            const iconHtmlGrid = iconClass ? `<i class="${iconClass} fa-fw fc-event-icon"></i>` : '';
+            // Conditional content based on user requirements
+            const iconHtml = extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon"></i> ` : '';
+            const timeHtml = `<span class="fc-event-time">${timeText}</span> `;
+            const titleHtml = `<span class="fc-event-title">${event.title}</span>`;
 
-            const innerHtml = `
-                <div class="fc-event-main-inner">
-                    ${iconHtmlGrid}
-                    <div class="fc-event-details">
-                        ${timeHtmlGrid}
-                        ${titleHtmlGrid}
-                    </div>
-                </div>`;
+            let contentHtml;
+            if (isShort) {
+                // Requirement: For tasks shorter than 30 minutes, show only the name.
+                contentHtml = titleHtml;
+            } else {
+                // Requirement: For longer tasks, show icon, time, and title.
+                // The layout will be controlled by CSS to handle the "half-width" case.
+                contentHtml = `${iconHtml}${timeHtml}${titleHtml}`;
+            }
 
-            return { html: innerHtml };
+            // Use a simple, flexible structure that allows for natural wrapping.
+            return { html: `<div class="fc-event-main-inner">${contentHtml}</div>` };
         },
         eventClassNames: function(arg) {
             const durationMs = arg.event.end - arg.event.start;
@@ -6492,67 +6483,62 @@ function initializeCalendar() {
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-                // The view-specific filtering is now handled in eventContent and renderCustomMonthView
-                // where the view object is reliably available.
-                const filteredHistory = appState.historicalTasks.filter(ht => {
-                    const completionDate = new Date(ht.completionDate);
-                    if (isNaN(completionDate)) return false;
+                if (appState.historicalTasks && Array.isArray(appState.historicalTasks)) {
+                    const filteredHistory = appState.historicalTasks.filter(ht => {
+                        if (!ht || !ht.completionDate) return false;
+                        const completionDate = new Date(ht.completionDate);
+                        if (isNaN(completionDate.getTime())) return false;
 
-                    // Only show tasks from the last 7 days to reduce clutter
-                    if (completionDate < sevenDaysAgo) {
-                        return false;
-                    }
+                        if (completionDate < sevenDaysAgo) return false;
 
-                    const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                    const startDate = new Date(completionDate.getTime() - durationMs);
+                        const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
+                        const startDate = new Date(completionDate.getTime() - durationMs);
+                        if (isNaN(startDate.getTime())) return false;
 
-                    // Check if the event overlaps with the view window
-                    if (startDate > viewEndDate || completionDate < viewStartDate) {
-                        return false;
-                    }
-
-                    // The more detailed filtering happens at the rendering stage.
-                    return true;
-                });
-
-                filteredHistory.forEach(ht => {
-                    const category = categories.find(c => c.id === ht.categoryId);
-                    let baseColor = category ? category.color : '#808080';
-
-                    // Duller color for historical tasks
-                    const luminance = getLuminance(baseColor);
-                    const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
-                    const eventColor = adjustColor(baseColor, dullFactor);
-                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
-
-                    const borderColor = statusColors[ht.status] || statusColors.black;
-
-                    // The event is placed on the calendar based on its original due date
-                    const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                    const endDate = new Date(ht.completionDate); // This is the original due date
-                    const startDate = new Date(endDate.getTime() - durationMs);
-
-                    // Find the original task to get its icon
-                    const originalTask = tasks.find(t => t.id === ht.originalTaskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === ht.originalTaskId));
-                    const icon = originalTask ? originalTask.icon : null;
-
-                    calendarEvents.push({
-                        id: 'hist_' + ht.originalTaskId + '_' + ht.completionDate,
-                        title: ht.name,
-                        start: startDate,
-                        end: endDate,
-                        backgroundColor: eventColor,
-                        borderColor: borderColor,
-                        textColor: eventTextColor,
-                        borderWidth: '2px',
-                        extendedProps: {
-                            taskId: ht.originalTaskId,
-                            isHistorical: true,
-                            category: category,
-                            icon: icon // Pass the icon to the renderer
-                        }
+                        return !(startDate > viewEndDate || completionDate < viewStartDate);
                     });
-                });
+
+                    filteredHistory.forEach(ht => {
+                        const category = categories.find(c => c.id === ht.categoryId);
+                        let baseColor = category ? category.color : '#808080';
+
+                        const luminance = getLuminance(baseColor);
+                        const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
+                        const eventColor = adjustColor(baseColor, dullFactor);
+                        const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
+                        const borderColor = statusColors[ht.status] || statusColors.black;
+
+                        const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
+                        const endDate = new Date(ht.completionDate);
+                        const startDate = new Date(endDate.getTime() - durationMs);
+
+                        // Final validation before pushing
+                        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                             console.warn('Skipping historical event with invalid date:', ht);
+                             return;
+                        }
+
+                        const originalTask = tasks.find(t => t.id === ht.originalTaskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === ht.originalTaskId));
+                        const icon = originalTask ? originalTask.icon : null;
+
+                        calendarEvents.push({
+                            id: 'hist_' + ht.originalTaskId + '_' + ht.completionDate,
+                            title: ht.name,
+                            start: startDate,
+                            end: endDate,
+                            backgroundColor: eventColor,
+                            borderColor: borderColor,
+                            textColor: eventTextColor,
+                            borderWidth: '2px',
+                            extendedProps: {
+                                taskId: ht.originalTaskId,
+                                isHistorical: true,
+                                category: category,
+                                icon: icon
+                            }
+                        });
+                    });
+                }
 
                 // 5. Add all pending overdue cycles for tasks awaiting input.
                 const stuckTasks = tasks.filter(t => t.confirmationState === 'awaiting_overdue_input');
@@ -6582,7 +6568,17 @@ function initializeCalendar() {
 
                     missedOccurrences.forEach(occurrenceDate => {
                         const endDate = new Date(occurrenceDate);
+                        // Final validation before creating the event
+                        if (isNaN(endDate.getTime())) {
+                            console.warn('Skipping pending overdue event with invalid date:', task, occurrenceDate);
+                            return;
+                        }
                         const startDate = new Date(endDate.getTime() - durationMs);
+                        if (isNaN(startDate.getTime())) {
+                             console.warn('Skipping pending overdue event with invalid start date:', task, occurrenceDate);
+                             return;
+                        }
+
 
                         // Only add the event if it's within the current calendar view
                         if (startDate > viewEndDate || endDate < viewStartDate) {
