@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, monthViewEventTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -6340,10 +6340,18 @@ function initializeCalendar() {
         eventOrder: (a, b) => {
             const durationA = a.end - a.start;
             const durationB = b.end - b.start;
+            // Primary sort: duration (longer events first)
             if (durationA !== durationB) {
                 return durationB - durationA;
             }
-            return a.start - b.start;
+            // Secondary sort: start time
+            const startA = a.start.getTime();
+            const startB = b.start.getTime();
+            if (startA !== startB) {
+                return startA - startB;
+            }
+            // Tertiary sort: alphabetical by title
+            return a.title.localeCompare(b.title);
         },
         eventContent: function(arg) {
             const { event, timeText, view } = arg;
@@ -6360,39 +6368,51 @@ function initializeCalendar() {
                 }
             }
 
-            // --- Custom Rendering Logic ---
+            // --- Unified Rendering Logic ---
+            const iconClass = extendedProps.icon;
+            const iconColor = event.backgroundColor; // Use the category color for the icon
+            const iconHtml = iconClass && uiSettings.monthView.showIcon ? `<i class="${iconClass} fa-fw month-view-icon" style="color: ${iconColor};"></i>` : '';
+
+            // --- Month View Rendering ---
             if (view.type === 'dayGridMonth') {
-                // For month view, we use a simple, clean template.
-                // The `monthViewEventTemplate` is imported from templates.js
-                const monthHtml = monthViewEventTemplate(event, uiSettings.monthView);
-                return { html: monthHtml };
+                const timeHtml = uiSettings.monthView.showTime ? `<span class="month-view-time">${timeText}</span>` : '';
+                const nameHtml = uiSettings.monthView.showName ? `<span class="month-view-name">${event.title}</span>` : '';
+                const eventHtml = `
+                    <div class="month-view-event-item" style="border-color: ${event.borderColor};">
+                        ${iconHtml}
+                        ${timeHtml}
+                        ${nameHtml}
+                    </div>`;
+                return { html: eventHtml };
             }
 
-            // --- Rendering for TimeGrid Day/Week Views ---
-            const iconClass = extendedProps.icon;
-            // FIX: Icon color should match text color for contrast
-            const iconColor = event.textColor;
-            const iconHtml = iconClass ? `<i class="${iconClass} fc-event-icon" style="color: ${iconColor};"></i>` : '';
-
+            // --- TimeGrid Day/Week View Rendering ---
             const durationMs = event.end - event.start;
-            const isShort = durationMs < (30 * 60 * 1000); // Less than 30 mins
-            const timeHtml = (view.type === 'timeGridWeek' || view.type === 'timeGridDay') && isShort
-                ? ''
-                : `<div class="fc-event-time">${timeText}</div>`;
+            const isShort = durationMs < (30 * 60 * 1000);
+            // The 'fc-event-short' class is now added via the eventClassNames callback.
+            // No need to modify arg.el here.
 
-            const titleHtml = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${event.title}</div></div>`;
+            const timeHtmlGrid = `<div class="fc-event-time">${timeText}</div>`;
+            const titleHtmlGrid = `<div class="fc-event-title-container"><div class="fc-event-title fc-sticky">${event.title}</div></div>`;
+            const iconHtmlGrid = iconClass ? `<i class="${iconClass} fa-fw fc-event-icon"></i>` : '';
 
-            // We construct the inner HTML directly.
-            // Using a container div allows flexbox styling to align icon, time, and title.
             const innerHtml = `
                 <div class="fc-event-main-inner">
-                    ${iconHtml}
-                    ${timeHtml}
-                    ${titleHtml}
-                </div>
-            `;
+                    ${iconHtmlGrid}
+                    <div class="fc-event-details">
+                        ${timeHtmlGrid}
+                        ${titleHtmlGrid}
+                    </div>
+                </div>`;
 
             return { html: innerHtml };
+        },
+        eventClassNames: function(arg) {
+            const durationMs = arg.event.end - arg.event.start;
+            if (durationMs < (30 * 60 * 1000)) {
+                return ['fc-event-short'];
+            }
+            return [];
         },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
@@ -6496,15 +6516,16 @@ function initializeCalendar() {
                     const eventColor = adjustColor(baseColor, dullFactor);
                     const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
 
-
-                    // The historical task now has a specific status ('blue', 'green', 'yellow', 'red', 'black').
-                    // We can use it directly to set the border color.
-                    const borderColor = statusColors[ht.status] || statusColors.black; // Default to black if status is invalid
+                    const borderColor = statusColors[ht.status] || statusColors.black;
 
                     // The event is placed on the calendar based on its original due date
                     const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
                     const endDate = new Date(ht.completionDate); // This is the original due date
                     const startDate = new Date(endDate.getTime() - durationMs);
+
+                    // Find the original task to get its icon
+                    const originalTask = tasks.find(t => t.id === ht.originalTaskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === ht.originalTaskId));
+                    const icon = originalTask ? originalTask.icon : null;
 
                     calendarEvents.push({
                         id: 'hist_' + ht.originalTaskId + '_' + ht.completionDate,
@@ -6517,7 +6538,9 @@ function initializeCalendar() {
                         borderWidth: '2px',
                         extendedProps: {
                             taskId: ht.originalTaskId,
-                            isHistorical: true
+                            isHistorical: true,
+                            category: category,
+                            icon: icon // Pass the icon to the renderer
                         }
                     });
                 });

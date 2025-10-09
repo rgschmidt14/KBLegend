@@ -410,32 +410,41 @@ legend {
 }
 .fc-event-main-inner {
     display: flex;
-    align-items: center;
+    flex-direction: row; /* Explicitly set direction */
+    align-items: flex-start; /* Align items to the top */
     height: 100%;
     overflow: hidden;
+    gap: 4px; /* Add a small gap between icon and details */
 }
-.fc-event-icon {
-    margin-right: 4px;
-    text-shadow: 0 0 3px rgba(0,0,0,0.5); /* Add a shadow to make icon pop */
-}
-.fc-event-title {
-    white-space: normal; /* Allow text to wrap */
-    word-wrap: break-word; /* Break long words if necessary */
+
+.fc-event-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     flex-grow: 1;
-    overflow: visible; /* Ensure content isn't clipped */
-    text-overflow: clip; /* Don't show ellipsis */
 }
-.fc-event-short, .fc-timegrid-event-short {
-    font-size: 0.7rem !important;
-    padding-top: 1px !important;
-    padding-bottom: 1px !important;
-    line-height: 1.2;
-    display: flex !important;
-    align-items: center !important;
+
+.fc-event-icon {
+    margin-top: 2px; /* Align icon slightly better with the first line of text */
+    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+}
+
+.fc-event-title {
+    white-space: normal; /* Allow text to wrap by default */
+    word-wrap: break-word;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+/* Special class for short events to prevent wrapping */
+.fc-event-short .fc-event-title {
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
     overflow: hidden !important;
 }
-.fc-timegrid-event-short .fc-event-main {
-    padding: 0 1px !important;
+
+.fc-event-short .fc-event-time {
+    display: none; /* Hide time on very short events to save space */
 }
 .fc .fc-timegrid-now-indicator-line {
     border-width: 2px;
@@ -674,7 +683,8 @@ legend {
     padding: 1px 4px;
     border-radius: 2px;
     background-color: var(--bg-secondary);
-    /* The border is now fully controlled by the inline style in monthViewEventTemplate */
+    border-width: 2px; /* Set a consistent border width */
+    border-style: solid; /* Set a consistent border style */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
