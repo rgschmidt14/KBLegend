@@ -41,6 +41,8 @@ let editingTaskId = null;
 let editingCategoryIdForIcon = null;
 let kpiChart = null; // For single chart view
 let kpiCharts = []; // For stacked chart view
+let calendarMonthEvents = [];
+let calendarTimeGridEvents = [];
 // let taskViewBorderInterval = null; // This is no longer needed
 // isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
@@ -1055,6 +1057,36 @@ function applyTheme() {
             padding: 1rem;
             border-radius: 0.5rem;
             margin-bottom: 1rem;
+        }
+
+        /* Styles for month view events */
+        .month-view-event-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            font-size: 0.75rem;
+        }
+        .month-view-icon {
+            /* The icon color is now set by the textColor property of the event */
+            flex-shrink: 0;
+        }
+        .month-view-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fc-timegrid-event.fc-event-short {
+            min-height: 22px !important; /* Give it a minimum height to be visible */
+            padding: 1px 4px !important;    /* Adjust padding to fit content */
+        }
+
+        .fc-event-short .fc-event-main-inner {
+            align-items: center; /* Vertically center the title */
         }
 
     `;
@@ -5874,24 +5906,20 @@ function loadData() {
     }
 
 
-    if (storedCategories) {
+    // Only load from localStorage if the arrays are empty.
+    // This allows verification scripts to inject data without it being overwritten.
+    if (categories.length === 0 && storedCategories) {
         try {
             categories = JSON.parse(storedCategories);
         } catch (error) {
             console.error("Error parsing categories from localStorage:", error);
+            categories = []; // Reset on error
         }
     }
-    if (storedTasks) {
+    if (tasks.length === 0 && storedTasks) {
         try {
-            let needsMigration = false;
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
-                // A more robust check for an "old" task. The `requiresFullAttention` field
-                // replaced the old `countsAsBusy` field. Its absence is a reliable indicator.
-                if (task.requiresFullAttention === undefined) {
-                    needsMigration = true;
-                }
-
                 let tempTask = { ...task };
                 tempTask.dueDate = task.dueDate ? new Date(task.dueDate) : null;
                 tempTask.createdAt = task.createdAt ? new Date(task.createdAt) : new Date();
@@ -5901,27 +5929,14 @@ function loadData() {
                 if (isNaN(tempTask.createdAt)) tempTask.createdAt = new Date();
                 if (isNaN(tempTask.cycleEndDate)) tempTask.cycleEndDate = null;
                 if (isNaN(tempTask.timerLastStarted)) tempTask.timerLastStarted = null;
-
                 return sanitizeAndUpgradeTask(tempTask);
             });
 
-            // The automatic opening of the migration modal on startup is causing issues
-            // with testing and can be confusing for users. This should be a manual action.
-            // const lastCheck = localStorage.getItem('lastMigrationCheck');
-            // const today = new Date().toDateString();
-            // if (needsMigration && lastCheck !== today) {
-            //     // Pass the original parsed tasks to the migration tool automatically
-            //     openDataMigrationModal(parsedTasks);
-            //     localStorage.setItem('lastMigrationCheck', today);
-            // }
-
-
             tasks.forEach(task => {
                 if (task.isTimerRunning && task.timerLastStarted) {
-                    const elapsedWhileAway = Date.now() - task.timerLastStarted.getTime();
+                    const elapsedWhileAway = Date.now() - new Date(task.timerLastStarted).getTime();
                     const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
                     task.currentProgress = (task.currentProgress || 0) + elapsedWhileAway;
-
                     if (task.currentProgress >= targetMs) {
                         task.currentProgress = targetMs;
                         task.isTimerRunning = false;
@@ -5933,6 +5948,7 @@ function loadData() {
             });
         } catch (error) {
             console.error("Error parsing tasks from localStorage:", error);
+            tasks = []; // Reset on error
         }
     }
 
@@ -5954,12 +5970,9 @@ function updateAllTaskStatuses(forceRender = false) {
         calendarCategoryFilters: uiSettings.calendarCategoryFilters
     };
 
-    // The pipeline returns all future occurrences, processed.
+    // --- Task Status Updates ---
     const allOccurrences = runCalculationPipeline([...tasks], calculationHorizon, settings);
-
     let changed = false;
-
-    // Create a quick lookup map for the next occurrence of each task.
     const nextOccurrenceMap = new Map();
     allOccurrences
         .filter(o => o.scheduledEndTime && new Date(o.scheduledEndTime).getTime() > nowMs)
@@ -5973,71 +5986,41 @@ function updateAllTaskStatuses(forceRender = false) {
     tasks.forEach(task => {
         const oldStatus = task.status;
         const oldConfirmationState = task.confirmationState;
-
-        // Handle time-based state transitions (e.g., becoming overdue)
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
         const isPastDue = dueDate && dueDate.getTime() <= nowMs;
-
         if (isPastDue && task.status !== 'blue' && !task.confirmationState) {
             task.confirmationState = 'awaiting_overdue_input';
-            if (!task.overdueStartDate) {
-                task.overdueStartDate = task.dueDate.toISOString();
-            }
+            if (!task.overdueStartDate) task.overdueStartDate = task.dueDate.toISOString();
             task.pendingCycles = calculatePendingCycles(task, nowMs);
-             if (task.isTimerRunning) { toggleTimer(task.id); }
+            if (task.isTimerRunning) toggleTimer(task.id);
         } else if (!isPastDue && (task.confirmationState === 'awaiting_overdue_input' || task.confirmationState === 'confirming_miss')) {
             task.confirmationState = null;
             delete task.overdueStartDate;
             delete task.pendingCycles;
         }
 
-        // Determine the final display status
         const nextOccurrence = nextOccurrenceMap.get(task.id);
-        let newStatus;
-        let newGpa = 0; // Default GPA for color interpolation (0-1 scale)
-
+        let newStatus, newGpa = 0;
         if (task.status === 'blue' && task.cycleEndDate && new Date(task.cycleEndDate) > now) {
-            newStatus = 'blue';
-            newGpa = 1.0; // 4.0 GPA
+            newStatus = 'blue'; newGpa = 1.0;
         } else if (task.confirmationState === 'awaiting_overdue_input') {
-            newStatus = 'black';
-            newGpa = 0.0; // 0.0 GPA
+            newStatus = 'black'; newGpa = 0.0;
         } else if (nextOccurrence) {
             newStatus = nextOccurrence.finalStatus;
-            newGpa = nextOccurrence.coloringGpa; // Use the precise GPA from the pipeline
+            newGpa = nextOccurrence.coloringGpa;
         } else {
-            // If no future occurrence, it's likely completed or unscheduled. Default to green.
-            newStatus = 'green';
-            newGpa = 0.75; // 3.0 GPA
+            newStatus = 'green'; newGpa = 0.75;
         }
 
-    // Only update the visual status (color/group) if the task is not awaiting a final "Yes/No" confirmation.
-    // This prevents the task from jumping around the list while the user is deciding.
-    const isPendingConfirmation = ['confirming_complete', 'confirming_miss', 'confirming_delete', 'confirming_undo'].includes(task.confirmationState);
-
-    if (!isPendingConfirmation) {
-        if (task.status !== newStatus) {
-            task.status = newStatus;
+        const isPendingConfirmation = ['confirming_complete', 'confirming_miss', 'confirming_delete', 'confirming_undo'].includes(task.confirmationState);
+        if (!isPendingConfirmation) {
+            if (task.status !== newStatus) task.status = newStatus;
+            task.coloringGpa = newGpa;
         }
-        task.coloringGpa = newGpa; // Store the GPA (0-1 scale) on the task object
-        }
-
-
-        if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) {
-            changed = true;
-        }
+        if (task.status !== oldStatus || task.confirmationState !== oldConfirmationState) changed = true;
     });
 
-    // Handle removal of completed non-repeating tasks whose lock has expired
-    const tasksToRemove = [];
-    tasks.forEach(task => {
-        if (task.repetitionType === 'none' && task.completed) {
-            if (task.cycleEndDate && nowMs >= new Date(task.cycleEndDate).getTime()) {
-                tasksToRemove.push(task.id);
-            }
-        }
-    });
-
+    const tasksToRemove = tasks.filter(task => task.repetitionType === 'none' && task.completed && task.cycleEndDate && nowMs >= new Date(task.cycleEndDate).getTime()).map(t => t.id);
     if (tasksToRemove.length > 0) {
         tasks = tasks.filter(t => !tasksToRemove.includes(t.id));
         changed = true;
@@ -6048,7 +6031,115 @@ function updateAllTaskStatuses(forceRender = false) {
         renderTasks();
     }
 
-    // New logic: Check if the task view modal is open and update its border
+    // --- Calendar Event Calculation ---
+    // This is now the single source of truth for calendar event data.
+    calendarMonthEvents = [];
+    calendarTimeGridEvents = [];
+
+    const processEvent = (eventData) => {
+        const { start, end, baseProps, isHistorical, originalId, completionDate } = eventData;
+
+        // Final validation before adding to arrays
+        if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+            console.warn("Skipping invalid event during processing:", { baseProps, start, end });
+            return;
+        }
+
+        // TimeGrid View (Week/Day): Add as a single block
+        const timeGridId = isHistorical ? `hist_${originalId}_${completionDate}` : (baseProps.id || originalId);
+        calendarTimeGridEvents.push({ ...baseProps, id: timeGridId, start, end });
+
+        // Month View: Split into daily segments
+        let currentSegmentStart = new Date(start);
+        while (currentSegmentStart < end) {
+            const startOfNextDay = new Date(currentSegmentStart);
+            startOfNextDay.setHours(24, 0, 0, 0);
+            const segmentEnd = (end < startOfNextDay) ? new Date(end) : startOfNextDay;
+
+            // Create a unique ID for the segment to avoid key collisions in React-based renderers
+            const segmentId = `${timeGridId}_${currentSegmentStart.toISOString()}`;
+
+            if (segmentEnd > currentSegmentStart) {
+                calendarMonthEvents.push({ ...baseProps, id: segmentId, start: currentSegmentStart, end: segmentEnd });
+            }
+            currentSegmentStart = startOfNextDay;
+        }
+    };
+
+    // Process active tasks from the pipeline
+    allOccurrences.forEach(occurrence => {
+        if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return;
+
+        const start = new Date(occurrence.scheduledStartTime);
+        const end = new Date(occurrence.scheduledEndTime);
+
+        const task = tasks.find(t => t.id === occurrence.originalId);
+        if (!task) return; // Don't render occurrences for tasks that no longer exist
+
+        const category = categories.find(c => c.id === occurrence.categoryId);
+        const categoryColor = category ? category.color : '#374151'; // Default gray for uncategorized
+        const borderColor = statusColors[occurrence.finalStatus] || statusColors.black;
+
+        const baseProps = {
+            title: occurrence.name,
+            backgroundColor: categoryColor,
+            borderColor: borderColor,
+            textColor: getContrastingTextColor(categoryColor)['--text-color-primary'],
+            extendedProps: {
+                taskId: occurrence.originalId,
+                occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
+                isHistorical: false,
+                category: category,
+                icon: task.icon
+            },
+            id: occurrence.id // Pass the unique occurrence ID
+        };
+        processEvent({ start, end, baseProps, isHistorical: false, originalId: occurrence.id });
+    });
+
+    // Process recent historical tasks
+    const sevenDaysAgo = new Date(nowMs - 7 * MS_PER_DAY);
+    if (appState.historicalTasks && Array.isArray(appState.historicalTasks)) {
+        appState.historicalTasks
+            .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= sevenDaysAgo)
+            .forEach(ht => {
+                const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
+                const endDate = new Date(ht.completionDate);
+                const startDate = new Date(endDate.getTime() - durationMs);
+
+                const category = categories.find(c => c.id === ht.categoryId);
+                const baseColor = category ? category.color : '#808080';
+
+                // Make historical events appear "faded"
+                const hsl = hexToHSL(baseColor);
+                hsl.s = Math.max(0, hsl.s - 20); // Desaturate
+                hsl.l = document.body.classList.contains('light-mode') ? Math.min(100, hsl.l + 15) : Math.max(0, hsl.l - 15); // Lighten/darken
+                const eventColor = HSLToHex(hsl.h, hsl.s, hsl.l);
+
+                const originalTask = tasks.find(t => t.id === ht.originalTaskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === ht.originalTaskId));
+
+                const baseProps = {
+                    title: ht.name,
+                    backgroundColor: eventColor,
+                    borderColor: statusColors[ht.status] || statusColors.black,
+                    textColor: getContrastingTextColor(eventColor)['--text-color-primary'],
+                    extendedProps: {
+                        taskId: ht.originalTaskId,
+                        isHistorical: true,
+                        category: category,
+                        icon: originalTask ? originalTask.icon : null
+                    }
+                };
+                processEvent({ start: startDate, end: endDate, baseProps, isHistorical: true, originalId: ht.originalTaskId, completionDate: ht.completionDate });
+            });
+    }
+
+    // If the calendar exists, tell it to refetch events.
+    if (calendar) {
+        calendar.refetchEvents();
+    }
+
+    // --- Task View Modal Border Update ---
     const taskViewModalEl = document.getElementById('task-view-modal');
     if (taskViewModalEl && taskViewModalEl.classList.contains('active')) {
         const viewingTaskId = taskViewModalEl.dataset.viewingTaskId;
@@ -6056,10 +6147,7 @@ function updateAllTaskStatuses(forceRender = false) {
             const task = tasks.find(t => t.id === viewingTaskId);
             const borderWrapper = document.getElementById('task-view-modal-border-wrapper');
             if (task && borderWrapper) {
-                 let gpaPercent = typeof task.coloringGpa === 'number'
-                    ? task.coloringGpa
-                    : ((gpaMap[task.status] || 0) / 4.0);
-
+                let gpaPercent = typeof task.coloringGpa === 'number' ? task.coloringGpa : ((statusColors[task.status] || 0) / 4.0);
                 const baseColor = interpolateFiveColors(gpaPercent);
                 const isDarkMode = !document.body.classList.contains('light-mode');
                 const topColor = adjustColor(baseColor, isDarkMode ? 0.2 : -0.2);
@@ -6338,14 +6426,18 @@ function initializeCalendar() {
         nowIndicator: true, // Show the current time indicator
         navLinks: true, // Allow clicking on day/week numbers to navigate
         eventOrder: (a, b) => {
-            // Defensive check for invalid event dates
-            if (!a.start || !a.end || !b.start || !b.end || typeof a.start.getTime !== 'function' || typeof b.start.getTime !== 'function') {
-                console.warn("Invalid event object passed to eventOrder. Skipping sort.", { a, b });
+            const startA_date = a.start ? new Date(a.start) : null;
+            const endA_date = a.end ? new Date(a.end) : null;
+            const startB_date = b.start ? new Date(b.start) : null;
+            const endB_date = b.end ? new Date(b.end) : null;
+            if (!startA_date || !endA_date || !startB_date || !endB_date || isNaN(startA_date) || isNaN(endA_date) || isNaN(startB_date) || isNaN(endB_date)) {
+                // This console.warn is now less likely to fire, but is good to keep as a fallback.
+                console.warn("Invalid event object passed to eventOrder. Skipping sort.", JSON.stringify({ a, b }, null, 2));
                 return 0; // Return a neutral sort order to prevent crashing
             }
 
-            const durationA = a.end.getTime() - a.start.getTime();
-            const durationB = b.end.getTime() - b.start.getTime();
+            const durationA = endA_date.getTime() - startA_date.getTime();
+            const durationB = endB_date.getTime() - startB_date.getTime();
 
             // Primary sort: duration (longer events first)
             if (durationA !== durationB) {
@@ -6353,10 +6445,8 @@ function initializeCalendar() {
             }
 
             // Secondary sort: start time
-            const startA = a.start.getTime();
-            const startB = b.start.getTime();
-            if (startA !== startB) {
-                return startA - startB;
+            if (startA_date.getTime() !== startB_date.getTime()) {
+                return startA_date.getTime() - startB_date.getTime();
             }
 
             // Tertiary sort: alphabetical by title
@@ -6379,10 +6469,13 @@ function initializeCalendar() {
 
             // --- Month View Rendering ---
             if (view.type === 'dayGridMonth') {
-                const iconHtml = extendedProps.icon && uiSettings.monthView.showIcon ? `<i class="${extendedProps.icon} fa-fw month-view-icon"></i>` : '';
+                const categoryColor = event.backgroundColor;
+                const textColor = event.textColor;
+                const iconHtml = extendedProps.icon && uiSettings.monthView.showIcon ? `<i class="${extendedProps.icon} fa-fw month-view-icon" style="color: ${textColor};"></i>` : '';
                 const timeHtml = uiSettings.monthView.showTime ? `<span class="month-view-time">${timeText}</span>` : '';
                 const nameHtml = uiSettings.monthView.showName ? `<span class="month-view-name">${event.title}</span>` : '';
-                return { html: `<div class="month-view-event-item">${iconHtml} ${timeHtml} ${nameHtml}</div>` };
+                // The background is applied to the wrapper, and text color to the contents.
+                return { html: `<div class="month-view-event-item" style="background-color: ${categoryColor}; color: ${textColor};">${iconHtml} ${timeHtml} ${nameHtml}</div>` };
             }
 
             // --- TimeGrid Day/Week View Rendering ---
@@ -6396,11 +6489,8 @@ function initializeCalendar() {
 
             let contentHtml;
             if (isShort) {
-                // Requirement: For tasks shorter than 30 minutes, show only the name.
                 contentHtml = titleHtml;
             } else {
-                // Requirement: For longer tasks, show icon, time, and title.
-                // The layout will be controlled by CSS to handle the "half-width" case.
                 contentHtml = `${iconHtml}${timeHtml}${titleHtml}`;
             }
 
@@ -6416,206 +6506,20 @@ function initializeCalendar() {
         },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {
-                const viewStartDate = fetchInfo.start;
-                const viewEndDate = fetchInfo.end;
-                let calendarEvents = [];
-                const now = new Date();
-
-                const calculationHorizon = getCalculationHorizonDate();
-
-                const settings = {
-                    sensitivity: sensitivitySettings,
-                    vacations: appState.vacations,
-                    categories: categories,
-                    calendarCategoryFilters: uiSettings.calendarCategoryFilters || {}
-                };
-
-                // 1. Get all scheduled task occurrences from the single source of truth.
-                const allScheduledOccurrences = runCalculationPipeline(tasks, calculationHorizon, settings);
-
-                // The filtering based on the "show" toggle is now handled in the display-level callbacks
-                // (`eventContent` and `renderCustomMonthView`) where the view context is available.
-                // The `runCalculationPipeline` already handles filtering based on the "schedule" toggle.
-
-
-                // 2. Filter occurrences for the current view.
-                const filteredOccurrences = allScheduledOccurrences.filter(occurrence => {
-                    if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return false;
-
-                    // Filter by calendar view window
-                    if (new Date(occurrence.scheduledStartTime) >= viewEndDate || new Date(occurrence.scheduledEndTime) <= viewStartDate) {
-                        return false;
-                    }
-
-                    return true;
-                });
-
-
-                // 3. Map to FullCalendar event objects
-                filteredOccurrences.forEach(occurrence => {
-                    const category = categories.find(c => c.id === occurrence.categoryId);
-                    const borderColor = statusColors[occurrence.finalStatus] || statusColors.black;
-                    const eventColor = category ? category.color : '#374151';
-                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
-
-                    const task = tasks.find(t => t.id === occurrence.originalId);
-                    calendarEvents.push({
-                        id: occurrence.id, // Unique ID per occurrence
-                        title: occurrence.name,
-                        start: occurrence.scheduledStartTime,
-                        end: occurrence.scheduledEndTime,
-                        backgroundColor: eventColor,
-                        borderColor: borderColor,
-                        textColor: eventTextColor,
-                        borderWidth: '2px',
-                        extendedProps: {
-                            taskId: occurrence.originalId,
-                            occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
-                            isHistorical: false,
-                            category: category,
-                            icon: task ? task.icon : null
-                        }
-                    });
-                });
-
-
-                // 4. Process Historical Tasks
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-                if (appState.historicalTasks && Array.isArray(appState.historicalTasks)) {
-                    const filteredHistory = appState.historicalTasks.filter(ht => {
-                        if (!ht || !ht.completionDate) return false;
-                        const completionDate = new Date(ht.completionDate);
-                        if (isNaN(completionDate.getTime())) return false;
-
-                        if (completionDate < sevenDaysAgo) return false;
-
-                        const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                        const startDate = new Date(completionDate.getTime() - durationMs);
-                        if (isNaN(startDate.getTime())) return false;
-
-                        return !(startDate > viewEndDate || completionDate < viewStartDate);
-                    });
-
-                    filteredHistory.forEach(ht => {
-                        const category = categories.find(c => c.id === ht.categoryId);
-                        let baseColor = category ? category.color : '#808080';
-
-                        const luminance = getLuminance(baseColor);
-                        const dullFactor = luminance < 0.5 ? 0.2 : -0.2;
-                        const eventColor = adjustColor(baseColor, dullFactor);
-                        const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
-                        const borderColor = statusColors[ht.status] || statusColors.black;
-
-                        const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-                        const endDate = new Date(ht.completionDate);
-                        const startDate = new Date(endDate.getTime() - durationMs);
-
-                        // Final validation before pushing
-                        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                             console.warn('Skipping historical event with invalid date:', ht);
-                             return;
-                        }
-
-                        const originalTask = tasks.find(t => t.id === ht.originalTaskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === ht.originalTaskId));
-                        const icon = originalTask ? originalTask.icon : null;
-
-                        calendarEvents.push({
-                            id: 'hist_' + ht.originalTaskId + '_' + ht.completionDate,
-                            title: ht.name,
-                            start: startDate,
-                            end: endDate,
-                            backgroundColor: eventColor,
-                            borderColor: borderColor,
-                            textColor: eventTextColor,
-                            borderWidth: '2px',
-                            extendedProps: {
-                                taskId: ht.originalTaskId,
-                                isHistorical: true,
-                                category: category,
-                                icon: icon
-                            }
-                        });
-                    });
+                // It's more robust to check the calendar's current view directly,
+                // as fetchInfo.view can be undefined during certain refreshes.
+                if (calendar && calendar.view.type === 'dayGridMonth') {
+                    successCallback(calendarMonthEvents);
+                } else {
+                    // Default to the time-grid events if the view isn't month or calendar is not ready
+                    successCallback(calendarTimeGridEvents);
                 }
-
-                // 5. Add all pending overdue cycles for tasks awaiting input.
-                const stuckTasks = tasks.filter(t => t.confirmationState === 'awaiting_overdue_input');
-
-                stuckTasks.forEach(task => {
-                    const category = categories.find(c => c.id === task.categoryId);
-                    const eventColor = category ? category.color : '#374151';
-                    const eventTextColor = getContrastingTextColor(eventColor)['--text-color-primary'];
-                    const borderColor = statusColors.black; // These are always overdue
-                    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || MS_PER_HOUR;
-
-                    // Get all missed occurrences since the task became overdue.
-                    const firstMissedDate = new Date(task.overdueStartDate || task.dueDate);
-                    let missedOccurrences = [];
-                    if (task.repetitionType !== 'none') {
-                        missedOccurrences = getOccurrences(task, firstMissedDate, now);
-                    }
-
-                    // If getOccurrences returns nothing (e.g., for non-repeating tasks), use the original due date.
-                    if (missedOccurrences.length === 0 && task.dueDate) {
-                        // Ensure the date is valid before pushing
-                        const dueDate = new Date(task.dueDate);
-                        if (!isNaN(dueDate)) {
-                            missedOccurrences.push(dueDate);
-                        }
-                    }
-
-                    missedOccurrences.forEach(occurrenceDate => {
-                        const endDate = new Date(occurrenceDate);
-                        // Final validation before creating the event
-                        if (isNaN(endDate.getTime())) {
-                            console.warn('Skipping pending overdue event with invalid date:', task, occurrenceDate);
-                            return;
-                        }
-                        const startDate = new Date(endDate.getTime() - durationMs);
-                        if (isNaN(startDate.getTime())) {
-                             console.warn('Skipping pending overdue event with invalid start date:', task, occurrenceDate);
-                             return;
-                        }
-
-
-                        // Only add the event if it's within the current calendar view
-                        if (startDate > viewEndDate || endDate < viewStartDate) {
-                            return;
-                        }
-
-                        // Create a unique ID for this specific missed occurrence
-                        const occurrenceId = `${task.id}_${occurrenceDate.toISOString()}`;
-
-                        // Avoid adding duplicates if the main pipeline somehow already included it.
-                        if (calendarEvents.some(e => e.id === occurrenceId)) {
-                            return;
-                        }
-
-                        calendarEvents.push({
-                            id: occurrenceId,
-                            title: `${task.name} (Pending)`,
-                            start: startDate,
-                            end: endDate,
-                            backgroundColor: eventColor,
-                            borderColor: borderColor,
-                            textColor: eventTextColor,
-                            borderWidth: '2px',
-                            classNames: ['overdue-pending-event'],
-                            extendedProps: {
-                                taskId: task.id,
-                                occurrenceDueDate: occurrenceDate.toISOString(),
-                                isHistorical: false
-                            }
-                        });
-                    });
-                });
-
-                successCallback(calendarEvents);
             } catch (e) {
-                console.error("Error fetching events for FullCalendar:", e);
-                failureCallback(e);
+                console.error("Error providing events to FullCalendar:", e);
+                // Ensure failureCallback exists before calling it
+                if (failureCallback) {
+                    failureCallback(e);
+                }
             }
         },
         datesSet: (info) => {
@@ -6666,6 +6570,13 @@ function initializeCalendar() {
             const idToOpen = isHistorical ? eventId : (info.event.extendedProps.taskId || eventId);
 
             openTaskView(idToOpen, isHistorical, occurrenceDueDate);
+        },
+        eventDidMount: function(info) {
+            if (info.view.type === 'dayGridMonth') {
+                if (info.event.borderColor) {
+                    info.el.style.borderColor = info.event.borderColor;
+                }
+            }
         },
         dateClick: (info) => {
             if (!calendarSettings.allowCreationOnClick) {
