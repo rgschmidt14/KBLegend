@@ -292,7 +292,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
                     <div>${missesHtml}</div>
                     <div class="flex items-center space-x-2">
                         <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">Stats</button>
-                        ${commonButtonsContent}
+                        ${commonButtonsTemplate(task, { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' })}
                     </div>
                 </div>
             </div>
@@ -588,15 +588,16 @@ function actionAreaTemplate(task) {
     }
 }
 
-function commonButtonsTemplate(task) {
+function commonButtonsTemplate(task, options = {}) {
+    const { editAction = 'edit', deleteAction = 'triggerDelete' } = options;
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
+        return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
     }
     return `<div class="flex space-x-1">
-            <button data-action="edit" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
-            <button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
+            <button data-action="${editAction}" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
+            <button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
         </div>`;
 }
 
@@ -847,6 +848,24 @@ function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterT
     `;
 }
 
+function welcomeModalTemplate() {
+    return `
+        <div id="welcome-modal" class="modal">
+            <div class="modal-content bg-modal">
+                <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
+                <p class="mb-4">To personalize your experience, please pick your favorite color. We'll use it to generate a custom theme for you.</p>
+                <div class="flex items-center justify-center space-x-4 my-6">
+                    <input type="color" id="welcome-color-picker" value="#3b82f6" class="h-16 w-16 border-none cursor-pointer rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button id="welcome-no-thanks" class="btn btn-clear">No Thanks</button>
+                    <button id="welcome-submit" class="btn btn-confirm">Set Theme</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
@@ -855,5 +874,5 @@ export {
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
-    calendarCategoryFilterTemplate
+    calendarCategoryFilterTemplate, welcomeModalTemplate
 };

@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -76,6 +76,7 @@ let uiSettings = {
         showName: true,
         groupTasks: true,
     },
+        welcomeScreenShown: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1943,6 +1944,14 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         };
 
         switch (action) {
+            case 'editTaskFromView':
+                deactivateModal(taskViewModalEl);
+                openModal(taskId);
+                break;
+            case 'triggerDeleteFromView':
+                triggerDelete(taskId);
+                openTaskView(eventId, isHistorical, occurrenceDate);
+                break;
             case 'confirmCompletion':
                 confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
                 // Re-open the view to reflect the new state. This handles both "Yes" and "No" paths.
@@ -5600,6 +5609,16 @@ function setupEventListeners() {
     });
 
     // --- Journal Listeners (Event Delegation) ---
+    if (journalModal) {
+        journalModal.addEventListener('click', (event) => {
+            const target = event.target.closest('[data-action]');
+            if (!target) return;
+            if (target.dataset.action === 'openIconPicker') {
+                const context = target.dataset.context || 'journal';
+                openIconPicker(context);
+            }
+        });
+    }
     const journalViewEl = document.getElementById('journal-view');
     if (journalViewEl) {
         journalViewEl.addEventListener('click', (event) => {
@@ -6727,7 +6746,43 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Initialization complete. Data saving is now enabled.");
 
     initializeHints();
+    if (!uiSettings.welcomeScreenShown) {
+        showWelcomeModal();
+    }
 });
+
+function showWelcomeModal() {
+    document.body.insertAdjacentHTML('beforeend', welcomeModalTemplate());
+    const welcomeModal = document.getElementById('welcome-modal');
+    const colorPicker = document.getElementById('welcome-color-picker');
+    const noThanksBtn = document.getElementById('welcome-no-thanks');
+    const submitBtn = document.getElementById('welcome-submit');
+
+    const closeModal = () => {
+        uiSettings.welcomeScreenShown = true;
+        saveData();
+        deactivateModal(welcomeModal);
+        welcomeModal.remove();
+    };
+
+    noThanksBtn.addEventListener('click', () => {
+        theming.mode = 'auto';
+        saveData();
+        applyTheme();
+        closeModal();
+    });
+
+    submitBtn.addEventListener('click', () => {
+        theming.enabled = true;
+        theming.baseColor = colorPicker.value;
+        theming.mode = 'auto';
+        saveData();
+        applyTheme();
+        closeModal();
+    });
+
+    activateModal(welcomeModal);
+}
 
 // --- Hints & Tips Banner ---
 const hints = [
