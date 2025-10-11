@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -4319,7 +4319,7 @@ function analyzeAndPrepareMigrationModal(modalElement) {
         return;
     }
 
-    const taskIds = new Set(tasks.map(t => t.id));
+    const taskIds = new Set(tasks.map(t => t.id).concat((appState.archivedTasks || []).map(t => t.id)));
     const orphanedHistory = appState.historicalTasks
         .map((h, index) => ({ ...h, historyId: index })) // Assign a temporary unique ID
         .filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
@@ -4653,6 +4653,20 @@ function runMigration() {
 
 // --- Data Portability Functions ---
 
+function runPostImportChecks() {
+    // Check for orphaned history records by comparing history with active and archived tasks.
+    const taskIds = new Set(tasks.map(t => t.id).concat((appState.archivedTasks || []).map(t => t.id)));
+    const orphanedHistory = appState.historicalTasks.filter(h => h.originalTaskId && !taskIds.has(h.originalTaskId));
+
+    if (orphanedHistory.length > 0) {
+        alert(`Import complete, but found ${orphanedHistory.length} orphaned history record(s). The data migration tool will now open to help you clean this up.`);
+        openDataMigrationModal();
+    } else {
+        alert('Transfer complete! 🎉 The application will now reload.');
+        location.reload();
+    }
+}
+
 function exportData(exportType) {
     if (uiSettings.userInteractions) {
         uiSettings.userInteractions.exportedData = true;
@@ -4714,126 +4728,244 @@ function exportData(exportType) {
 
 function importData() {
     const fileInput = document.getElementById('import-file-input');
-    fileInput.click();
+    if (fileInput) {
+        fileInput.click();
+    }
 }
 
-function handleFileImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function openImportModal(file) {
+    // Ensure no other import modal is open
+    const existingModal = document.getElementById('import-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const importedData = JSON.parse(e.target.result);
+    document.body.insertAdjacentHTML('beforeend', importModalTemplate());
+    const importModal = document.getElementById('import-modal');
+    const replaceBtn = document.getElementById('import-replace-btn');
+    const mergeBtn = document.getElementById('import-merge-btn');
+    const closeBtn = document.getElementById('import-modal-close-btn');
 
-            if (!importedData.exportFormatVersion || !importedData.dataType || !importedData.data) {
-                alert('Error: Invalid or corrupted backup file.');
-                return;
-            }
-
-            const importMode = prompt("Choose import mode: 'overwrite' to replace all existing data, or 'merge' to add new tasks and categories.", "merge");
-
-            if (!importMode) {
-                event.target.value = '';
-                return; // User cancelled the prompt
-            }
-
-            if (importMode.toLowerCase() === 'overwrite') {
-                if (!confirm('This will overwrite existing data. Are you sure you want to continue?')) {
-                    event.target.value = '';
+    const handleImport = (importMode) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (!importedData.exportFormatVersion || !importedData.dataType || !importedData.data) {
+                    alert('Error: Invalid or corrupted backup file.');
                     return;
                 }
-                 const importContent = importedData.data;
 
-                if (importedData.dataType === 'all') {
-                    if(importContent.tasks) localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
-                    if(importContent.categories) localStorage.setItem('categories', JSON.stringify(importContent.categories));
-                    if(importContent.appState) localStorage.setItem(DATA_KEY, JSON.stringify(importContent.appState));
-                    if(importContent.settings) {
-                        Object.keys(importContent.settings).forEach(key => {
-                            localStorage.setItem(key, JSON.stringify(importContent.settings[key]));
-                        });
+                const finalizeImport = () => {
+                    saveData();
+                    loadData();
+                    runPostImportChecks();
+                };
+
+                if (importMode === 'replace') {
+                    if (!confirm('This will overwrite all existing data. Are you sure you want to continue?')) {
+                        return;
                     }
-                } else if (importedData.dataType === 'tasks' && importContent.tasks) {
-                    let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
-                    if (importContent.categories && Array.isArray(importContent.categories)) {
-                        importContent.categories.forEach(importedCat => {
-                            const existingIndex = existingCategories.findIndex(c => c.id === importedCat.id);
-                            if (existingIndex > -1) {
-                                existingCategories[existingIndex] = importedCat;
-                            } else {
-                                existingCategories.push(importedCat);
+
+                    const data = importedData.data;
+                    tasks = data.tasks || [];
+                    categories = data.categories || [];
+                    if (data.appState) {
+                        Object.assign(appState, data.appState);
+                    }
+                    if (data.settings) {
+                        Object.assign(statusColors, data.settings.statusColors);
+                        Object.assign(statusNames, data.settings.statusNames);
+                        sortBy = data.settings.sortBy;
+                        sortDirection = data.settings.sortDirection;
+                        Object.assign(notificationSettings, data.settings.notificationSettings);
+                        Object.assign(theming, data.settings.theming);
+                        Object.assign(calendarSettings, data.settings.calendarSettings);
+                        categoryFilter = data.settings.categoryFilter;
+                        Object.assign(plannerSettings, data.settings.plannerSettings);
+                        Object.assign(taskDisplaySettings, data.settings.taskDisplaySettings);
+                        Object.assign(appSettings, data.settings.appSettings);
+                        Object.assign(sensitivitySettings, data.settings.sensitivitySettings);
+                        Object.assign(uiSettings, data.settings.uiSettings);
+                        Object.assign(journalSettings, data.settings.journalSettings);
+                    }
+
+                    finalizeImport();
+
+                } else if (importMode === 'merge') {
+                    const conflicts = [];
+                    const importContent = importedData.data;
+
+                    // Detect conflicts in tasks
+                    if (importContent.tasks) {
+                        const existingTaskIds = new Set(tasks.map(t => t.id));
+                        importContent.tasks.forEach(importedTask => {
+                            if (existingTaskIds.has(importedTask.id)) {
+                                const existingTask = tasks.find(t => t.id === importedTask.id);
+                                if (JSON.stringify(existingTask) !== JSON.stringify(importedTask)) {
+                                    conflicts.push({ type: 'task', id: importedTask.id, existing: existingTask, imported: importedTask });
+                                }
                             }
                         });
                     }
-                    localStorage.setItem('categories', JSON.stringify(existingCategories));
-                    localStorage.setItem('tasks', JSON.stringify(importContent.tasks));
-                } else if (importedData.dataType === 'categories' && importContent.categories) {
-                     localStorage.setItem('categories', JSON.stringify(importContent.categories));
-                } else if (importedData.dataType === 'history' && importContent.appState) {
-                    const existingPlannerData = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
-                    existingPlannerData.historicalTasks = importContent.appState.historicalTasks;
-                    localStorage.setItem(DATA_KEY, JSON.stringify(existingPlannerData));
-                } else if (importedData.dataType === 'settings' && importContent.settings) {
-                     Object.keys(importContent.settings).forEach(key => {
-                        localStorage.setItem(key, JSON.stringify(importContent.settings[key]));
-                    });
-                } else {
-                    alert('Error: The data type in the file is not recognized or data is missing.');
-                    return;
-                }
-            } else if (importMode.toLowerCase() === 'merge') {
-                const importContent = importedData.data;
 
-                const merge = (existing, incoming, idKey) => {
-                    const existingIds = new Set(existing.map(item => item[idKey]));
-                    incoming.forEach(item => {
-                        if (!existingIds.has(item[idKey])) {
-                            existing.push(item);
-                        }
-                    });
-                    return existing;
-                };
-
-                if (importedData.dataType === 'all') {
-                    if (importContent.tasks) {
-                        let existingTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-                        localStorage.setItem('tasks', JSON.stringify(merge(existingTasks, importContent.tasks, 'id')));
-                    }
+                    // Detect conflicts in categories
                     if (importContent.categories) {
-                        let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
-                        localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
+                        const existingCategoryIds = new Set(categories.map(c => c.id));
+                        importContent.categories.forEach(importedCategory => {
+                            if (existingCategoryIds.has(importedCategory.id)) {
+                                const existingCategory = categories.find(c => c.id === importedCategory.id);
+                                if (JSON.stringify(existingCategory) !== JSON.stringify(importedCategory)) {
+                                    conflicts.push({ type: 'category', id: importedCategory.id, existing: existingCategory, imported: importedCategory });
+                                }
+                            }
+                        });
                     }
-                } else if (importedData.dataType === 'tasks' && importContent.tasks) {
-                     if (importContent.categories) {
-                        let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
-                        localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
+
+                    if (conflicts.length > 0) {
+                        openConflictResolutionModal(conflicts, (resolvedData) => {
+                            // Apply resolutions
+                            resolvedData.tasks.forEach(resolvedTask => {
+                                const index = tasks.findIndex(t => t.id === resolvedTask.id);
+                                if (index > -1) tasks[index] = resolvedTask;
+                            });
+                            resolvedData.categories.forEach(resolvedCategory => {
+                                const index = categories.findIndex(c => c.id === resolvedCategory.id);
+                                if (index > -1) categories[index] = resolvedCategory;
+                            });
+
+                            // Add new items
+                            const existingTaskIds = new Set(tasks.map(t => t.id));
+                            importContent.tasks.forEach(importedTask => {
+                                if (!existingTaskIds.has(importedTask.id)) {
+                                    tasks.push(importedTask);
+                                }
+                            });
+                            const existingCategoryIds = new Set(categories.map(c => c.id));
+                            importContent.categories.forEach(importedCategory => {
+                                if (!existingCategoryIds.has(importedCategory.id)) {
+                                    categories.push(importedCategory);
+                                }
+                            });
+
+                            finalizeImport();
+                        });
+                    } else {
+                        // No conflicts, perform a simple merge
+                        const existingTaskIds = new Set(tasks.map(t => t.id));
+                        (importContent.tasks || []).forEach(importedTask => {
+                            if (!existingTaskIds.has(importedTask.id)) {
+                                tasks.push(importedTask);
+                            }
+                        });
+                        const existingCategoryIds = new Set(categories.map(c => c.id));
+                        (importContent.categories || []).forEach(importedCategory => {
+                            if (!existingCategoryIds.has(importedCategory.id)) {
+                                categories.push(importedCategory);
+                            }
+                        });
+                        // Also merge history if it exists
+                        if (importContent.appState && importContent.appState.historicalTasks) {
+                            const existingHistoryIds = new Set(appState.historicalTasks.map(h => h.originalTaskId + h.completionDate));
+                            importContent.appState.historicalTasks.forEach(h => {
+                                if (!existingHistoryIds.has(h.originalTaskId + h.completionDate)) {
+                                    appState.historicalTasks.push(h);
+                                }
+                            });
+                        }
+                        finalizeImport();
                     }
-                    let existingTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-                    localStorage.setItem('tasks', JSON.stringify(merge(existingTasks, importContent.tasks, 'id')));
-                } else if (importedData.dataType === 'categories' && importContent.categories) {
-                    let existingCategories = JSON.parse(localStorage.getItem('categories') || '[]');
-                    localStorage.setItem('categories', JSON.stringify(merge(existingCategories, importContent.categories, 'id')));
                 }
 
-                alert('Merge successful! The application will now reload.');
-                location.reload();
+                deactivateModal(importModal);
+                importModal.remove();
 
-            } else {
-                alert("Invalid import mode. Please choose 'overwrite' or 'merge'.");
-                event.target.value = '';
-                return;
+            } catch (error) {
+                console.error('Error processing import file:', error);
+                alert('Error: Could not parse the file. Please ensure it is a valid JSON backup file.');
             }
-
-        } catch (error) {
-            console.error('Error importing data:', error);
-            alert('Error: Could not parse the file. Please ensure it is a valid JSON backup file.');
-        } finally {
-            // Reset the file input so the user can import the same file again if needed
-            event.target.value = '';
-        }
+        };
+        reader.readAsText(file);
     };
-    reader.readAsText(file);
+
+    replaceBtn.addEventListener('click', () => handleImport('replace'));
+    mergeBtn.addEventListener('click', () => handleImport('merge'));
+    closeBtn.addEventListener('click', () => {
+        deactivateModal(importModal);
+        importModal.remove();
+    });
+
+    activateModal(importModal);
+}
+
+function openConflictResolutionModal(conflicts, onComplete) {
+    const existingModal = document.getElementById('conflict-resolution-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', conflictResolutionModalTemplate(conflicts));
+    const modal = document.getElementById('conflict-resolution-modal');
+    const conflictList = document.getElementById('conflict-list');
+    const finishBtn = document.getElementById('finish-merge-btn');
+
+    let resolutions = {};
+
+    conflictList.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action="resolve-conflict"]');
+        if (!target) return;
+
+        const index = target.dataset.index;
+        const choice = target.dataset.choice;
+        resolutions[index] = choice;
+
+        // Visually update the UI
+        const conflictItem = target.closest('.conflict-item');
+        conflictItem.querySelector('button[data-choice="existing"]').classList.remove('btn-confirm');
+        conflictItem.querySelector('button[data-choice="imported"]').classList.remove('btn-confirm');
+        target.classList.add('btn-confirm');
+        conflictItem.style.borderColor = '#22c55e'; // Green border to show it's resolved
+    });
+
+    finishBtn.addEventListener('click', () => {
+        if (Object.keys(resolutions).length !== conflicts.length) {
+            alert('Please resolve all conflicts before finishing the merge.');
+            return;
+        }
+
+        const finalData = {
+            tasks: [],
+            categories: [],
+            settings: {}
+        };
+
+        conflicts.forEach((conflict, index) => {
+            const choice = resolutions[index];
+            const chosenData = choice === 'existing' ? conflict.existing : conflict.imported;
+            finalData[conflict.type + 's'].push(chosenData);
+        });
+
+        deactivateModal(modal);
+        modal.remove();
+        onComplete(finalData);
+    });
+
+    activateModal(modal);
+}
+
+
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        // Reset the file input so the same file can be selected again
+        event.target.value = '';
+        return;
+    }
+
+    openImportModal(file);
+
+    // Reset the file input so the same file can be selected again
+    event.target.value = '';
 }
 
 // --- Notification Handlers ---

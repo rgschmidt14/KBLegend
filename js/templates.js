@@ -898,5 +898,65 @@ export {
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
-    calendarCategoryFilterTemplate, welcomeModalTemplate
+    calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
+    conflictResolutionModalTemplate
 };
+
+function conflictResolutionModalTemplate(conflicts) {
+    const conflictItemsHtml = conflicts.map((conflict, index) => `
+        <div class="conflict-item p-4 border rounded-lg mb-4">
+            <h4 class="font-bold text-lg mb-2">Conflict ${index + 1}: ${conflict.type} - "${conflict.id}"</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-2 border rounded">
+                    <h5 class="font-semibold mb-2">Existing Data</h5>
+                    <pre class="text-xs whitespace-pre-wrap">${JSON.stringify(conflict.existing, null, 2)}</pre>
+                    <button data-action="resolve-conflict" data-index="${index}" data-choice="existing" class="btn btn-secondary btn-sm mt-2 w-full">Keep Existing</button>
+                </div>
+                <div class="p-2 border rounded">
+                    <h5 class="font-semibold mb-2">Imported Data</h5>
+                    <pre class="text-xs whitespace-pre-wrap">${JSON.stringify(conflict.imported, null, 2)}</pre>
+                    <button data-action="resolve-conflict" data-index="${index}" data-choice="imported" class="btn btn-primary btn-sm mt-2 w-full">Use Imported</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+        <div id="conflict-resolution-modal" class="modal">
+            <div class="modal-content bg-modal">
+                <h3 class="text-xl font-semibold mb-2">Resolve Import Conflicts</h3>
+                <p class="text-sm mb-4">The following items in the import file have the same ID as existing items but contain different data. Please choose which version to keep for each conflict.</p>
+                <div id="conflict-list" class="max-h-96 overflow-y-auto mb-4">${conflictItemsHtml}</div>
+                <div class="flex justify-end">
+                    <button id="finish-merge-btn" class="btn btn-confirm btn-md">Finish Merge</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function importModalTemplate() {
+    return `
+        <div id="import-modal" class="modal">
+            <div class="modal-content bg-modal">
+                <button class="close-button" id="import-modal-close-btn">&times;</button>
+                <h3 class="text-xl font-semibold mb-4">Import Data</h3>
+                <p class="mb-4 text-sm">Please select how you would like to import the data from your backup file.</p>
+                <div class="space-y-4">
+                    <div>
+                        <button id="import-replace-btn" class="btn btn-primary btn-lg w-full">
+                            <h4 class="font-bold">Replace</h4>
+                            <p class="text-xs font-normal">Delete all current data and replace it with the data from the file.</p>
+                        </button>
+                    </div>
+                    <div>
+                        <button id="import-merge-btn" class="btn btn-secondary btn-lg w-full">
+                            <h4 class="font-bold">Merge</h4>
+                            <p class="text-xs font-normal">Add new data from the file. If any tasks, categories, or settings have the same ID, you will be asked how to resolve the conflict.</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
