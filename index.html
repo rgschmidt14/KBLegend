@@ -632,6 +632,25 @@
                                  </div>
                              </div>
                          </fieldset>
+                        <fieldset>
+                            <legend>Early is on Time Rule</legend>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <label for="early-on-time-toggle" class="form-label mb-0">Enable "15 mins early is on time" rule:</label>
+                                    <input type="checkbox" id="early-on-time-toggle" data-action="toggleEarlyOnTime" class="toggle-checkbox">
+                                </div>
+                                <div id="early-on-time-options" class="hidden space-y-3 pl-4 border-l-2 border-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <label for="early-on-time-calendar-toggle" class="form-label mb-0">Displace events on calendar by 15 mins:</label>
+                                        <input type="checkbox" id="early-on-time-calendar-toggle" data-action="toggleEarlyOnTimeCalendar" class="toggle-checkbox">
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <label for="early-on-time-appointments-toggle" class="form-label mb-0">Apply rule only to appointments:</label>
+                                        <input type="checkbox" id="early-on-time-appointments-toggle" data-action="toggleEarlyOnTimeAppointments" class="toggle-checkbox">
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
                     </div>
                 </div>
 

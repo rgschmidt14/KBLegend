@@ -204,7 +204,7 @@ function adjustDateForVacation(date, vacations, taskCategoryId, allCategories) {
 function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_testing) {
     const now = now_for_testing || new Date();
     const nowMs = now.getTime();
-    const { sensitivity, vacations, categories, calendarCategoryFilters } = settings;
+    const { sensitivity, vacations, categories, calendarCategoryFilters, earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false } } = settings;
 
     // --- Step 0: Filter tasks based on calendar 'schedule' settings ---
     const filteredTasks = tasks.filter(task => {
@@ -316,7 +316,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         }
     });
 
-    // --- Step 2.3: Calculate Final "Coloring GPA" ---
+    // --- Step 2.3: Calculate Final "Coloring GPA" & Apply Calendar Displacement ---
     allOccurrences.forEach(occurrence => {
         if (!occurrence.scheduledStartTime) {
             occurrence.finalGpa = -1;
@@ -324,14 +324,33 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
             return;
         }
 
+        // Determine if the "Early is on Time" rule applies to this specific occurrence
+        const ruleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || occurrence.isAppointment);
+
+        // --- GPA Calculation ---
+        let gpaCalculationStartTimeMs = occurrence.scheduledStartTime.getTime();
+        if (ruleApplies) {
+            gpaCalculationStartTimeMs -= 15 * MS_PER_MINUTE; // Subtract 15 minutes for GPA calculation
+        }
+
         const prepTimeMs = getDurationMs(occurrence.prepTimeAmount, occurrence.prepTimeUnit);
         const estimatedDurationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
         const urgencySourceDuration = prepTimeMs > 0 ? prepTimeMs : estimatedDurationMs;
         const warningWindow = urgencySourceDuration * 4;
-        const timeUntilDue = occurrence.scheduledStartTime.getTime() - nowMs;
+        const timeUntilDue = gpaCalculationStartTimeMs - nowMs;
 
         let finalTimeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
         finalTimeDemerit = Math.max(0, Math.min(finalTimeDemerit, 3.0));
+
+        // --- Calendar Displacement (Non-Mutating) ---
+        // First, set the display times to the actual scheduled times.
+        occurrence.displayStartTime = occurrence.scheduledStartTime;
+        occurrence.displayEndTime = occurrence.scheduledEndTime;
+        // Then, ONLY if the rule applies, shift the *display* times.
+        if (ruleApplies && earlyOnTimeSettings.displaceCalendar) {
+            occurrence.displayStartTime = new Date(occurrence.scheduledStartTime.getTime() - 15 * MS_PER_MINUTE);
+            occurrence.displayEndTime = new Date(occurrence.scheduledEndTime.getTime() - 15 * MS_PER_MINUTE);
+        }
 
         let habitDemerit = (occurrence.repetitionType !== 'none' && occurrence.trackMisses && occurrence.maxMisses > 0) ? (occurrence.misses / occurrence.maxMisses) * 2.0 : 0;
         habitDemerit = Math.max(0, Math.min(habitDemerit, 2.0));

@@ -78,6 +78,11 @@ let uiSettings = {
     },
     lastIconStyle: 'fa-solid',
     welcomeScreenShown: false,
+    earlyOnTimeSettings: {
+        enabled: false,
+        displaceCalendar: false,
+        onlyAppointments: false,
+    },
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1746,6 +1751,27 @@ function renderOtherFeaturesSettings() {
     // Any other settings for this section would be rendered here
 }
 
+function renderEarlyOnTimeSettings() {
+    const settings = uiSettings.earlyOnTimeSettings || { enabled: false, displaceCalendar: false, onlyAppointments: false };
+    const masterToggle = document.getElementById('early-on-time-toggle');
+    const optionsDiv = document.getElementById('early-on-time-options');
+    const calendarToggle = document.getElementById('early-on-time-calendar-toggle');
+    const appointmentsToggle = document.getElementById('early-on-time-appointments-toggle');
+
+    if (masterToggle) {
+        masterToggle.checked = settings.enabled;
+    }
+    if (optionsDiv) {
+        optionsDiv.classList.toggle('hidden', !settings.enabled);
+    }
+    if (calendarToggle) {
+        calendarToggle.checked = settings.displaceCalendar;
+    }
+    if (appointmentsToggle) {
+        appointmentsToggle.checked = settings.onlyAppointments;
+    }
+}
+
 function renderMonthViewSettings() {
     const container = document.getElementById('month-view-display-options');
     if (!container) return;
@@ -1775,6 +1801,7 @@ function openAdvancedOptionsModal() {
     renderKpiAutomationSettings();
     renderHintManager();
     renderOtherFeaturesSettings(); // Render the new settings
+    renderEarlyOnTimeSettings(); // Render the "Early is on Time" settings
     renderMonthViewSettings(); // Render the new month view settings
 
     // Render the toggle for showing/hiding calendar filters
@@ -5384,6 +5411,22 @@ function setupEventListeners() {
                     uiSettings.closeModalAfterAction = event.target.checked;
                     saveData();
                     break;
+                case 'toggleEarlyOnTime':
+                    if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+                    uiSettings.earlyOnTimeSettings.enabled = event.target.checked;
+                    renderEarlyOnTimeSettings();
+                    saveData();
+                    break;
+                case 'toggleEarlyOnTimeCalendar':
+                    if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+                    uiSettings.earlyOnTimeSettings.displaceCalendar = event.target.checked;
+                    saveData();
+                    break;
+                case 'toggleEarlyOnTimeAppointments':
+                    if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+                    uiSettings.earlyOnTimeSettings.onlyAppointments = event.target.checked;
+                    saveData();
+                    break;
             }
         });
 
@@ -6001,7 +6044,8 @@ function updateAllTaskStatuses(forceRender = false) {
         sensitivity: sensitivitySettings,
         vacations: appState.vacations,
         categories: categories,
-        calendarCategoryFilters: uiSettings.calendarCategoryFilters
+        calendarCategoryFilters: uiSettings.calendarCategoryFilters,
+        earlyOnTimeSettings: uiSettings.earlyOnTimeSettings,
     };
 
     // --- Task Status Updates ---
@@ -6104,8 +6148,8 @@ function updateAllTaskStatuses(forceRender = false) {
     allOccurrences.forEach(occurrence => {
         if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return;
 
-        const start = new Date(occurrence.scheduledStartTime);
-        const end = new Date(occurrence.scheduledEndTime);
+        const start = new Date(occurrence.displayStartTime || occurrence.scheduledStartTime);
+        const end = new Date(occurrence.displayEndTime || occurrence.scheduledEndTime);
 
         const task = tasks.find(t => t.id === occurrence.originalId);
         if (!task) return; // Don't render occurrences for tasks that no longer exist
