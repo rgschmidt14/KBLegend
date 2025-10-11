@@ -2739,9 +2739,23 @@ function renderKpiList() {
 function renderDashboardContent() {
     if (weeklyGoalsEl) {
         const currentWeek = appState.weeks[CURRENT_WEEK_INDEX];
-        if (currentWeek) {
-            weeklyGoalsEl.innerHTML = currentWeek.weeklyGoals || 'Set new goals for the week...';
+        const weeklyGoal = currentWeek ? (currentWeek.weeklyGoals || 'Set new goals for the week...') : 'Set new goals for the week...';
+
+        const contentLength = weeklyGoal.length;
+        const truncateLength = 500;
+        let goalHtml;
+        let toggleButtonHtml = '';
+
+        if (contentLength > truncateLength) {
+            const truncatedContent = weeklyGoal.substring(0, truncateLength).replace(/\n/g, '<br>');
+            goalHtml = `<div class="prose prose-sm mt-2 max-w-none">${truncatedContent}...</div>`;
+            toggleButtonHtml = `<button data-action="toggleDashboardGoalContent" class="btn btn-clear text-xs mt-1">Show More</button>`;
+        } else {
+            goalHtml = `<div class="prose prose-sm mt-2 max-w-none">${weeklyGoal.replace(/\n/g, '<br>')}</div>`;
         }
+
+        weeklyGoalsEl.innerHTML = goalHtml + toggleButtonHtml;
+        weeklyGoalsEl.dataset.fullGoal = encodeURIComponent(weeklyGoal);
     }
     renderKpiList();
 }
@@ -2830,7 +2844,6 @@ function renderJournal() {
         });
 
         // Filter and sort the weeks that should be displayed.
-        // A week is displayed if it has a goal or has journal entries.
         const weeksToDisplay = appState.weeks.filter(week => {
             const hasGoal = week.weeklyGoals && week.weeklyGoals !== 'Set new goals for the week...';
             const hasEntries = entriesByWeek[week.startDate] && entriesByWeek[week.startDate].length > 0;
@@ -2847,24 +2860,34 @@ function renderJournal() {
         }
 
         weeksToDisplay.forEach(weekData => {
-            const weekStartISO = weekData.startDate;
-            const weeklyGoal = weekData.weeklyGoals || 'No goal set for this week.';
-
-            const weekStartDate = new Date(weekStartISO);
+            const weekStartDate = new Date(weekData.startDate);
             const weekEndDate = new Date(weekStartDate);
             weekEndDate.setDate(weekEndDate.getDate() + 6);
 
-            // Render the header for the week. This is always first.
+            // Render a simple header for the week
             const headerHtml = `
                 <div class="journal-week-header my-4 p-3 rounded-lg">
                     <h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
-                    <div class="prose prose-sm mt-2 max-w-none">${weeklyGoal.replace(/\n/g, '<br>')}</div>
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', headerHtml);
 
-            // Get and sort the journal entries for this specific week.
-            const entries = entriesByWeek[weekStartISO] || [];
+            // If the week has a goal, render it as a special journal entry.
+            const hasGoal = weekData.weeklyGoals && weekData.weeklyGoals !== 'Set new goals for the week...';
+            if (hasGoal) {
+                 const goalEntry = {
+                    id: `weekly-goal-${weekData.startDate}`,
+                    title: appSettings.weeklyGoalLabel || "Mission/Goals for this Week",
+                    content: weekData.weeklyGoals,
+                    createdAt: weekData.startDate,
+                    icon: journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye',
+                    isWeeklyGoal: true
+                };
+                list.insertAdjacentHTML('beforeend', renderJournalEntry(goalEntry));
+            }
+
+            // Get and sort the regular journal entries for this specific week.
+            const entries = entriesByWeek[weekData.startDate] || [];
             entries.sort((a, b) => {
                 const dateA = new Date(a.createdAt);
                 const dateB = new Date(b.createdAt);
@@ -3376,6 +3399,7 @@ function handleFormSubmit(event) {
                     bypassVacation: false
                 };
                 categories.push(newCategory);
+                categories.sort((a, b) => a.name.localeCompare(b.name));
                 taskData.categoryId = newCategory.id;
             } else if (newCategoryName) {
                 taskData.categoryId = categories.find(c => c.name.toLowerCase() === newCategoryName.toLowerCase()).id;
@@ -3951,6 +3975,7 @@ function addCategoryFromInline() {
             applyIconToNewTasks: false
         };
         categories.push(newCategory);
+        categories.sort((a, b) => a.name.localeCompare(b.name));
         saveData();
         renderCategoryManager();
         renderCategoryFilters();
@@ -5629,6 +5654,29 @@ function setupEventListeners() {
     }
 
     // --- Main View & Page Listeners ---
+    const dashboardViewEl = document.getElementById('dashboard-view');
+    if (dashboardViewEl) {
+        dashboardViewEl.addEventListener('click', (event) => {
+            const target = event.target.closest('[data-action="toggleDashboardGoalContent"]');
+            if (target) {
+                const goalContainer = target.parentElement; // The weeklyGoalsEl
+                const proseDiv = goalContainer.querySelector('.prose');
+                if (proseDiv) {
+                    const fullContent = decodeURIComponent(goalContainer.dataset.fullGoal);
+                    const isTruncated = proseDiv.innerHTML.endsWith('...');
+
+                    if (isTruncated) {
+                        proseDiv.innerHTML = fullContent.replace(/\n/g, '<br>');
+                        target.textContent = 'Show Less';
+                    } else {
+                        proseDiv.innerHTML = fullContent.substring(0, 500).replace(/\n/g, '<br>') + '...';
+                        target.textContent = 'Show More';
+                    }
+                }
+            }
+        });
+    }
+
     const mainViewNav = document.getElementById('main-view-nav');
     if (mainViewNav) {
         mainViewNav.addEventListener('click', (event) => {
