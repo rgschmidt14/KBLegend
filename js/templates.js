@@ -292,7 +292,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
                     <div>${missesHtml}</div>
                     <div class="flex items-center space-x-2">
                         <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">Stats</button>
-                        ${commonButtonsContent}
+                        ${commonButtonsTemplate(task, { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' })}
                     </div>
                 </div>
             </div>
@@ -588,15 +588,16 @@ function actionAreaTemplate(task) {
     }
 }
 
-function commonButtonsTemplate(task) {
+function commonButtonsTemplate(task, options = {}) {
+    const { editAction = 'edit', deleteAction = 'triggerDelete' } = options;
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
-        return `<button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
+        return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
     }
     return `<div class="flex space-x-1">
-            <button data-action="edit" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
-            <button data-action="triggerDelete" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
+            <button data-action="${editAction}" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
+            <button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
         </div>`;
 }
 
@@ -654,16 +655,40 @@ function categoryFilterTemplate(categories, categoryFilter) {
     return allLabel + uncategorizedLabel + categoryLabels;
 }
 
-function iconPickerTemplate(iconCategories) {
-    return Object.entries(iconCategories).map(([category, icons]) => `
+function iconPickerTemplate(iconCategories, selectedStyle = 'fa-solid') {
+    const styles = [
+        { id: 'fa-solid', name: 'Solid' },
+        { id: 'fa-regular', name: 'Regular' },
+        { id: 'fa-brands', name: 'Brands' }
+    ];
+
+    const styleSelectorHtml = `
+        <div id="icon-style-selector" class="flex justify-center space-x-4 mb-4 p-2 border-b">
+            ${styles.map(style => `
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="icon-style" value="${style.id}" class="form-radio" data-action="changeIconStyle" ${selectedStyle === style.id ? 'checked' : ''}>
+                    <span>${style.name}</span>
+                </label>
+            `).join('')}
+        </div>
+    `;
+
+    const categoriesHtml = Object.entries(iconCategories).map(([category, icons]) => `
         <div class="icon-picker-category">
             <div class="icon-picker-category-header p-2 font-bold rounded cursor-pointer flex justify-between items-center">
                 ${category} <span class="transform transition-transform duration-200">▼</span>
             </div>
             <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                ${icons.map(iconClass => `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}"><i class="${iconClass} fa-2x"></i></div>`).join('')}
+                ${icons.map(iconClass => {
+                    const isBrand = iconClass.startsWith('fa-brands');
+                    const finalIconClass = isBrand ? iconClass : `${selectedStyle} ${iconClass}`;
+                    return `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${finalIconClass}"><i class="${finalIconClass} fa-2x"></i></div>`;
+                }).join('')}
             </div>
-        </div>`).join('');
+        </div>
+    `).join('');
+
+    return styleSelectorHtml + `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
 }
 
 function editProgressTemplate(taskId, currentValue, max) {
@@ -847,6 +872,24 @@ function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterT
     `;
 }
 
+function welcomeModalTemplate() {
+    return `
+        <div id="welcome-modal" class="modal">
+            <div class="modal-content bg-modal">
+                <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
+                <p class="mb-4">To personalize your experience, please pick your favorite color. We'll use it to generate a custom theme for you.</p>
+                <div class="flex items-center justify-center space-x-4 my-6">
+                    <input type="color" id="welcome-color-picker" value="#3b82f6" class="h-16 w-16 border-none cursor-pointer rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button id="welcome-no-thanks" class="btn btn-clear">No Thanks</button>
+                    <button id="welcome-submit" class="btn btn-confirm">Set Theme</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
@@ -855,5 +898,5 @@ export {
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
-    calendarCategoryFilterTemplate
+    calendarCategoryFilterTemplate, welcomeModalTemplate
 };
