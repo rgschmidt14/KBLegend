@@ -76,7 +76,8 @@ let uiSettings = {
         showName: true,
         groupTasks: true,
     },
-        welcomeScreenShown: false,
+    lastIconStyle: 'fa-solid',
+    welcomeScreenShown: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -86,17 +87,19 @@ const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
 const iconCategories = {
-    'General': ['fa-solid fa-star', 'fa-solid fa-heart', 'fa-solid fa-check', 'fa-solid fa-xmark', 'fa-solid fa-flag', 'fa-solid fa-bell', 'fa-solid fa-bolt', 'fa-solid fa-gift', 'fa-solid fa-key', 'fa-solid fa-lightbulb', 'fa-solid fa-moon', 'fa-solid fa-sun', 'fa-solid fa-fire', 'fa-solid fa-trophy', 'fa-solid fa-shield-halved', 'fa-solid fa-bookmark'],
-    'Productivity': ['fa-solid fa-briefcase', 'fa-solid fa-bullseye', 'fa-solid fa-calendar-days', 'fa-solid fa-clock', 'fa-solid fa-file-signature', 'fa-solid fa-laptop-file', 'fa-solid fa-list-check', 'fa-solid fa-pencil', 'fa-solid fa-book-open', 'fa-solid fa-graduation-cap', 'fa-solid fa-chart-pie', 'fa-solid fa-magnifying-glass-chart', 'fa-solid fa-paperclip'],
-    'Communication': ['fa-solid fa-at', 'fa-solid fa-envelope', 'fa-solid fa-phone', 'fa-solid fa-comments', 'fa-solid fa-users', 'fa-solid fa-bullhorn', 'fa-solid fa-address-book'],
-    'Finance': ['fa-solid fa-dollar-sign', 'fa-solid fa-euro-sign', 'fa-solid fa-pound-sign', 'fa-solid fa-yen-sign', 'fa-solid fa-credit-card', 'fa-solid fa-wallet', 'fa-solid fa-piggy-bank', 'fa-solid fa-money-bill-wave', 'fa-solid fa-receipt', 'fa-solid fa-chart-line'],
-    'Health & Fitness': ['fa-solid fa-heart-pulse', 'fa-solid fa-dumbbell', 'fa-solid fa-person-running', 'fa-solid fa-apple-whole', 'fa-solid fa-pills', 'fa-solid fa-stethoscope', 'fa-solid fa-brain', 'fa-solid fa-weight-scale', 'fa-solid fa-spa'],
-    'Travel': ['fa-solid fa-plane', 'fa-solid fa-car', 'fa-solid fa-train', 'fa-solid fa-bus', 'fa-solid fa-ship', 'fa-solid fa-earth-americas', 'fa-solid fa-map-location-dot', 'fa-solid fa-suitcase', 'fa-solid fa-passport', 'fa-solid fa-bed'],
-    'Food & Drink': ['fa-solid fa-utensils', 'fa-solid fa-mug-hot', 'fa-solid fa-martini-glass', 'fa-solid fa-ice-cream', 'fa-solid fa-pizza-slice', 'fa-solid fa-burger', 'fa-solid fa-seedling', 'fa-solid fa-carrot'],
-    'Nature & Weather': ['fa-solid fa-tree', 'fa-solid fa-leaf', 'fa-solid fa-mountain-sun', 'fa-solid fa-water', 'fa-solid fa-cloud-sun', 'fa-solid fa-cloud-rain', 'fa-solid fa-snowflake', 'fa-solid fa-wind'],
-    'Animals': ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-fish-fins', 'fa-solid fa-crow', 'fa-solid fa-spider', 'fa-solid fa-otter', 'fa-solid fa-dragon'],
-    'Gaming & Hobbies': ['fa-solid fa-gamepad', 'fa-solid fa-dice-d20', 'fa-solid fa-ghost', 'fa-solid fa-puzzle-piece', 'fa-solid fa-music', 'fa-solid fa-guitar', 'fa-solid fa-paintbrush'],
-    'Symbols & Shapes': ['fa-solid fa-shapes', 'fa-solid fa-diamond', 'fa-solid fa-circle', 'fa-solid fa-square', 'fa-solid fa-bahai', 'fa-solid fa-atom', 'fa-solid fa-certificate', 'fa-solid fa-anchor'],
+    'General': ['fa-star', 'fa-heart', 'fa-check', 'fa-xmark', 'fa-flag', 'fa-bell', 'fa-bolt', 'fa-gift', 'fa-key', 'fa-lightbulb', 'fa-moon', 'fa-sun', 'fa-fire', 'fa-trophy', 'fa-shield-halved', 'fa-bookmark', 'fa-eye', 'fa-eye-slash', 'fa-thumbs-up', 'fa-thumbs-down', 'fa-circle-info', 'fa-circle-question', 'fa-circle-exclamation', 'fa-award', 'fa-magnet', 'fa-bomb', 'fa-recycle'],
+    'Productivity & Work': ['fa-briefcase', 'fa-bullseye', 'fa-calendar-days', 'fa-clock', 'fa-file-signature', 'fa-laptop-file', 'fa-list-check', 'fa-pencil', 'fa-book-open', 'fa-graduation-cap', 'fa-chart-pie', 'fa-magnifying-glass-chart', 'fa-paperclip', 'fa-building', 'fa-sitemap', 'fa-network-wired', 'fa-calculator', 'fa-gears', 'fa-timeline', 'fa-clipboard-list'],
+    'Communication': ['fa-at', 'fa-envelope', 'fa-phone', 'fa-comments', 'fa-users', 'fa-bullhorn', 'fa-address-book', 'fa-mobile-screen-button', 'fa-fax', 'fa-wifi', 'fa-rss', 'fa-satellite-dish'],
+    'Finance & Shopping': ['fa-dollar-sign', 'fa-euro-sign', 'fa-pound-sign', 'fa-yen-sign', 'fa-credit-card', 'fa-wallet', 'fa-piggy-bank', 'fa-money-bill-wave', 'fa-receipt', 'fa-chart-line', 'fa-basket-shopping', 'fa-cart-shopping', 'fa-store', 'fa-tag', 'fa-barcode'],
+    'Health & Fitness': ['fa-heart-pulse', 'fa-dumbbell', 'fa-person-running', 'fa-apple-whole', 'fa-pills', 'fa-stethoscope', 'fa-brain', 'fa-weight-scale', 'fa-spa', 'fa-dna', 'fa-first-aid', 'fa-notes-medical', 'fa-bicycle', 'fa-person-swimming', 'fa-fire-flame-curved'],
+    'Travel & Transport': ['fa-plane', 'fa-car', 'fa-train', 'fa-bus', 'fa-ship', 'fa-earth-americas', 'fa-map-location-dot', 'fa-suitcase', 'fa-passport', 'fa-bed', 'fa-motorcycle', 'fa-rocket', 'fa-anchor', 'fa-taxi', 'fa-gas-pump'],
+    'Food & Drink': ['fa-utensils', 'fa-mug-hot', 'fa-martini-glass', 'fa-ice-cream', 'fa-pizza-slice', 'fa-burger', 'fa-seedling', 'fa-carrot', 'fa-cookie-bite', 'fa-fish', 'fa-wine-bottle', 'fa-cheese', 'fa-pepper-hot', 'fa-lemon'],
+    'Nature & Weather': ['fa-tree', 'fa-leaf', 'fa-mountain-sun', 'fa-water', 'fa-cloud-sun', 'fa-cloud-rain', 'fa-snowflake', 'fa-wind', 'fa-tornado', 'fa-volcano', 'fa-seedling', 'fa-frog', 'fa-feather'],
+    'Animals': ['fa-cat', 'fa-dog', 'fa-hippo', 'fa-fish-fins', 'fa-crow', 'fa-spider', 'fa-otter', 'fa-dragon', 'fa-horse', 'fa-cow', 'fa-dove', 'fa-shrimp', 'fa-bugs', 'fa-worm', 'fa-paw'],
+    'Hobbies & Entertainment': ['fa-gamepad', 'fa-dice-d20', 'fa-ghost', 'fa-puzzle-piece', 'fa-music', 'fa-guitar', 'fa-paintbrush', 'fa-book', 'fa-film', 'fa-camera-retro', 'fa-theater-masks', 'fa-bowling-ball', 'fa-chess-knight', 'fa-wand-magic-sparkles'],
+    'Technology & Devices': ['fa-computer', 'fa-laptop', 'fa-mobile-alt', 'fa-tablet-alt', 'fa-keyboard', 'fa-mouse', 'fa-headphones', 'fa-server', 'fa-database', 'fa-code', 'fa-microchip', 'fa-robot', 'fa-vr-cardboard'],
+    'Symbols & Shapes': ['fa-shapes', 'fa-diamond', 'fa-circle', 'fa-square', 'fa-bahai', 'fa-atom', 'fa-certificate', 'fa-anchor', 'fa-asterisk', 'fa-cube', 'fa-clover', 'fa-crosshairs', 'fa-genderless', 'fa-yin-yang'],
+    'Brands': ['fa-brands fa-apple', 'fa-brands fa-windows', 'fa-brands fa-android', 'fa-brands fa-google', 'fa-brands fa-amazon', 'fa-brands fa-facebook', 'fa-brands fa-twitter', 'fa-brands fa-instagram', 'fa-brands fa-linkedin', 'fa-brands fa-github', 'fa-brands fa-youtube', 'fa-brands fa-discord', 'fa-brands fa-slack', 'fa-brands fa-figma']
 };
 
 const MS_PER_MINUTE = 60000;
@@ -2716,14 +2719,17 @@ function renderDashboardContent() {
     renderKpiList();
 }
 
-function renderIconPicker() {
+function renderIconPicker(selectedStyle) {
     const content = document.getElementById('icon-picker-content');
     if (!content) return;
-    content.innerHTML = iconPickerTemplate(iconCategories);
+    content.innerHTML = iconPickerTemplate(iconCategories, selectedStyle);
 }
 
 function openIconPicker(context = 'task') {
-    renderIconPicker();
+    if (!uiSettings.lastIconStyle) {
+        uiSettings.lastIconStyle = 'fa-solid'; // Ensure a default if it's somehow missing
+    }
+    renderIconPicker(uiSettings.lastIconStyle);
     iconPickerModal.dataset.context = context; // Store the context
     activateModal(iconPickerModal);
 }
@@ -5056,13 +5062,22 @@ function setupEventListeners() {
         const content = document.getElementById('icon-picker-content');
         if (content) {
             content.addEventListener('click', (e) => {
+                const actionTarget = e.target.closest('[data-action]');
+                if (actionTarget && actionTarget.dataset.action === 'changeIconStyle') {
+                    const newStyle = actionTarget.value;
+                    uiSettings.lastIconStyle = newStyle;
+                    saveData();
+                    renderIconPicker(newStyle); // Re-render the whole picker
+                    return;
+                }
+
+
                 const header = e.target.closest('.icon-picker-category-header');
                 if (header) {
                     const grid = header.nextElementSibling;
-                    const icon = header.querySelector('i');
+                    const icon = header.querySelector('span'); // The arrow is a span now
                     grid.classList.toggle('hidden');
-                    if (icon) icon.classList.toggle('fa-chevron-down');
-                    if (icon) icon.classList.toggle('fa-chevron-right');
+                    icon.classList.toggle('rotate-180');
                     return;
                 }
 

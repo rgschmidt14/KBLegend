@@ -655,16 +655,40 @@ function categoryFilterTemplate(categories, categoryFilter) {
     return allLabel + uncategorizedLabel + categoryLabels;
 }
 
-function iconPickerTemplate(iconCategories) {
-    return Object.entries(iconCategories).map(([category, icons]) => `
+function iconPickerTemplate(iconCategories, selectedStyle = 'fa-solid') {
+    const styles = [
+        { id: 'fa-solid', name: 'Solid' },
+        { id: 'fa-regular', name: 'Regular' },
+        { id: 'fa-brands', name: 'Brands' }
+    ];
+
+    const styleSelectorHtml = `
+        <div id="icon-style-selector" class="flex justify-center space-x-4 mb-4 p-2 border-b">
+            ${styles.map(style => `
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="icon-style" value="${style.id}" class="form-radio" data-action="changeIconStyle" ${selectedStyle === style.id ? 'checked' : ''}>
+                    <span>${style.name}</span>
+                </label>
+            `).join('')}
+        </div>
+    `;
+
+    const categoriesHtml = Object.entries(iconCategories).map(([category, icons]) => `
         <div class="icon-picker-category">
             <div class="icon-picker-category-header p-2 font-bold rounded cursor-pointer flex justify-between items-center">
                 ${category} <span class="transform transition-transform duration-200">▼</span>
             </div>
             <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                ${icons.map(iconClass => `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${iconClass}"><i class="${iconClass} fa-2x"></i></div>`).join('')}
+                ${icons.map(iconClass => {
+                    const isBrand = iconClass.startsWith('fa-brands');
+                    const finalIconClass = isBrand ? iconClass : `${selectedStyle} ${iconClass}`;
+                    return `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${finalIconClass}"><i class="${finalIconClass} fa-2x"></i></div>`;
+                }).join('')}
             </div>
-        </div>`).join('');
+        </div>
+    `).join('');
+
+    return styleSelectorHtml + `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
 }
 
 function editProgressTemplate(taskId, currentValue, max) {
