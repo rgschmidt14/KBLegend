@@ -685,6 +685,45 @@
                              </div>
                         </fieldset>
                         <fieldset>
+                            <legend>Task Duration Tracking</legend>
+                            <div class="flex items-center justify-between">
+                                <label for="duration-tracking-toggle" class="form-label mb-0">Enable Task Duration Tracking:</label>
+                                <input type="checkbox" id="duration-tracking-toggle" data-action="toggleDurationTracking" class="toggle-checkbox">
+                            </div>
+                            <div id="duration-tracking-options" class="hidden space-y-3 pl-4 border-l-2 border-gray-700 mt-3">
+                                <label for="duration-tracking-period-amount" class="form-label">Running average period:</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="duration-tracking-period-amount" value="1" min="1" class="w-20">
+                                    <select id="duration-tracking-period-unit">
+                                        <option value="weeks">Weeks</option>
+                                        <option value="months">Months</option>
+                                        <option value="years">Years</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Automatic History Deletion</legend>
+                            <div class="flex items-center justify-between">
+                                <label for="history-deletion-toggle" class="form-label mb-0">Enable Automatic History Deletion:</label>
+                                <input type="checkbox" id="history-deletion-toggle" data-action="toggleHistoryDeletion" class="toggle-checkbox">
+                            </div>
+                            <div id="history-deletion-options" class="hidden space-y-3 pl-4 border-l-2 border-gray-700 mt-3">
+                                <label for="history-deletion-period-amount" class="form-label">Delete history older than:</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="history-deletion-period-amount" value="1" min="1" class="w-20">
+                                    <select id="history-deletion-period-unit">
+                                        <option value="minutes">Minutes</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="days">Days</option>
+                                        <option value="weeks">Weeks</option>
+                                        <option value="months">Months</option>
+                                        <option value="years">Years</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset>
                             <legend>Grading System</legend>
                             <div class="form-group">
                                 <label for="gpa-system-select" class="form-label">GPA Scale:</label>

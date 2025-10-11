@@ -83,6 +83,10 @@ let uiSettings = {
         displaceCalendar: false,
         onlyAppointments: false,
     },
+    durationTrackingEnabled: false,
+    durationTrackingAveragePeriod: { amount: 1, unit: 'years' },
+    historyDeletionEnabled: false,
+    historyDeletionPeriod: { amount: 1, unit: 'years' },
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -735,6 +739,33 @@ function processTaskHistoryForChart(task, history) {
     return { labels, completions, misses };
 }
 
+
+function runAutomaticHistoryDeletion() {
+    if (!uiSettings.historyDeletionEnabled) {
+        return;
+    }
+
+    const period = uiSettings.historyDeletionPeriod;
+    const periodMs = getDurationMs(period.amount, period.unit);
+    if (periodMs <= 0) {
+        return; // Don't delete anything if the period is invalid
+    }
+
+    const now = new Date();
+    const cutoffDate = new Date(now.getTime() - periodMs);
+
+    const originalCount = appState.historicalTasks.length;
+    appState.historicalTasks = appState.historicalTasks.filter(h => new Date(h.actionDate || h.completionDate) >= cutoffDate);
+    const removedCount = originalCount - appState.historicalTasks.length;
+
+    if (removedCount > 0) {
+        console.log(`Automatically deleted ${removedCount} old historical task records.`);
+        saveData(); // Save the changes
+        if (calendar) {
+            calendar.refetchEvents(); // Refresh calendar to remove old events
+        }
+    }
+}
 
 // --- Theming Engine Functions ---
 
@@ -1726,6 +1757,40 @@ function renderPerformanceSettings() {
     if (gpaSystemSelect) {
         gpaSystemSelect.value = appSettings.gpaSystem || 'standard';
     }
+
+    const durationTrackingToggle = document.getElementById('duration-tracking-toggle');
+    if (durationTrackingToggle) {
+        durationTrackingToggle.checked = uiSettings.durationTrackingEnabled;
+    }
+    const durationTrackingOptions = document.getElementById('duration-tracking-options');
+    if (durationTrackingOptions) {
+        durationTrackingOptions.classList.toggle('hidden', !uiSettings.durationTrackingEnabled);
+    }
+    const durationTrackingAmount = document.getElementById('duration-tracking-period-amount');
+    if (durationTrackingAmount) {
+        durationTrackingAmount.value = uiSettings.durationTrackingAveragePeriod.amount;
+    }
+    const durationTrackingUnit = document.getElementById('duration-tracking-period-unit');
+    if (durationTrackingUnit) {
+        durationTrackingUnit.value = uiSettings.durationTrackingAveragePeriod.unit;
+    }
+
+    const historyDeletionToggle = document.getElementById('history-deletion-toggle');
+    if (historyDeletionToggle) {
+        historyDeletionToggle.checked = uiSettings.historyDeletionEnabled;
+    }
+    const historyDeletionOptions = document.getElementById('history-deletion-options');
+    if (historyDeletionOptions) {
+        historyDeletionOptions.classList.toggle('hidden', !uiSettings.historyDeletionEnabled);
+    }
+    const historyDeletionAmount = document.getElementById('history-deletion-period-amount');
+    if (historyDeletionAmount) {
+        historyDeletionAmount.value = uiSettings.historyDeletionPeriod.amount;
+    }
+    const historyDeletionUnit = document.getElementById('history-deletion-period-unit');
+    if (historyDeletionUnit) {
+        historyDeletionUnit.value = uiSettings.historyDeletionPeriod.unit;
+    }
 }
 
 function renderKpiAutomationSettings() {
@@ -2107,8 +2172,26 @@ function renderTaskStats(taskId) {
         misses,
         total,
         completionRate: total > 0 ? ((completions / total) * 100).toFixed(1) : 'N/A',
-        overallGpa: null
+        overallGpa: null,
+        runningAverage: null,
     };
+
+    if (uiSettings.durationTrackingEnabled) {
+        const period = uiSettings.durationTrackingAveragePeriod;
+        const periodMs = getDurationMs(period.amount, period.unit);
+        const now = new Date();
+        const cutoffDate = new Date(now.getTime() - periodMs);
+
+        const recentHistory = history.filter(h => new Date(h.actionDate) >= cutoffDate && h.actualDurationMs != null);
+
+        if (recentHistory.length > 0) {
+            const totalMs = recentHistory.reduce((sum, h) => sum + h.actualDurationMs, 0);
+            const avgMs = totalMs / recentHistory.length;
+            const hours = Math.floor(avgMs / 3600000);
+            const minutes = Math.round((avgMs % 3600000) / 60000);
+            stats.runningAverage = `${hours}h ${minutes}m`;
+        }
+    }
 
     if (total > 0) {
         const totalGpaPoints = history.reduce((sum, h) => sum + (gpaMap[h.status] || 0), 0);
@@ -3705,6 +3788,23 @@ function confirmCompletionAction(taskId, confirmed) {
         }
         progressToSave = Math.min(1, Math.max(0, progressToSave));
 
+        let actualDurationMs = null;
+        if (uiSettings.durationTrackingEnabled) {
+            const durationStr = prompt(`Task "${task.name}" completed! How long did it take? (e.g., "30m", "1.5h")`);
+            if (durationStr) {
+                const match = durationStr.match(/(\d*\.?\d+)\s*(m|h)/i);
+                if (match) {
+                    const amount = parseFloat(match[1]);
+                    const unit = match[2].toLowerCase();
+                    if (unit === 'm') {
+                        actualDurationMs = amount * 60000;
+                    } else if (unit === 'h') {
+                        actualDurationMs = amount * 3600000;
+                    }
+                }
+            }
+        }
+
         // --- Handle History & Task State ---
         if (task.repetitionType !== 'none') {
             // REPEATING TASK LOGIC
@@ -3725,6 +3825,7 @@ function confirmCompletionAction(taskId, confirmed) {
                     categoryId: task.categoryId,
                     durationAmount: task.estimatedDurationAmount,
                     durationUnit: task.estimatedDurationUnit,
+                    actualDurationMs: isLastCycle ? actualDurationMs : null,
                     progress: isLastCycle ? progressToSave : 1,
                     originalDueDate: new Date(dueDate)
                 });
@@ -3757,6 +3858,7 @@ function confirmCompletionAction(taskId, confirmed) {
                 completionDate: new Date(baseDate), actionDate: now,
                 status: historicalStatus, categoryId: task.categoryId,
                 durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                actualDurationMs: actualDurationMs,
                 progress: progressToSave, originalDueDate: new Date(baseDate)
             });
             task.completed = true;
@@ -5409,6 +5511,35 @@ function setupEventListeners() {
             const statusKey = target.dataset.statusKey;
 
             switch(action) {
+                case 'toggleDurationTracking':
+                    const wasEnabled = uiSettings.durationTrackingEnabled;
+                    uiSettings.durationTrackingEnabled = event.target.checked;
+                    document.getElementById('duration-tracking-options').classList.toggle('hidden', !uiSettings.durationTrackingEnabled);
+
+                    if (wasEnabled && !uiSettings.durationTrackingEnabled) {
+                        if (confirm("You've disabled duration tracking. Would you like to update the estimated duration of your tasks with the running average?")) {
+                            tasks.forEach(task => {
+                                const history = appState.historicalTasks.filter(h => h.originalTaskId === task.id && h.actualDurationMs != null);
+                                if (history.length > 0) {
+                                    const totalMs = history.reduce((sum, h) => sum + h.actualDurationMs, 0);
+                                    const avgMs = totalMs / history.length;
+                                    const avgMinutes = Math.round(avgMs / 60000);
+                                    if (avgMinutes > 0) {
+                                        task.estimatedDurationAmount = avgMinutes;
+                                        task.estimatedDurationUnit = 'minutes';
+                                    }
+                                }
+                            });
+                            alert('Task estimates have been updated.');
+                        }
+                    }
+                    saveData();
+                    break;
+                case 'toggleHistoryDeletion':
+                    uiSettings.historyDeletionEnabled = event.target.checked;
+                    document.getElementById('history-deletion-options').classList.toggle('hidden', !uiSettings.historyDeletionEnabled);
+                    saveData();
+                    break;
                 case 'toggleShowCalendarFilters':
                     uiSettings.showCalendarFilters = event.target.checked;
                     saveData();
@@ -5714,6 +5845,14 @@ function setupEventListeners() {
                 saveData();
             } else if (target.id === 'gpa-system-select') {
                 appSettings.gpaSystem = target.value;
+                saveData();
+            } else if (target.id === 'duration-tracking-period-amount' || target.id === 'duration-tracking-period-unit') {
+                uiSettings.durationTrackingAveragePeriod.amount = parseInt(document.getElementById('duration-tracking-period-amount').value, 10) || 1;
+                uiSettings.durationTrackingAveragePeriod.unit = document.getElementById('duration-tracking-period-unit').value;
+                saveData();
+            } else if (target.id === 'history-deletion-period-amount' || target.id === 'history-deletion-period-unit') {
+                uiSettings.historyDeletionPeriod.amount = parseInt(document.getElementById('history-deletion-period-amount').value, 10) || 1;
+                uiSettings.historyDeletionPeriod.unit = document.getElementById('history-deletion-period-unit').value;
                 saveData();
             }
         });
@@ -6438,6 +6577,7 @@ function startMainUpdateLoop() {
 
     const scheduledUpdate = () => {
         // These are the actions that were in the setInterval
+        runAutomaticHistoryDeletion();
         updateAdaptiveSensitivity();
         updateAllTaskStatuses(false);
 

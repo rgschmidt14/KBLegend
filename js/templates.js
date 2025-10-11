@@ -529,6 +529,13 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
            </span>`
         : '';
 
+    const runningAverageHtml = stats.runningAverage
+        ? `<div class="flex items-center">
+                <strong>Running Average Duration:</strong>
+                <span class="ml-2">${stats.runningAverage}</span>
+            </div>`
+        : '';
+
     return `
         <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
         <div class="space-y-2">
@@ -537,6 +544,7 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
                 <span class="ml-2">${stats.completionRate}% (${stats.completions} / ${stats.total})</span>
                 ${overallGpaHtml}
             </div>
+            ${runningAverageHtml}
         </div>
         <h4 class="text-lg font-semibold mt-6 mb-2">Performance</h4>
         ${chartHtml}
