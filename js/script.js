@@ -87,7 +87,7 @@ let uiSettings = {
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
 };
-let sensitivitySettings = { sValue: 0.5, isAdaptive: true };
+let sensitivitySettings = { sValue: 0.5, isAdaptive: false };
 const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
@@ -3547,7 +3547,8 @@ function confirmCompletionAction(taskId, confirmed) {
             cyclesToProcess.forEach((dueDate, index) => {
                 const isLastCycle = index === cyclesToProcess.length - 1;
                 const isEarly = now < dueDate;
-                const historicalStatus = isEarly ? 'blue' : 'green';
+                // New GPA Logic: 4.0 for early, 3.0 for on-time/late
+                const historicalStatus = isEarly ? 'blue' : 'green'; // blue = 4.0, green = 3.0
 
                 appState.historicalTasks.push({
                     originalTaskId: task.id, name: task.name,
@@ -3582,7 +3583,8 @@ function confirmCompletionAction(taskId, confirmed) {
         } else {
             // NON-REPEATING TASK LOGIC
             const isEarly = now < baseDate;
-            const historicalStatus = isEarly ? 'blue' : 'green';
+            // New GPA Logic: 4.0 for early, 3.0 for on-time/late
+            const historicalStatus = isEarly ? 'blue' : 'green'; // blue = 4.0, green = 3.0
             appState.historicalTasks.push({
                 originalTaskId: task.id, name: task.name,
                 completionDate: new Date(baseDate), actionDate: now,
@@ -3687,96 +3689,97 @@ function confirmMissAction(taskId, confirmed) {
         const completionsToApply = totalCycles - missesToApply;
         const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || now);
 
-        let progress = 0;
+        let progressRatio = 0;
         if (task.completionType === 'count' && task.countTarget > 0) {
-            progress = (task.currentProgress || 0) / task.countTarget;
+            progressRatio = (task.currentProgress || 0) / task.countTarget;
         } else if (task.completionType === 'time') {
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-            if (targetMs > 0) progress = (task.currentProgress || 0) / targetMs;
+            if (targetMs > 0) progressRatio = (task.currentProgress || 0) / targetMs;
         }
-        progress = Math.min(1, Math.max(0, progress));
+        progressRatio = Math.min(1, Math.max(0, progressRatio));
 
         if (task.repetitionType !== 'none') {
             const allPastDueDates = getOccurrences(task, baseDate, now).slice(0, totalCycles);
             const completionDates = allPastDueDates.slice(0, completionsToApply);
             const missDates = allPastDueDates.slice(completionsToApply);
-            const missesBefore = task.misses || 0;
-            let runningMissesCount = missesBefore;
+            let runningMissesCount = task.misses || 0;
 
-            // Handle the "catch-up" completions. These are considered 'yellow'.
+            // GPA 3.0: Handle the "catch-up" completions. These are considered on-time/late.
             completionDates.forEach((dueDate, index) => {
-                const originalDueDate = new Date(dueDate);
                 const isFinalRecord = (index === completionDates.length - 1) && (missDates.length === 0);
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: 'yellow',
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(dueDate), actionDate: new Date(),
+                    status: 'green', // GPA 3.0
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: isFinalRecord ? progress : 1, // Full progress, unless it's the last item with partial progress
-                    originalDueDate: originalDueDate
+                    progress: isFinalRecord ? progressRatio : 1,
+                    originalDueDate: new Date(dueDate)
                 });
             });
 
-            // Handle the misses, coloring them red for the first miss and black for subsequent ones.
+            // GPA 2.0-0.0: Handle the misses.
             missDates.forEach((dueDate, index) => {
-                const originalDueDate = new Date(dueDate);
-                const isFinalRecord = index === missDates.length - 1;
-
+                const isFinalRecordWithProgress = (index === missDates.length - 1) && progressRatio > 0;
                 let historicalStatus;
-                if (runningMissesCount === 0 && task.trackMisses) {
-                    historicalStatus = 'red'; // First ever tracked miss.
+
+                if (isFinalRecordWithProgress) {
+                    // GPA 2.0-2.99: Partial miss on the final recorded action
+                    historicalStatus = 'yellow';
                 } else {
-                    historicalStatus = 'black'; // Subsequent miss or untracked miss.
+                    // GPA 1.0 or 0.0: Full miss
+                    if (runningMissesCount === 0 && task.trackMisses) {
+                        historicalStatus = 'red'; // GPA 1.0: First tracked miss
+                    } else {
+                        historicalStatus = 'black'; // GPA 0.0: Subsequent or untracked miss
+                    }
+                    runningMissesCount++;
                 }
-                runningMissesCount++;
 
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: originalDueDate, actionDate: new Date(), status: historicalStatus,
+                    originalTaskId: task.id, name: task.name, completionDate: new Date(dueDate), actionDate: new Date(),
+                    status: historicalStatus,
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                    progress: isFinalRecord ? progress : 0, // Only apply partial progress to the last miss
-                    originalDueDate: originalDueDate
+                    progress: isFinalRecordWithProgress ? progressRatio : 0,
+                    originalDueDate: new Date(dueDate)
                 });
             });
 
             if (completionsToApply > 0) task.misses = Math.max(0, (task.misses || 0) - completionsToApply);
             if (missesToApply > 0 && task.trackMisses) {
-                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + missesToApply);
-                // Auto-KPI check
+                const newMisses = missDates.filter((_, index) => !((index === missDates.length - 1) && progressRatio > 0)).length;
+                task.misses = Math.min(task.maxMisses || Infinity, (task.misses || 0) + newMisses);
                 if (appSettings.autoKpiEnabled && task.maxMisses && task.misses >= task.maxMisses && !task.isKpi) {
                     task.isKpi = true;
-                    task.isAutoKpi = true; // Mark that this was set automatically
+                    task.isAutoKpi = true;
                 }
             }
 
             const lastDueDate = allPastDueDates.length > 0 ? allPastDueDates[allPastDueDates.length - 1] : baseDate;
             let nextDueDate = null;
-            const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), new Date(lastDueDate.getFullYear() + 5, 0, 1));
-            if (futureOccurrences.length > 0) {
-                nextDueDate = futureOccurrences[0];
-            }
+            const futureOccurrences = getOccurrences(task, new Date(lastDueDate.getTime() + 1), getCalculationHorizonDate());
+            if (futureOccurrences.length > 0) nextDueDate = futureOccurrences[0];
             task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
 
-        } else { // non-repeating task
-            let historicalStatus = 'black'; // Full miss
-            if (progress > 0 && progress < 1) {
-                historicalStatus = 'yellow'; // Partial miss
+        } else { // NON-REPEATING TASK
+            let historicalStatus;
+            if (progressRatio > 0 && progressRatio < 1) {
+                historicalStatus = 'yellow'; // GPA 2.0-2.99: Partial miss
+            } else if (progressRatio >= 1) {
+                 historicalStatus = 'green'; // GPA 3.0: Full completion (but late)
+            } else {
+                 historicalStatus = 'red'; // GPA 1.0: Full miss (since it's the first)
             }
+
             appState.historicalTasks.push({
-                originalTaskId: task.id, name: task.name,
-                completionDate: new Date(baseDate),
-                actionDate: now,
-                status: historicalStatus,
-                categoryId: task.categoryId,
-                durationAmount: task.estimatedDurationAmount,
-                durationUnit: task.estimatedDurationUnit,
-                progress: progress,
-                originalDueDate: new Date(baseDate)
+                originalTaskId: task.id, name: task.name, completionDate: new Date(baseDate), actionDate: now,
+                status: historicalStatus, categoryId: task.categoryId,
+                durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                progress: progressRatio, originalDueDate: new Date(baseDate)
             });
             task.completed = true;
             task.status = 'blue';
-            // Set lock for 5 seconds in the future to allow for an undo grace period.
             task.cycleEndDate = new Date(now.getTime() + 5000);
         }
 
-        // Common cleanup for confirmed actions
         task.currentProgress = 0;
         task.confirmationState = null;
         delete task.pendingCycles;
