@@ -106,7 +106,15 @@
                         <div id="weeklyGoals" contenteditable="true" class="prose prose-sm min-h-[100px] p-2 rounded-md focus:outline-none focus:ring-2"></div>
                     </div>
 
-                    <div class="bg-secondary lg:col-span-2">
+                    <div id="category-pie-chart-container" class="bg-secondary lg:col-span-2">
+                        <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-center">Weekly Time by Category</h2>
+                        <div class="relative" style="min-height: 400px;">
+                            <canvas id="category-pie-chart"></canvas>
+                        </div>
+                        <div id="category-pie-chart-legend" class="flex flex-wrap justify-center gap-4 mt-4"></div>
+                    </div>
+
+                    <div class="bg-secondary lg:col-span-3">
                         <div class="flex flex-col items-center mb-3 border-b pb-2 gap-4">
                             <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
                             <div class="kpi-nav-container">

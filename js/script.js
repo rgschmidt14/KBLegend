@@ -2757,7 +2757,150 @@ function renderDashboardContent() {
         weeklyGoalsEl.innerHTML = goalHtml + toggleButtonHtml;
         weeklyGoalsEl.dataset.fullGoal = encodeURIComponent(weeklyGoal);
     }
+    renderCategoryPieChart();
     renderKpiList();
+}
+
+function renderCategoryPieChart() {
+    const pieChartContainer = document.getElementById('category-pie-chart-container');
+    const pieChartCanvas = document.getElementById('category-pie-chart');
+    const pieChartLegend = document.getElementById('category-pie-chart-legend');
+
+    if (!pieChartCanvas || !pieChartLegend || !pieChartContainer) {
+        return;
+    }
+
+    // 1. Determine the date range (same as KPI chart)
+    const now = new Date();
+    if (uiSettings.kpiWeekOffset !== 0) {
+        now.setDate(now.getDate() + (uiSettings.kpiWeekOffset * 7));
+    }
+    const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    // 2. Aggregate data
+    const categoryTime = {}; // { categoryId: { name, color, totalMinutes } }
+
+    const processTask = (task, date) => {
+        if (!task.estimatedDurationAmount) return;
+
+        const taskDate = new Date(date);
+        if (taskDate >= weekStart && taskDate < weekEnd) {
+            const categoryId = task.categoryId || 'uncategorized';
+            const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+            const durationMinutes = durationMs / MS_PER_MINUTE;
+
+            if (!categoryTime[categoryId]) {
+                const category = categories.find(c => c.id === categoryId);
+                categoryTime[categoryId] = {
+                    name: category ? category.name : 'Uncategorized',
+                    color: category ? category.color : '#808080',
+                    totalMinutes: 0
+                };
+            }
+            categoryTime[categoryId].totalMinutes += durationMinutes;
+        }
+    };
+
+    // Process active tasks (considering their occurrences)
+    tasks.forEach(task => {
+        const occurrences = getOccurrences(task, weekStart, weekEnd);
+        occurrences.forEach(occurrenceDate => {
+            processTask(task, occurrenceDate);
+        });
+    });
+
+    // Process historical tasks
+    appState.historicalTasks.forEach(historicalTask => {
+        processTask({
+            categoryId: historicalTask.categoryId,
+            estimatedDurationAmount: historicalTask.durationAmount,
+            estimatedDurationUnit: historicalTask.durationUnit
+        }, historicalTask.completionDate);
+    });
+
+    const labels = Object.values(categoryTime).map(c => c.name);
+    const data = Object.values(categoryTime).map(c => c.totalMinutes);
+    const backgroundColors = Object.values(categoryTime).map(c => c.color);
+    const totalMinutes = data.reduce((sum, value) => sum + value, 0);
+
+    if (totalMinutes === 0) {
+        pieChartContainer.innerHTML = '<p class="text-gray-500 italic text-center p-4">No task time recorded for this week.</p>';
+        return;
+    }
+
+    if (!document.getElementById('category-pie-chart')) {
+        pieChartContainer.innerHTML = `
+            <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-center">Weekly Time by Category</h2>
+            <div class="relative" style="min-height: 400px;">
+                <canvas id="category-pie-chart"></canvas>
+            </div>
+            <div id="category-pie-chart-legend" class="flex flex-wrap justify-center gap-4 mt-4"></div>
+        `;
+    }
+
+    const existingChart = Chart.getChart(pieChartCanvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    new Chart(pieChartCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderWidth: 1,
+                borderColor: document.body.classList.contains('light-mode') ? '#fff' : '#111827',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false // We are creating a custom legend
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            const value = context.parsed;
+                            const hours = Math.floor(value / 60);
+                            const minutes = Math.round(value % 60);
+                            label += `${hours}h ${minutes}m`;
+                            const percentage = ((value / totalMinutes) * 100).toFixed(1);
+                            label += ` (${percentage}%)`;
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    pieChartLegend.innerHTML = '';
+    labels.forEach((label, index) => {
+        const minutes = data[index];
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = Math.round(minutes % 60);
+        const percentage = totalMinutes > 0 ? ((minutes / totalMinutes) * 100).toFixed(1) : 0;
+        const timeString = `${hours}h ${remainingMinutes}m`;
+
+        const legendItem = `
+            <div class="flex items-center text-sm">
+                <span class="w-4 h-4 mr-2 rounded-full" style="background-color: ${backgroundColors[index]}"></span>
+                <span>${label}: ${timeString} (${percentage}%)</span>
+            </div>
+        `;
+        pieChartLegend.insertAdjacentHTML('beforeend', legendItem);
+    });
 }
 
 function renderIconPicker(selectedStyle) {
