@@ -260,6 +260,24 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         let timeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
         timeDemerit = Math.max(0, Math.min(timeDemerit, 3.0));
 
+        // Adjust demerit based on progress for timer and count tasks
+        let progressRatio = 0;
+        if (task.taskType === 'timer' && task.currentProgress > 0) {
+            const totalDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+            if (totalDurationMs > 0) {
+                progressRatio = task.currentProgress / totalDurationMs;
+            }
+        } else if (task.taskType === 'count' && task.currentProgress > 0) {
+            if (task.targetCount > 0) {
+                progressRatio = task.currentProgress / task.targetCount;
+            }
+        }
+        progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
+
+        if (progressRatio > 0) {
+            timeDemerit = timeDemerit * (1 - progressRatio);
+        }
+
         let habitDemerit = (task.repetitionType !== 'none' && task.trackMisses && task.maxMisses > 0) ? (task.misses / task.maxMisses) * 2.0 : 0;
         habitDemerit = Math.max(0, Math.min(habitDemerit, 2.0));
 
@@ -341,6 +359,24 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
 
         let finalTimeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
         finalTimeDemerit = Math.max(0, Math.min(finalTimeDemerit, 3.0));
+
+        // Adjust demerit based on progress for timer and count tasks
+        let progressRatio = 0;
+        if (occurrence.taskType === 'timer' && occurrence.currentProgress > 0) {
+            const totalDurationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
+            if (totalDurationMs > 0) {
+                progressRatio = occurrence.currentProgress / totalDurationMs;
+            }
+        } else if (occurrence.taskType === 'count' && occurrence.currentProgress > 0) {
+            if (occurrence.targetCount > 0) {
+                progressRatio = occurrence.currentProgress / occurrence.targetCount;
+            }
+        }
+        progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
+
+        if (progressRatio > 0) {
+            finalTimeDemerit = finalTimeDemerit * (1 - progressRatio);
+        }
 
         // --- Calendar Displacement (Non-Mutating) ---
         // First, set the display times to the actual scheduled times.

@@ -149,4 +149,55 @@ describe('runCalculationPipeline', () => {
         expect(scheduledDate.getDate()).toBe(24);
         expect(scheduledDate.getMonth()).toBe(8); // September is month 8
     });
+
+    it('should increase GPA for a timer task with progress', () => {
+        const tasks = [{
+            id: 'timer-task',
+            name: 'Timer Task',
+            dueDate: T(2), // Due in 2 hours, well within warning window
+            taskType: 'timer',
+            estimatedDurationAmount: 4,
+            estimatedDurationUnit: 'hours',
+            currentProgress: 0, // No progress initially
+            repetitionType: 'none',
+        }];
+
+        // Without progress
+        const initialResults = runCalculationPipeline(tasks, horizon, defaultSettings, now);
+        const initialGpa = initialResults[0].finalGpa;
+        expect(initialGpa).toBeLessThan(4.0); // Ensure there is a demerit to begin with
+
+        // With progress
+        tasks[0].currentProgress = getDurationMs(2, 'hours'); // 50% progress
+        const progressResults = runCalculationPipeline(tasks, horizon, defaultSettings, now);
+        const progressGpa = progressResults[0].finalGpa;
+
+        expect(progressGpa).toBeGreaterThan(initialGpa);
+    });
+
+    it('should increase GPA for a count task with progress', () => {
+        const tasks = [{
+            id: 'count-task',
+            name: 'Count Task',
+            dueDate: T(2), // Due in 2 hours
+            taskType: 'count',
+            estimatedDurationAmount: 4, // Still needs a duration for time-based demerit
+            estimatedDurationUnit: 'hours',
+            targetCount: 10,
+            currentProgress: 0, // No progress initially
+            repetitionType: 'none',
+        }];
+
+        // Without progress
+        const initialResults = runCalculationPipeline(tasks, horizon, defaultSettings, now);
+        const initialGpa = initialResults[0].finalGpa;
+        expect(initialGpa).toBeLessThan(4.0);
+
+        // With progress
+        tasks[0].currentProgress = 5; // 50% progress
+        const progressResults = runCalculationPipeline(tasks, horizon, defaultSettings, now);
+        const progressGpa = progressResults[0].finalGpa;
+
+        expect(progressGpa).toBeGreaterThan(initialGpa);
+    });
 });
