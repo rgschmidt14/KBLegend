@@ -306,6 +306,24 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
             </div>
         `;
     }
+    const descriptionHtml = task.description ? `
+    <div class="mt-4">
+        <h4 class="font-bold">Description</h4>
+        <p class="text-sm whitespace-pre-wrap">${task.description}</p>
+    </div>
+` : '';
+
+const notesHtml = `
+<div id="task-notes-section-${task.id}" class="mt-4">
+    <div class="flex justify-between items-center">
+        <h4 class="font-bold">Notes</h4>
+        ${isHistorical ? `<button data-action="editHistoryNotes" data-history-event-id="${task.id}" class="btn btn-clear text-xs">[Edit]</button>` : ''}
+    </div>
+    <div id="task-notes-content-${task.id}">
+        <p class="text-sm whitespace-pre-wrap">${task.notes || (isHistorical ? 'No notes for this instance.' : '')}</p>
+    </div>
+</div>
+`;
 
     return `
         <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
@@ -316,6 +334,8 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
             <p><strong>Estimated Duration:</strong> ${durationStr}</p>
             ${!isHistorical ? `<p><strong>Repetition:</strong> ${repetitionStr}</p>` : '<p><strong>Repetition:</strong> N/A (Historical Record)</p>'}
         </div>
+        ${descriptionHtml}
+        ${notesHtml}
         <div id="task-view-actions-${task.id}" class="mt-6 responsive-button-grid">
             ${actionsHtml}
         </div>
