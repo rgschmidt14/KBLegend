@@ -576,7 +576,11 @@ function actionAreaTemplate(task) {
                 : 'Confirm Partial Completion?';
             return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
         case 'awaiting_overdue_input':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button></div>`;
+            let buttons = `<button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button>`;
+            if (hasProgress) {
+                buttons += ` <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="partial" class="btn btn-secondary btn-sm">Partial</button>`;
+            }
+            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> ${buttons}</div>`;
         case 'confirming_miss':
             if (hasProgress) {
                 return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Partial Miss?</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
@@ -599,9 +603,6 @@ function actionAreaTemplate(task) {
     if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
     if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
 
-    if (hasProgress) {
-        return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Partial</button>`;
-    }
 
     switch (task.completionType) {
         case 'count':
