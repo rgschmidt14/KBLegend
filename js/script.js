@@ -6478,10 +6478,10 @@ function updateAllTaskStatuses(forceRender = false) {
     });
 
     // Process recent historical tasks
-    const sevenDaysAgo = new Date(nowMs - 7 * MS_PER_DAY);
+    const thirtyDaysAgo = new Date(nowMs - 30 * MS_PER_DAY);
     if (appState.historicalTasks && Array.isArray(appState.historicalTasks)) {
         appState.historicalTasks
-            .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= sevenDaysAgo)
+            .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= thirtyDaysAgo)
             .forEach(ht => {
                 const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
                 const endDate = new Date(ht.completionDate);
@@ -7105,6 +7105,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // All initialization is complete. It's now safe to save data.
     isInitializing = false;
     console.log("Initialization complete. Data saving is now enabled.");
+
+    // Retroactively mark welcome screen as shown for users who already have a theme.
+    if (theming.enabled && !uiSettings.welcomeScreenShown) {
+        uiSettings.welcomeScreenShown = true;
+        saveData();
+    }
 
     initializeHints();
     if (!uiSettings.welcomeScreenShown) {

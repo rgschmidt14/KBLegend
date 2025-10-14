@@ -260,7 +260,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
         actionsHtml = `
             <div id="task-view-actions-${task.originalTaskId}" class="mt-6 responsive-button-grid">
                 <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm">Delete This Record</button>
-                <button data-action="viewTaskStats" data-task-id="${task.originalTaskId}" class="btn btn-clear">View Parent Task Stats</button>
+                <button data-action="viewTaskStats" data-task-id="${task.originalTaskId || task.id}" class="btn btn-clear">View Task Stats</button>
             </div>
             <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
         `;
