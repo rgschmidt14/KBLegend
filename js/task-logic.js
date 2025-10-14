@@ -262,14 +262,14 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
 
         // Adjust demerit based on progress for timer and count tasks
         let progressRatio = 0;
-        if (task.taskType === 'timer' && task.currentProgress > 0) {
+        if (task.completionType === 'time' && task.currentProgress > 0) {
             const totalDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
             if (totalDurationMs > 0) {
                 progressRatio = task.currentProgress / totalDurationMs;
             }
-        } else if (task.taskType === 'count' && task.currentProgress > 0) {
-            if (task.targetCount > 0) {
-                progressRatio = task.currentProgress / task.targetCount;
+        } else if (task.completionType === 'count' && task.currentProgress > 0) {
+            if (task.countTarget > 0) {
+                progressRatio = task.currentProgress / task.countTarget;
             }
         }
         progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
