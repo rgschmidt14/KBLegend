@@ -108,6 +108,14 @@ function getDurationMs(amount, unit) {
     return ms;
 }
 
+function formatProgressNumber(num) {
+    if (num === null || num === undefined) return 0;
+    if (num % 1 !== 0) {
+        return +num.toFixed(2);
+    }
+    return num;
+}
+
 
 // ============================================================================
 // TEMPLATE FUNCTIONS
@@ -145,7 +153,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
         progressHtml = `<div id="progress-container-${task.id}" class="mt-1 h-5">`;
         let progressText = '';
         if (task.completionType === 'count' && task.countTarget) {
-            progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
+            progressText = `${formatProgressNumber(task.currentProgress) || 0} / ${task.countTarget}`;
         } else if (task.completionType === 'time' && task.timeTargetAmount) {
             const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
             progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
@@ -551,18 +559,30 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
 
 function actionAreaTemplate(task) {
     const cycles = task.pendingCycles || 1;
+    const hasProgress = (task.completionType === 'count' || task.completionType === 'time') && task.currentProgress > 0;
+
     switch (task.confirmationState) {
         case 'confirming_complete':
-            const text = cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?';
+            let isFull = true;
+            if (task.completionType === 'count' && task.countTarget) {
+                if ((task.currentProgress || 0) < task.countTarget) isFull = false;
+            } else if (task.completionType === 'time' && task.timeTargetAmount) {
+                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+                if ((task.currentProgress || 0) < targetMs) isFull = false;
+            }
+
+            const text = (isFull || !hasProgress)
+                ? (cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?')
+                : 'Confirm Partial Completion?';
             return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
         case 'awaiting_overdue_input':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button></div>`;
         case 'confirming_miss':
+            if (hasProgress) {
+                return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Partial Miss?</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
+            }
             const promptText = cycles > 1 ? 'Confirm Misses:' : 'Confirm Miss?';
-            const inputControl = cycles > 1
-                ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}`
-                : '';
-
+            const inputControl = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}` : '';
             return `<div class="confirm-miss-area">
                         <span class="action-area-text">${promptText} ${inputControl}</span>
                         <div class="button-group">
@@ -575,8 +595,14 @@ function actionAreaTemplate(task) {
         case 'confirming_undo':
             return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
     }
+
     if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
     if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
+
+    if (hasProgress) {
+        return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Partial</button>`;
+    }
+
     switch (task.completionType) {
         case 'count':
             return `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">+</button> </div>`;
@@ -879,11 +905,11 @@ function welcomeModalTemplate() {
                 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
                 <p class="mb-4">To personalize your experience, please pick your favorite color. We'll use it to generate a custom theme for you.</p>
                 <div class="flex items-center justify-center space-x-4 my-6">
-                    <input type="color" id="welcome-color-picker" value="#3b82f6" class="h-16 w-16 border-none cursor-pointer rounded-lg">
+                    <input type="color" id="welcome-color-picker" value="#3b82f6" class="p-1 h-16 w-16 bg-white border border-gray-200 cursor-pointer rounded-lg">
                 </div>
                 <div class="flex justify-end space-x-2">
-                    <button id="welcome-no-thanks" class="btn btn-clear">No Thanks</button>
-                    <button id="welcome-submit" class="btn btn-confirm">Set Theme</button>
+                    <button id="welcome-no-thanks" class="btn btn-tertiary btn-md">No Thanks</button>
+                    <button id="welcome-submit" class="btn btn-confirm btn-md">Set Theme</button>
                 </div>
             </div>
         </div>

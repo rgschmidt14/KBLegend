@@ -2507,7 +2507,6 @@ function renderKpiList() {
     // 1. Clear previous content and destroy old charts
     kpiControls.innerHTML = '';
     kpiChartContainer.innerHTML = '';
-    // Reset container classes
     kpiChartContainer.className = 'relative';
 
     if (kpiChart) {
@@ -2561,25 +2560,22 @@ function renderKpiList() {
         kpiControls.classList.add('hidden');
         return;
     }
-     kpiControls.classList.remove('hidden');
-
+    kpiControls.classList.remove('hidden');
 
     const now = new Date();
-    // Apply the week offset for viewing different weeks
     if (uiSettings.kpiWeekOffset !== 0) {
         now.setDate(now.getDate() + (uiSettings.kpiWeekOffset * 7));
     }
-    now.setHours(23, 59, 59, 999); // End of the target day
+    now.setHours(23, 59, 59, 999);
 
     const days = parseInt(uiSettings.kpiChartDateRange.replace('d', ''));
     const startDate = new Date(now.getTime() - (days - 1) * MS_PER_DAY);
     startDate.setHours(0, 0, 0, 0);
 
-    const dateLabels = [];
-    for (let i = 0; i < days; i++) {
+    const dateLabels = Array.from({ length: days }, (_, i) => {
         const date = new Date(startDate.getTime() + i * MS_PER_DAY);
-        dateLabels.push(date.toLocaleDateString('en-CA')); // YYYY-MM-DD format
-    }
+        return date.toLocaleDateString('en-CA');
+    });
 
     const datasets = kpiTasks.map(task => {
         const history = appState.historicalTasks.filter(h =>
@@ -2594,24 +2590,22 @@ function renderKpiList() {
             if (!dailyData.has(dateKey)) {
                 dailyData.set(dateKey, { completions: 0, misses: 0 });
             }
-            // Use new status categories to correctly identify completions and misses
+            const stats = dailyData.get(dateKey);
             const completionStatuses = ['blue', 'green', 'yellow'];
-            const missStatuses = ['red', 'black'];
-
             if (completionStatuses.includes(h.status)) {
-                dailyData.get(dateKey).completions++;
-            } else if (missStatuses.includes(h.status)) {
-                dailyData.get(dateKey).misses++;
+                stats.completions++;
+            } else {
+                stats.misses++;
             }
         });
 
         const accuracyData = dateLabels.map(label => {
-            if (dailyData.has(label)) {
-                const { completions, misses } = dailyData.get(label);
-                const total = completions + misses;
-                return total > 0 ? (completions / total) * 100 : 0;
+            const dayData = dailyData.get(label);
+            if (dayData) {
+                const total = dayData.completions + dayData.misses;
+                return total > 0 ? (dayData.completions / total) * 100 : 0;
             }
-            return 0; // No data for this day
+            return 0;
         });
 
         const category = categories.find(c => c.id === task.categoryId);
@@ -2621,9 +2615,10 @@ function renderKpiList() {
             label: task.name,
             data: accuracyData,
             borderColor: color,
-            backgroundColor: `${color}33`, // Add alpha for fill
+            backgroundColor: `${color}33`,
             fill: false,
-            tension: 0.1
+            tension: 0.1,
+            taskId: task.id // Associate task ID with dataset
         };
     });
 
@@ -2633,81 +2628,67 @@ function renderKpiList() {
         maintainAspectRatio: false,
         scales: {
             y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: {
-                    callback: value => `${value}%`,
-                    color: '#9ca3af'
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                },
-                title: {
-                    display: true,
-                    text: 'Completion Accuracy',
-                    color: '#d1d5db'
-                }
+                beginAtZero: true, max: 100,
+                ticks: { callback: value => `${value}%`, color: '#9ca3af' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                title: { display: true, text: 'Completion Accuracy', color: '#d1d5db' }
             },
             x: {
-                ticks: {
-                    color: '#9ca3af',
-                    maxRotation: 45,
-                    minRotation: 45
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
+                ticks: { color: '#9ca3af', maxRotation: 45, minRotation: 45 },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
             }
         },
         plugins: {
-            legend: {
-                labels: {
-                    color: '#d1d5db'
-                }
-            },
+            legend: { labels: { color: '#d1d5db' } },
             tooltip: {
-                mode: 'index',
-                intersect: false,
+                mode: 'index', intersect: false,
                 callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += `${context.parsed.y.toFixed(1)}%`;
-                        }
-                        return label;
-                    }
+                    label: context => `${context.dataset.label || ''}: ${context.parsed.y !== null ? context.parsed.y.toFixed(1) + '%' : ''}`
                 }
+            }
+        },
+        onClick: (event, elements, chart) => {
+            const canvas = chart.canvas;
+            let taskId;
+            if (uiSettings.kpiChartMode === 'single' && elements.length > 0) {
+                const datasetIndex = elements[0].datasetIndex;
+                taskId = chart.data.datasets[datasetIndex].taskId;
+            } else {
+                taskId = canvas.dataset.taskId;
+            }
+
+            if (taskId) {
+                openTaskView(taskId, false);
+                renderTaskStats(taskId);
             }
         }
     };
 
     if (uiSettings.kpiChartMode === 'single') {
-        kpiChartContainer.classList.add('gradient-bordered-content');
+        kpiChartContainer.classList.add('gradient-bordered-content', 'cursor-pointer');
         kpiChartContainer.style.height = '400px';
         kpiChartContainer.innerHTML = '<canvas id="kpi-main-chart"></canvas>';
         const ctx = document.getElementById('kpi-main-chart').getContext('2d');
         kpiChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})),
+                labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
                 datasets: datasets
             },
             options: chartOptions
         });
     } else { // stacked
         kpiChartContainer.classList.add('kpi-chart-stack-wrapper');
-        kpiChartContainer.style.height = ''; // Let it grow
+        kpiChartContainer.style.height = '';
 
-        datasets.forEach((dataset, index) => {
+        kpiTasks.forEach((task, index) => {
             const chartWrapper = document.createElement('div');
-            chartWrapper.className = 'gradient-bordered-content'; // Apply border to each chart
-            chartWrapper.style.height = '250px'; // Give each chart a height
+            chartWrapper.className = 'gradient-bordered-content cursor-pointer';
+            chartWrapper.style.height = '250px';
 
             const canvas = document.createElement('canvas');
             canvas.id = `kpi-chart-${index}`;
+            canvas.dataset.taskId = task.id; // Store task ID on the canvas
             chartWrapper.appendChild(canvas);
             kpiChartContainer.appendChild(chartWrapper);
 
@@ -2715,19 +2696,14 @@ function renderKpiList() {
             const singleChartOptions = JSON.parse(JSON.stringify(chartOptions));
             singleChartOptions.plugins.legend.display = false;
             singleChartOptions.plugins.title = {
-                display: true,
-                text: dataset.label,
-                color: '#d1d5db',
-                font: {
-                    size: 16
-                }
+                display: true, text: task.name, color: '#d1d5db', font: { size: 16 }
             };
 
             const chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})),
-                    datasets: [dataset]
+                    labels: dateLabels.map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+                    datasets: [datasets[index]]
                 },
                 options: singleChartOptions
             });
