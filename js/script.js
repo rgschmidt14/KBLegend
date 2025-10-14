@@ -61,7 +61,6 @@ let uiSettings = {
     activeView: 'dashboard-view', // Default view
     kpiChartMode: 'single', // 'single' or 'stacked'
     kpiChartDateRange: '8d', // '8d', '30d', etc.
-    kpiWeekOffset: 0,
     journalIconCollapseState: {},
     advancedOptionsCollapseState: {},
     calculationHorizonAmount: 1,
@@ -83,6 +82,7 @@ let uiSettings = {
         displaceCalendar: false,
         onlyAppointments: false,
     },
+    dashboardWeekOffset: 0,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -2531,7 +2531,7 @@ function renderKpiTaskSelect() {
     });
 }
 
-function renderKpiList() {
+function renderKpiList(weekOffset = 0) {
     const kpiControls = document.getElementById('kpi-controls');
     const kpiChartContainer = document.getElementById('kpi-chart-container');
 
@@ -2575,14 +2575,14 @@ function renderKpiList() {
     document.getElementById('kpi-range-select').addEventListener('change', (e) => {
         uiSettings.kpiChartDateRange = e.target.value;
         saveData();
-        renderKpiList();
+        renderDashboardContent();
     });
 
     kpiControls.querySelectorAll('.kpi-view-toggle-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             uiSettings.kpiChartMode = e.target.dataset.mode;
             saveData();
-            renderKpiList();
+            renderDashboardContent();
         });
     });
 
@@ -2596,8 +2596,8 @@ function renderKpiList() {
     kpiControls.classList.remove('hidden');
 
     const now = new Date();
-    if (uiSettings.kpiWeekOffset !== 0) {
-        now.setDate(now.getDate() + (uiSettings.kpiWeekOffset * 7));
+    if (weekOffset !== 0) {
+        now.setDate(now.getDate() + (weekOffset * 7));
     }
     now.setHours(23, 59, 59, 999);
 
@@ -2745,32 +2745,32 @@ function renderKpiList() {
     }
 }
 
-function renderDashboardContent() {
-    if (weeklyGoalsEl) {
-        const currentWeek = appState.weeks[CURRENT_WEEK_INDEX];
-        const weeklyGoal = currentWeek ? (currentWeek.weeklyGoals || 'Set new goals for the week...') : 'Set new goals for the week...';
+function renderDashboardWeek(weekOffset) {
+    const weeklyGoalsEl = document.getElementById('weeklyGoals');
+    const weekDisplayEl = document.getElementById('dashboard-week-display');
+    if (!weeklyGoalsEl || !weekDisplayEl) return;
 
-        const contentLength = weeklyGoal.length;
-        const truncateLength = 500;
-        let goalHtml;
-        let toggleButtonHtml = '';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (weekOffset * 7));
+    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
 
-        if (contentLength > truncateLength) {
-            const truncatedContent = weeklyGoal.substring(0, truncateLength).replace(/\n/g, '<br>');
-            goalHtml = `<div class="prose prose-sm mt-2 max-w-none">${truncatedContent}...</div>`;
-            toggleButtonHtml = `<button data-action="toggleDashboardGoalContent" class="btn btn-clear text-xs mt-1">Show More</button>`;
-        } else {
-            goalHtml = `<div class="prose prose-sm mt-2 max-w-none">${weeklyGoal.replace(/\n/g, '<br>')}</div>`;
-        }
+    const weekStartDateStr = weekStart.toISOString().split('T')[0];
 
-        weeklyGoalsEl.innerHTML = goalHtml + toggleButtonHtml;
-        weeklyGoalsEl.dataset.fullGoal = encodeURIComponent(weeklyGoal);
-    }
-    renderCategoryPieChart();
-    renderKpiList();
+    const goalEntry = appState.journal.find(entry => entry.isWeeklyGoal && entry.weekStartDate === weekStartDateStr);
+
+    weeklyGoalsEl.innerHTML = goalEntry ? goalEntry.content : '';
+    weekDisplayEl.textContent = `Week of ${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
 }
 
-function renderCategoryPieChart() {
+function renderDashboardContent() {
+    renderDashboardWeek(uiSettings.dashboardWeekOffset);
+    renderCategoryPieChart(uiSettings.dashboardWeekOffset);
+    renderKpiList(uiSettings.dashboardWeekOffset);
+}
+
+function renderCategoryPieChart(weekOffset = 0) {
     const pieChartContainer = document.getElementById('category-pie-chart-container');
     const pieChartCanvas = document.getElementById('category-pie-chart');
     const pieChartLegend = document.getElementById('category-pie-chart-legend');
@@ -2779,10 +2779,10 @@ function renderCategoryPieChart() {
         return;
     }
 
-    // 1. Determine the date range (same as KPI chart)
+    // 1. Determine the date range
     const now = new Date();
-    if (uiSettings.kpiWeekOffset !== 0) {
-        now.setDate(now.getDate() + (uiSettings.kpiWeekOffset * 7));
+    if (weekOffset !== 0) {
+        now.setDate(now.getDate() + (weekOffset * 7));
     }
     const weekStart = startOfWeek(now, { weekStartsOn: 0 });
     weekStart.setHours(0, 0, 0, 0);
@@ -2928,7 +2928,11 @@ function openIconPicker(context = 'task') {
 }
 
 function renderJournalEntry(entry) {
-    const buttonsHtml = entry.isWeeklyGoal ? '' : `
+    // For weekly goals, the title shows the date range. For others, it's the entry title.
+    const title = entry.isWeeklyGoal ? `Week of ${new Date(entry.weekStartDate).toLocaleDateString()}` : entry.title;
+    const timestamp = entry.isWeeklyGoal ? new Date(entry.weekStartDate) : new Date(entry.createdAt);
+
+    const buttonsHtml = `
         <div class="flex justify-end space-x-2 mt-2">
             <button data-action="editJournal" data-id="${entry.id}" class="btn btn-clear text-xs">Edit</button>
             <button data-action="deleteJournal" data-id="${entry.id}" class="btn btn-clear text-xs">Delete</button>
@@ -2940,23 +2944,21 @@ function renderJournalEntry(entry) {
     let contentHtml;
     let toggleButtonHtml = '';
 
-    // Use a unique ID for the content display area for easier targeting
     const contentDisplayId = `journal-content-${entry.id}`;
 
     if (contentLength > truncateLength) {
         const truncatedContent = entry.content.substring(0, truncateLength);
         contentHtml = `<div id="${contentDisplayId}" class="prose mt-2 max-w-none journal-content-display">${truncatedContent}...</div>`;
-        // Pass the content display ID to the button
         toggleButtonHtml = `<button data-action="toggleJournalContent" data-entry-id="${entry.id}" data-content-id="${contentDisplayId}" class="btn btn-clear text-xs mt-2">Show More</button>`;
     } else {
         contentHtml = `<div id="${contentDisplayId}" class="prose mt-2 max-w-none journal-content-display">${entry.content}</div>`;
     }
 
     return `
-        <div class="journal-entry p-4 rounded-lg shadow" data-id="${entry.id}" data-full-content="${encodeURIComponent(entry.content)}">
+        <div class="journal-entry p-4 rounded-lg shadow ${entry.isWeeklyGoal ? 'bg-secondary' : ''}" data-id="${entry.id}" data-full-content="${encodeURIComponent(entry.content)}">
             <div class="flex justify-between items-start">
-                <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${entry.title}</h3>
-                <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
+                <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${title}</h3>
+                <span class="text-xs text-gray-400">${timestamp.toLocaleString()}</span>
             </div>
             ${contentHtml}
             ${toggleButtonHtml}
@@ -2972,11 +2974,8 @@ function renderJournal() {
 
     list.innerHTML = '';
 
-    const hasJournalEntries = appState.journal.length > 0;
-    const hasWeeklyGoals = appState.weeks.some(w => w.weeklyGoals && w.weeklyGoals !== 'Set new goals for the week...');
-
-    if (!hasJournalEntries && !hasWeeklyGoals) {
-        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries or weekly goals yet.</p>';
+    if (appState.journal.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
         return;
     }
 
@@ -2984,70 +2983,51 @@ function renderJournal() {
     const sortDir = document.getElementById('journal-sort-direction').value;
 
     if (sortBy === 'date') {
-        // Group all journal entries by their week's start date for efficient lookup.
+        const allEntries = [...appState.journal];
+
+        // Group entries by the start of their week
         const entriesByWeek = {};
-        appState.journal.forEach(entry => {
-            const entryDate = new Date(entry.createdAt);
-            const weekStart = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
-            if (!entriesByWeek[weekStart]) {
-                entriesByWeek[weekStart] = [];
+        allEntries.forEach(entry => {
+            const entryDate = new Date(entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt);
+            const weekStartKey = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
+            if (!entriesByWeek[weekStartKey]) {
+                entriesByWeek[weekStartKey] = [];
             }
-            entriesByWeek[weekStart].push(entry);
+            entriesByWeek[weekStartKey].push(entry);
         });
 
-        // Filter and sort the weeks that should be displayed.
-        const weeksToDisplay = appState.weeks.filter(week => {
-            const hasGoal = week.weeklyGoals && week.weeklyGoals !== 'Set new goals for the week...';
-            const hasEntries = entriesByWeek[week.startDate] && entriesByWeek[week.startDate].length > 0;
-            return hasGoal || hasEntries;
-        }).sort((a, b) => {
-            const dateA = new Date(a.startDate);
-            const dateB = new Date(b.startDate);
+        // Sort the weeks first
+        const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
+            const dateA = new Date(a);
+            const dateB = new Date(b);
             return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
-        if (weeksToDisplay.length === 0) {
-             list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries or weekly goals yet.</p>';
-             return;
-        }
-
-        weeksToDisplay.forEach(weekData => {
-            const weekStartDate = new Date(weekData.startDate);
+        // Render each week
+        sortedWeeks.forEach(weekStartKey => {
+            const weekStartDate = new Date(weekStartKey);
             const weekEndDate = new Date(weekStartDate);
             weekEndDate.setDate(weekEndDate.getDate() + 6);
 
-            // Render a simple header for the week
-            const headerHtml = `
+            list.insertAdjacentHTML('beforeend', `
                 <div class="journal-week-header my-4 p-3 rounded-lg">
                     <h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
                 </div>
-            `;
-            list.insertAdjacentHTML('beforeend', headerHtml);
+            `);
 
-            // If the week has a goal, render it as a special journal entry.
-            const hasGoal = weekData.weeklyGoals && weekData.weeklyGoals !== 'Set new goals for the week...';
-            if (hasGoal) {
-                 const goalEntry = {
-                    id: `weekly-goal-${weekData.startDate}`,
-                    title: appSettings.weeklyGoalLabel || "Mission/Goals for this Week",
-                    content: weekData.weeklyGoals,
-                    createdAt: weekData.startDate,
-                    icon: journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye',
-                    isWeeklyGoal: true
-                };
-                list.insertAdjacentHTML('beforeend', renderJournalEntry(goalEntry));
-            }
-
-            // Get and sort the regular journal entries for this specific week.
-            const entries = entriesByWeek[weekData.startDate] || [];
-            entries.sort((a, b) => {
+            const entriesForWeek = entriesByWeek[weekStartKey];
+            // Sort entries within the week: goals first, then by date
+            entriesForWeek.sort((a, b) => {
+                if (a.isWeeklyGoal && !b.isWeeklyGoal) return -1;
+                if (!a.isWeeklyGoal && b.isWeeklyGoal) return 1;
                 const dateA = new Date(a.createdAt);
                 const dateB = new Date(b.createdAt);
                 return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
             });
 
-            // Render the sorted entries.
-            entries.forEach(entry => list.insertAdjacentHTML('beforeend', renderJournalEntry(entry)));
+            entriesForWeek.forEach(entry => {
+                list.insertAdjacentHTML('beforeend', renderJournalEntry(entry));
+            });
         });
 
     } else if (sortBy === 'icon') {
@@ -3060,69 +3040,27 @@ function renderJournal() {
             entriesByIcon[icon].push(entry);
         });
 
-        // Gather weekly goals and add them to the 'entriesByIcon' object
-        const weeklyGoalIcon = journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye';
-        if (!entriesByIcon[weeklyGoalIcon]) {
-            entriesByIcon[weeklyGoalIcon] = [];
-        }
-
-        appState.weeks.forEach(week => {
-            if (week.weeklyGoals && week.weeklyGoals !== 'Set new goals for the week...') {
-                const goalEntry = {
-                    id: `weekly-goal-${week.startDate}`,
-                    title: `Weekly Goal`,
-                    content: week.weeklyGoals,
-                    createdAt: week.startDate,
-                    icon: weeklyGoalIcon,
-                    isWeeklyGoal: true
-                };
-                entriesByIcon[weeklyGoalIcon].push(goalEntry);
-            }
-        });
-
-        if (entriesByIcon[weeklyGoalIcon] && entriesByIcon[weeklyGoalIcon].length === 0) {
-            delete entriesByIcon[weeklyGoalIcon];
-        }
-
-        // Cleanup stale collapse states
-        const currentIcons = new Set(Object.keys(entriesByIcon));
-        if (uiSettings.journalIconCollapseState) {
-            for (const iconKey in uiSettings.journalIconCollapseState) {
-                if (!currentIcons.has(iconKey)) {
-                    delete uiSettings.journalIconCollapseState[iconKey];
-                }
-            }
-        } else {
-            uiSettings.journalIconCollapseState = {};
-        }
-
-
         const sortedIcons = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
         if (sortDir === 'desc') sortedIcons.reverse();
 
         sortedIcons.forEach(icon => {
-            const displayName = icon.replace('fa-solid', '').replace('fa-brands', '').replace('fa-', '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
-
+            const displayName = icon.replace(/fa-(solid|regular|brands)\s*/, '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
             const isCollapsed = uiSettings.journalIconCollapseState[icon] === true;
-            const chevronClass = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
-            const entriesContainerDisplay = isCollapsed ? 'display: none;' : '';
 
-            const groupHtml = `
+            list.insertAdjacentHTML('beforeend', `
                 <div class="journal-icon-group">
-                    <div class="journal-icon-header my-4 p-2 bg-gray-800 rounded-md flex justify-between items-center cursor-pointer" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
-                        <h3 class="font-bold text-white">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
-                        <i class="fa-solid ${chevronClass} text-white transition-transform"></i>
+                    <div class="journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
+                        <h3 class="font-bold">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
+                        <i class="fa-solid ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'}"></i>
                     </div>
-                    <div class="journal-entries-container space-y-4" data-icon-entries="${icon}" style="${entriesContainerDisplay}">
+                    <div class="journal-entries-container ${isCollapsed ? 'hidden' : ''}" data-icon-entries="${icon}">
                         ${entriesByIcon[icon]
-                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Always sort by date within icon group
+                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                             .map(entry => renderJournalEntry(entry))
-                            .join('')
-                        }
+                            .join('')}
                     </div>
                 </div>
-            `;
-            list.insertAdjacentHTML('beforeend', groupHtml);
+            `);
         });
     }
 }
@@ -5927,14 +5865,15 @@ function setupEventListeners() {
         });
     }
 
-    const kpiPrevWeekBtn = document.getElementById('kpi-prev-week-btn');
-    if (kpiPrevWeekBtn) kpiPrevWeekBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset--; saveData(); renderKpiList(); });
 
-    const kpiNextWeekBtn = document.getElementById('kpi-next-week-btn');
-    if (kpiNextWeekBtn) kpiNextWeekBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset++; saveData(); renderKpiList(); });
+    const dashboardPrevWeekBtn = document.getElementById('dashboard-prev-week-btn');
+    if (dashboardPrevWeekBtn) dashboardPrevWeekBtn.addEventListener('click', () => { uiSettings.dashboardWeekOffset--; saveData(); renderDashboardContent(); });
 
-    const kpiTodayBtn = document.getElementById('kpi-today-btn');
-    if (kpiTodayBtn) kpiTodayBtn.addEventListener('click', () => { uiSettings.kpiWeekOffset = 0; saveData(); renderKpiList(); });
+    const dashboardNextWeekBtn = document.getElementById('dashboard-next-week-btn');
+    if (dashboardNextWeekBtn) dashboardNextWeekBtn.addEventListener('click', () => { uiSettings.dashboardWeekOffset++; saveData(); renderDashboardContent(); });
+
+    const dashboardTodayBtn = document.getElementById('dashboard-today-btn');
+    if (dashboardTodayBtn) dashboardTodayBtn.addEventListener('click', () => { uiSettings.dashboardWeekOffset = 0; saveData(); renderDashboardContent(); });
 
     const addNewKpiBtnEl = document.getElementById('add-new-kpi-btn');
     if (addNewKpiBtnEl) addNewKpiBtnEl.addEventListener('click', () => openModal(null, { isKpi: true }));
@@ -5958,11 +5897,44 @@ function setupEventListeners() {
     const weeklyGoalsEl = document.getElementById('weeklyGoals');
     if (weeklyGoalsEl) {
         weeklyGoalsEl.addEventListener('blur', () => {
-            const week = appState.weeks[CURRENT_WEEK_INDEX];
-            if (week) {
-                const newGoals = weeklyGoalsEl.innerHTML;
-                if (week.weeklyGoals !== newGoals) {
-                    week.weeklyGoals = newGoals;
+            const newContent = weeklyGoalsEl.innerHTML.trim();
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (uiSettings.dashboardWeekOffset * 7));
+            const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+            const weekStartDateStr = weekStart.toISOString().split('T')[0];
+
+            const existingGoalIndex = appState.journal.findIndex(entry => entry.isWeeklyGoal && entry.weekStartDate === weekStartDateStr);
+
+            if (newContent === '' || newContent === '<br>') {
+                // If content is empty, delete the existing entry
+                if (existingGoalIndex > -1) {
+                    appState.journal.splice(existingGoalIndex, 1);
+                    savePlannerData();
+                    if (uiSettings.activeView === 'journal-view') renderJournal();
+                }
+            } else {
+                if (existingGoalIndex > -1) {
+                    // Update existing entry
+                    if (appState.journal[existingGoalIndex].content !== newContent) {
+                        appState.journal[existingGoalIndex].content = newContent;
+                        appState.journal[existingGoalIndex].editedAt = new Date().toISOString();
+                        savePlannerData();
+                        if (uiSettings.activeView === 'journal-view') renderJournal();
+                    }
+                } else {
+                    // Create new entry
+                    const newGoalEntry = {
+                        id: generateId(),
+                        createdAt: new Date().toISOString(),
+                        editedAt: null,
+                        title: `Weekly Goal`,
+                        content: newContent,
+                        icon: journalSettings.weeklyGoalIcon,
+                        isWeeklyGoal: true,
+                        weekStartDate: weekStartDateStr,
+                    };
+                    appState.journal.push(newGoalEntry);
                     savePlannerData();
                     if (uiSettings.activeView === 'journal-view') renderJournal();
                 }
@@ -6686,6 +6658,23 @@ const loadPlannerData = () => {
         });
         appState.indicators = parsedData.indicators || appState.indicators;
         appState.journal = parsedData.journal || [];
+
+        // --- One-time Data Migration for Journal Entries ---
+        const journalMigrationNeeded = !localStorage.getItem('journalMigrationV1');
+        if (journalMigrationNeeded && Array.isArray(appState.journal)) {
+            console.log("Running one-time journal data migration...");
+            appState.journal.forEach(entry => {
+                if (entry.isWeeklyGoal === undefined) {
+                    entry.isWeeklyGoal = false;
+                }
+            });
+            localStorage.setItem('journalMigrationV1', 'true');
+            console.log("Journal data migration complete.");
+            // Re-save the data immediately after migration to persist the changes
+            savePlannerData();
+        }
+
+
         // Load archived tasks, ensuring dates are correctly parsed
         if (parsedData.archivedTasks && Array.isArray(parsedData.archivedTasks)) {
             appState.archivedTasks = parsedData.archivedTasks.map(task => {
@@ -6822,7 +6811,8 @@ const initializePlannerState = () => {
         const storedCurrentWeekStart = new Date(appState.weeks[CURRENT_WEEK_INDEX].startDate);
         let weekDiff = Math.round((currentWeekStartDate.getTime() - storedCurrentWeekStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
         if (weekDiff > 0) {
-            // promptToAdvanceWeeks(weekDiff); // This functionality is removed.
+            uiSettings.dashboardWeekOffset = 0;
+            saveData();
         }
     }
     while(appState.weeks.length > MAX_WEEKS_STORED) appState.weeks.shift();
