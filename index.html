@@ -219,8 +219,8 @@
                             <textarea id="task-description" name="task-description" rows="3"></textarea>
                         </div>
                         <div class="mb-4">
-                            <label for="task-notes" class="form-label">Notes:</label>
-                            <textarea id="task-notes" name="task-notes" rows="3"></textarea>
+                            <label for="task-thoughts" class="form-label">Thoughts:</label>
+                            <textarea id="task-thoughts" name="task-thoughts" rows="3"></textarea>
                         </div>
                         <div class="mb-4">
                            <label class="flex items-center">
@@ -729,6 +729,20 @@
                             <div class="flex items-center justify-between">
                                 <label for="close-modal-after-action-toggle" class="form-label mb-0" title="When enabled, the task detail pop-up will close automatically after you complete, miss, or delete a task from it.">Close modal after action:</label>
                                 <input type="checkbox" id="close-modal-after-action-toggle" data-action="toggleCloseModalAfterAction" class="toggle-checkbox">
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Task & History Management Section -->
+                <div class="collapsible-section" data-section-key="history">
+                    <h3 class="collapsible-header"><span>Task & History Management</span><i class="fas fa-chevron-down"></i></h3>
+                    <div class="collapsible-content">
+                        <fieldset>
+                            <legend>Icon Synchronization</legend>
+                            <div class="flex items-center justify-between">
+                                <label for="sync-task-icons-toggle" class="form-label mb-0" title="When enabled, changing a task's icon will also change the icon for all of its historical records.">Sync Task Icons:</label>
+                                <input type="checkbox" id="sync-task-icons-toggle" data-action="toggleSyncTaskIcons" class="toggle-checkbox">
                             </div>
                         </fieldset>
                     </div>
