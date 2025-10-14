@@ -4478,13 +4478,6 @@ function openDataMigrationModal(tasksData = null) {
     if (!dataMigrationModalEl) return;
 
     dataMigrationModalEl.innerHTML = dataMigrationModalTemplate();
-    const modalContent = dataMigrationModalEl.querySelector('.modal-content');
-
-    // JIT lookup and background fix
-    if (modalContent) {
-        const effectiveMode = theming.mode === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light') : theming.mode;
-        modalContent.style.backgroundColor = effectiveMode === 'night' ? '#2d3748' : '#FFFFFF'; // gray-700 or white
-    }
 
     // Add event listeners for the new modal
     const closeButton = dataMigrationModalEl.querySelector('.close-button');
@@ -6817,6 +6810,41 @@ const loadPlannerData = () => {
             console.log("Journal data migration complete.");
             // Re-save the data immediately after migration to persist the changes
             savePlannerData();
+        }
+
+        // --- One-time Data Migration for old Weekly Goals ---
+        const weeklyGoalMigrationNeeded = !localStorage.getItem('weeklyGoalMigrationV1');
+        if (weeklyGoalMigrationNeeded && Array.isArray(appState.weeks) && appState.weeks.length > 0) {
+            console.log("Running one-time weekly goal migration...");
+            let goalsMigrated = 0;
+            appState.weeks.forEach(week => {
+                if (week.weeklyGoals && week.weeklyGoals.trim() !== '' && week.weeklyGoals.trim() !== 'Set new goals for the week...') {
+                    const weekStartDate = new Date(week.startDate).toISOString().split('T')[0];
+                    // Avoid creating duplicate entries if one already exists for that week
+                    const existingEntry = appState.journal.find(j => j.isWeeklyGoal && j.weekStartDate === weekStartDate);
+
+                    if (!existingEntry) {
+                        const newGoalEntry = {
+                            id: generateId(),
+                            createdAt: new Date(week.startDate).toISOString(),
+                            editedAt: null,
+                            title: `Weekly Goal`,
+                            content: week.weeklyGoals,
+                            icon: journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye',
+                            isWeeklyGoal: true,
+                            weekStartDate: weekStartDate,
+                        };
+                        appState.journal.push(newGoalEntry);
+                        goalsMigrated++;
+                    }
+                }
+            });
+            localStorage.setItem('weeklyGoalMigrationV1', 'true');
+            console.log(`Weekly goal migration complete. Migrated ${goalsMigrated} goals.`);
+            if (goalsMigrated > 0) {
+                // Save the newly migrated goals
+                savePlannerData();
+            }
         }
 
 

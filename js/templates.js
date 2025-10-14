@@ -481,6 +481,7 @@ function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskI
 
 function dataMigrationModalTemplate() {
     return `
+    <div class="modal-content bg-modal">
         <h3 class="text-xl font-semibold mb-4">Data Migration & Integrity Tool</h3>
         <button class="close-button">&times;</button>
         <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded">
@@ -498,6 +499,7 @@ function dataMigrationModalTemplate() {
             <p class="text-sm my-2">This action is permanent and cannot be undone.</p>
             <button id="delete-all-history-btn" data-action="deleteAllHistory" class="btn btn-deny btn-md w-full">Delete All Task History</button>
         </div>
+    </div>
     `;
 }
 
