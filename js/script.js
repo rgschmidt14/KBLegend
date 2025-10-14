@@ -114,7 +114,7 @@ const DUE_THRESHOLD_MS = 1000;
 const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
-let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskIconInput,
+let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskNotesInput, taskIconInput,
     iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
     journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
@@ -318,6 +318,7 @@ function sanitizeAndUpgradeTask(task) {
         isAppointment: false,
         prepTimeAmount: null,
         prepTimeUnit: 'minutes',
+        notes: '',
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1408,6 +1409,7 @@ function openModal(taskId = null, options = {}) {
             taskIdInput.value = task.id;
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description || '';
+            taskNotesInput.value = task.notes || '';
             taskIconInput.value = task.icon || '';
 
             // Set Time Input Type and corresponding date fields
@@ -1606,6 +1608,7 @@ function archiveNonRepeatingTask(task, status, progress = 1) {
         durationAmount: task.estimatedDurationAmount,
         durationUnit: task.estimatedDurationUnit,
         progress: progress,
+        notes: task.notes,
         originalDueDate: originalDueDate // The scheduled due date
     };
     appState.historicalTasks.push(historicalTask);
@@ -2051,6 +2054,36 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
                 break;
             case 'viewTaskStats':
                 renderTaskStats(taskId);
+                break;
+            case 'editHistoryNotes':
+                const notesContent = document.getElementById(`task-notes-content-${historyEventId}`);
+                if (notesContent) {
+                    const currentNotes = taskOrHistoryItem.notes || '';
+                    notesContent.innerHTML = `
+                        <textarea id="editing-notes-${historyEventId}" class="w-full h-24 p-2 border rounded">${currentNotes}</textarea>
+                        <button data-action="saveHistoryNotes" data-history-event-id="${historyEventId}" class="btn btn-confirm btn-sm mt-2">Save</button>
+                    `;
+                }
+                break;
+            case 'saveHistoryNotes':
+                const textarea = document.getElementById(`editing-notes-${historyEventId}`);
+                if (textarea) {
+                    const newNotes = textarea.value.trim();
+                    const historyItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === historyEventId);
+                    if (historyItem) {
+                        historyItem.notes = newNotes;
+                        const journalEntry = {
+                            id: generateId(),
+                            createdAt: new Date(historyItem.completionDate).toISOString(),
+                            title: `Note for: ${historyItem.name}`,
+                            content: newNotes,
+                            icon: taskOrHistoryItem.icon,
+                        };
+                        appState.journal.push(journalEntry);
+                        saveData();
+                        openTaskView(historyEventId, true);
+                    }
+                }
                 break;
             case 'editTaskFromView':
                 afterAction(false);
@@ -3432,6 +3465,7 @@ function handleFormSubmit(event) {
         const taskData = {
             name: taskNameInput.value.trim(),
             description: taskDescriptionInput.value.trim(),
+            notes: taskNotesInput.value.trim(),
             icon: taskIconInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
             dueDateType: dueDateTypeSelect.value,
@@ -3702,6 +3736,7 @@ function confirmCompletionAction(taskId, confirmed) {
                     durationAmount: task.estimatedDurationAmount,
                     durationUnit: task.estimatedDurationUnit,
                     progress: isLastCycle ? progressToSave : 1,
+                    notes: task.notes,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3864,6 +3899,7 @@ function confirmMissAction(taskId, confirmed) {
                     status: 'green', // GPA 3.0
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                     progress: isFinalRecord ? progressRatio : 1,
+                    notes: task.notes,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3891,6 +3927,7 @@ function confirmMissAction(taskId, confirmed) {
                     status: historicalStatus,
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                     progress: isFinalRecordWithProgress ? progressRatio : 0,
+                    notes: task.notes,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3925,7 +3962,8 @@ function confirmMissAction(taskId, confirmed) {
                 originalTaskId: task.id, name: task.name, completionDate: new Date(baseDate), actionDate: now,
                 status: historicalStatus, categoryId: task.categoryId,
                 durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
-                progress: progressRatio, originalDueDate: new Date(baseDate)
+                progress: progressRatio, originalDueDate: new Date(baseDate),
+                notes: task.notes,
             });
             task.completed = true;
             task.status = 'blue';
@@ -5135,6 +5173,7 @@ function initializeDOMElements() {
     // Task Manager
     taskModal = document.getElementById('task-modal'); taskForm = document.getElementById('task-form'); taskListDiv = document.getElementById('task-list'); modalTitle = document.getElementById('modal-title'); taskIdInput = document.getElementById('task-id'); taskNameInput = document.getElementById('task-name');
     taskDescriptionInput = document.getElementById('task-description');
+    taskNotesInput = document.getElementById('task-notes');
     taskIconInput = document.getElementById('task-icon');
     iconPickerModal = document.getElementById('icon-picker-modal');
     dataMigrationModal = document.getElementById('data-migration-modal');
