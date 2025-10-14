@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -38,6 +38,7 @@ let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGr
 let lastBulkEditSettings = {};
 let oldTasksData = [];
 let editingTaskId = null;
+let editingHistoryEventId = null;
 let editingCategoryIdForIcon = null;
 let kpiChart = null; // For single chart view
 let kpiCharts = []; // For stacked chart view
@@ -75,7 +76,6 @@ let uiSettings = {
         showName: true,
         groupTasks: true,
     },
-    lastIconStyle: 'fa-solid',
     welcomeScreenShown: false,
     earlyOnTimeSettings: {
         enabled: false,
@@ -83,6 +83,7 @@ let uiSettings = {
         onlyAppointments: false,
     },
     dashboardWeekOffset: 0,
+    syncTaskIcons: true,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -114,7 +115,7 @@ const DUE_THRESHOLD_MS = 1000;
 const MAX_CYCLE_CALCULATION = 100;
 
 // DOM Element References (Task Manager)
-let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskNotesInput, taskIconInput,
+let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskThoughtsInput, taskIconInput,
     iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
     journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
     timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
@@ -318,7 +319,7 @@ function sanitizeAndUpgradeTask(task) {
         isAppointment: false,
         prepTimeAmount: null,
         prepTimeUnit: 'minutes',
-        notes: '',
+        thoughts: '',
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1409,7 +1410,7 @@ function openModal(taskId = null, options = {}) {
             taskIdInput.value = task.id;
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description || '';
-            taskNotesInput.value = task.notes || '';
+            taskThoughtsInput.value = task.thoughts || '';
             taskIconInput.value = task.icon || '';
 
             // Set Time Input Type and corresponding date fields
@@ -1608,7 +1609,7 @@ function archiveNonRepeatingTask(task, status, progress = 1) {
         durationAmount: task.estimatedDurationAmount,
         durationUnit: task.estimatedDurationUnit,
         progress: progress,
-        notes: task.notes,
+        thoughts: task.thoughts,
         originalDueDate: originalDueDate // The scheduled due date
     };
     appState.historicalTasks.push(historicalTask);
@@ -1754,6 +1755,38 @@ function renderOtherFeaturesSettings() {
     // Any other settings for this section would be rendered here
 }
 
+function renderTaskHistorySettings() {
+    const syncIconsToggle = document.getElementById('sync-task-icons-toggle');
+    if (syncIconsToggle) {
+        syncIconsToggle.checked = uiSettings.syncTaskIcons;
+    }
+}
+
+function updateTaskIcon(taskId, newIcon) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+        task.icon = newIcon;
+    }
+
+    if (uiSettings.syncTaskIcons) {
+        appState.historicalTasks.forEach(h => {
+            if (h.originalTaskId === taskId) {
+                h.icon = newIcon;
+            }
+        });
+        if (appState.archivedTasks) {
+            appState.archivedTasks.forEach(a => {
+                if (a.id === taskId) {
+                    a.icon = newIcon;
+                }
+            });
+        }
+    }
+    saveData();
+    renderTasks();
+    if (calendar) calendar.refetchEvents();
+}
+
 function renderEarlyOnTimeSettings() {
     const settings = uiSettings.earlyOnTimeSettings || { enabled: false, displaceCalendar: false, onlyAppointments: false };
     const masterToggle = document.getElementById('early-on-time-toggle');
@@ -1804,6 +1837,7 @@ function openAdvancedOptionsModal() {
     renderKpiAutomationSettings();
     renderHintManager();
     renderOtherFeaturesSettings(); // Render the new settings
+    renderTaskHistorySettings();
     renderEarlyOnTimeSettings(); // Render the "Early is on Time" settings
     renderMonthViewSettings(); // Render the new month view settings
 
@@ -1953,6 +1987,13 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         const historyEventId = target.dataset.historyEventId;
         let task = tasks.find(t => t.id === taskId);
 
+        if (action === 'editHistoryIcon') {
+            editingHistoryEventId = historyEventId;
+            editingTaskId = taskId; // Also set this for the icon picker's context
+            openIconPicker('history');
+            return;
+        }
+
         const refreshModal = () => {
             // Re-find the task in case it was modified by the action
             const currentTask = tasks.find(t => t.id === taskId);
@@ -2055,33 +2096,38 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
             case 'viewTaskStats':
                 renderTaskStats(taskId);
                 break;
-            case 'editHistoryNotes':
-                const notesContent = document.getElementById(`task-notes-content-${historyEventId}`);
-                if (notesContent) {
-                    const currentNotes = taskOrHistoryItem.notes || '';
-                    notesContent.innerHTML = `
-                        <textarea id="editing-notes-${historyEventId}" class="w-full h-24 p-2 border rounded">${currentNotes}</textarea>
-                        <button data-action="saveHistoryNotes" data-history-event-id="${historyEventId}" class="btn btn-confirm btn-sm mt-2">Save</button>
+            case 'editHistoryThoughts':
+                const thoughtsContent = document.getElementById(`task-thoughts-content-${historyEventId}`);
+                if (thoughtsContent) {
+                    const currentThoughts = taskOrHistoryItem.thoughts || '';
+                    thoughtsContent.innerHTML = `
+                        <textarea id="editing-thoughts-${historyEventId}" class="w-full h-24 p-2 border rounded">${currentThoughts}</textarea>
+                        <button data-action="saveHistoryThoughts" data-history-event-id="${historyEventId}" class="btn btn-confirm btn-sm mt-2">Save</button>
                     `;
                 }
                 break;
-            case 'saveHistoryNotes':
-                const textarea = document.getElementById(`editing-notes-${historyEventId}`);
+            case 'saveHistoryThoughts':
+                const textarea = document.getElementById(`editing-thoughts-${historyEventId}`);
                 if (textarea) {
-                    const newNotes = textarea.value.trim();
-                    const historyItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === historyEventId);
+                    const newThoughts = textarea.value.trim();
+                    // The historyEventId from the DOM is sanitized, so we must sanitize the comparison ID here as well.
+                    const historyItem = appState.historicalTasks.find(h => ('hist_' + h.originalTaskId + '_' + h.completionDate).replace(/[^a-zA-Z0-9_-]/g, '_') === historyEventId);
                     if (historyItem) {
-                        historyItem.notes = newNotes;
+                        historyItem.thoughts = newThoughts;
                         const journalEntry = {
                             id: generateId(),
                             createdAt: new Date(historyItem.completionDate).toISOString(),
-                            title: `Note for: ${historyItem.name}`,
-                            content: newNotes,
-                            icon: taskOrHistoryItem.icon,
+                            title: `Thought for: ${historyItem.name}`,
+                            content: newThoughts,
+                            icon: historyItem.icon, // This uses the icon from the historical item.
                         };
                         appState.journal.push(journalEntry);
                         saveData();
-                        openTaskView(historyEventId, true);
+                        if (!historyItem.icon) {
+                            openAddIconPromptModal(historyItem.originalTaskId);
+                        } else {
+                            openTaskView(historyEventId, true);
+                        }
                     }
                 }
                 break;
@@ -2239,6 +2285,14 @@ function renderTaskStats(taskId) {
             if (taskStatsContentEl) taskStatsContentEl.classList.add('hidden');
             if (taskViewContentEl) taskViewContentEl.classList.remove('hidden');
         }, { once: true });
+    }
+
+    const bulkUpdateIconButton = taskStatsContentEl.querySelector('[data-action="bulkUpdateIcon"]');
+    if (bulkUpdateIconButton) {
+        bulkUpdateIconButton.addEventListener('click', () => {
+            editingTaskId = taskId;
+            openIconPicker('bulk-history');
+        });
     }
 
     const reinstateBtn = taskStatsContentEl.querySelector('[data-action="reinstateTask"]');
@@ -2912,17 +2966,14 @@ function renderCategoryPieChart(weekOffset = 0) {
     });
 }
 
-function renderIconPicker(selectedStyle) {
+function renderIconPicker() {
     const content = document.getElementById('icon-picker-content');
     if (!content) return;
-    content.innerHTML = iconPickerTemplate(iconCategories, selectedStyle);
+    content.innerHTML = iconPickerTemplate(iconCategories);
 }
 
 function openIconPicker(context = 'task') {
-    if (!uiSettings.lastIconStyle) {
-        uiSettings.lastIconStyle = 'fa-solid'; // Ensure a default if it's somehow missing
-    }
-    renderIconPicker(uiSettings.lastIconStyle);
+    renderIconPicker();
     iconPickerModal.dataset.context = context; // Store the context
     activateModal(iconPickerModal);
 }
@@ -3063,6 +3114,54 @@ function renderJournal() {
             `);
         });
     }
+}
+
+function openAddIconPromptModal(taskId) {
+    const existingModal = document.getElementById('add-icon-prompt-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modalHtml = addIconPromptModalTemplate(taskId);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modal = document.getElementById('add-icon-prompt-modal');
+    const noThanksBtn = document.getElementById('prompt-no-thanks');
+    const chooseIconBtn = document.getElementById('prompt-choose-icon');
+
+    const closeModal = () => {
+        if (modal) {
+            deactivateModal(modal);
+            modal.remove();
+        }
+        // After closing the prompt, always re-open the task view to show the saved thought
+        const task = tasks.find(t => t.id === taskId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === taskId));
+        if (task) {
+            const latestHistory = appState.historicalTasks
+                .filter(h => h.originalTaskId === taskId)
+                .sort((a, b) => new Date(b.actionDate) - new Date(a.actionDate))[0];
+            if (latestHistory) {
+                const historyEventId = `hist_${latestHistory.originalTaskId}_${latestHistory.completionDate}`;
+                openTaskView(historyEventId, true);
+            }
+        }
+    };
+
+    noThanksBtn.addEventListener('click', closeModal);
+
+    chooseIconBtn.addEventListener('click', () => {
+        const taskIdToEdit = chooseIconBtn.dataset.taskId;
+        // Close the prompt modal BEFORE opening the icon picker
+        if (modal) {
+            deactivateModal(modal);
+            modal.remove();
+        }
+        // The task view will be re-opened by the icon picker's logic after an icon is selected or by the closeModal function if not.
+        editingTaskId = taskIdToEdit; // Set the global editingTaskId for the icon picker to use
+        openIconPicker('task');
+    });
+
+    activateModal(modal);
 }
 
 
@@ -3403,8 +3502,7 @@ function handleFormSubmit(event) {
         const taskData = {
             name: taskNameInput.value.trim(),
             description: taskDescriptionInput.value.trim(),
-            notes: taskNotesInput.value.trim(),
-            icon: taskIconInput.value.trim(),
+            thoughts: taskThoughtsInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
             dueDateType: dueDateTypeSelect.value,
             dueDate: null,
@@ -3533,6 +3631,9 @@ function handleFormSubmit(event) {
                     updatedTask.currentProgress = 0;
                 }
                 tasks[taskIndex] = updatedTask;
+                if (originalTask.icon !== taskIconInput.value.trim()) {
+                    updateTaskIcon(id, taskIconInput.value.trim());
+                }
             }
         } else {
             taskData.id = generateId();
@@ -3540,6 +3641,7 @@ function handleFormSubmit(event) {
             taskData.misses = 0;
             taskData.completed = false;
             taskData.status = 'green'; // Start as green, pipeline will correct it
+            taskData.icon = taskIconInput.value.trim();
             const newTask = sanitizeAndUpgradeTask(taskData);
             tasks.push(newTask);
         }
@@ -3674,7 +3776,8 @@ function confirmCompletionAction(taskId, confirmed) {
                     durationAmount: task.estimatedDurationAmount,
                     durationUnit: task.estimatedDurationUnit,
                     progress: isLastCycle ? progressToSave : 1,
-                    notes: task.notes,
+                    icon: task.icon,
+                    thoughts: task.thoughts,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3837,7 +3940,8 @@ function confirmMissAction(taskId, confirmed) {
                     status: 'green', // GPA 3.0
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                     progress: isFinalRecord ? progressRatio : 1,
-                    notes: task.notes,
+                    icon: task.icon,
+                    thoughts: task.thoughts,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3865,7 +3969,8 @@ function confirmMissAction(taskId, confirmed) {
                     status: historicalStatus,
                     categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                     progress: isFinalRecordWithProgress ? progressRatio : 0,
-                    notes: task.notes,
+                    icon: task.icon,
+                    thoughts: task.thoughts,
                     originalDueDate: new Date(dueDate)
                 });
             });
@@ -3901,7 +4006,8 @@ function confirmMissAction(taskId, confirmed) {
                 status: historicalStatus, categoryId: task.categoryId,
                 durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
                 progress: progressRatio, originalDueDate: new Date(baseDate),
-                notes: task.notes,
+                thoughts: task.thoughts,
+                icon: task.icon,
             });
             task.completed = true;
             task.status = 'blue';
@@ -5111,7 +5217,7 @@ function initializeDOMElements() {
     // Task Manager
     taskModal = document.getElementById('task-modal'); taskForm = document.getElementById('task-form'); taskListDiv = document.getElementById('task-list'); modalTitle = document.getElementById('modal-title'); taskIdInput = document.getElementById('task-id'); taskNameInput = document.getElementById('task-name');
     taskDescriptionInput = document.getElementById('task-description');
-    taskNotesInput = document.getElementById('task-notes');
+    taskThoughtsInput = document.getElementById('task-thoughts');
     taskIconInput = document.getElementById('task-icon');
     iconPickerModal = document.getElementById('icon-picker-modal');
     dataMigrationModal = document.getElementById('data-migration-modal');
@@ -5377,16 +5483,6 @@ function setupEventListeners() {
         const content = document.getElementById('icon-picker-content');
         if (content) {
             content.addEventListener('click', (e) => {
-                const actionTarget = e.target.closest('[data-action]');
-                if (actionTarget && actionTarget.dataset.action === 'changeIconStyle') {
-                    const newStyle = actionTarget.value;
-                    uiSettings.lastIconStyle = newStyle;
-                    saveData();
-                    renderIconPicker(newStyle); // Re-render the whole picker
-                    return;
-                }
-
-
                 const header = e.target.closest('.icon-picker-category-header');
                 if (header) {
                     const grid = header.nextElementSibling;
@@ -5428,8 +5524,53 @@ function setupEventListeners() {
                             break;
                         case 'task':
                         default:
-                            if (taskIconInputEl) {
+                            if (editingTaskId) {
+                                updateTaskIcon(editingTaskId, iconClass);
+                            } else if (taskIconInputEl) {
                                 taskIconInputEl.value = iconClass;
+                            }
+                            break;
+                        case 'history':
+                            if (editingHistoryEventId) {
+                                const historyItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === editingHistoryEventId);
+                                if (historyItem) {
+                                    historyItem.icon = iconClass;
+                                    if (uiSettings.syncTaskIcons && editingTaskId) {
+                                        updateTaskIcon(editingTaskId, iconClass);
+                                    } else {
+                                        saveData();
+                                        renderTasks();
+                                        if (calendar) calendar.refetchEvents();
+                                    }
+                                    openTaskView(editingHistoryEventId, true);
+                                }
+                                editingHistoryEventId = null;
+                                editingTaskId = null;
+                            }
+                            break;
+                        case 'bulk-history':
+                            if (editingTaskId) {
+                                // This action overrides the sync setting and updates everything.
+                                const task = tasks.find(t => t.id === editingTaskId);
+                                if (task) task.icon = iconClass;
+
+                                appState.historicalTasks.forEach(h => {
+                                    if (h.originalTaskId === editingTaskId) {
+                                        h.icon = iconClass;
+                                    }
+                                });
+                                if (appState.archivedTasks) {
+                                    appState.archivedTasks.forEach(a => {
+                                        if (a.id === editingTaskId) {
+                                            a.icon = iconClass;
+                                        }
+                                    });
+                                }
+                                saveData();
+                                renderTasks();
+                                if (calendar) calendar.refetchEvents();
+                                // Re-open the stats view to show the change
+                                renderTaskStats(editingTaskId);
                             }
                             break;
                     }
@@ -5715,6 +5856,10 @@ function setupEventListeners() {
                     uiSettings.earlyOnTimeSettings.onlyAppointments = event.target.checked;
                     saveData();
                     break;
+            case 'toggleSyncTaskIcons':
+                uiSettings.syncTaskIcons = event.target.checked;
+                saveData();
+                break;
             }
         });
 

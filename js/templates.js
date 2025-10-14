@@ -313,14 +313,19 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
     </div>
 ` : '';
 
-const notesHtml = `
-<div id="task-notes-section-${task.id}" class="mt-4">
+const thoughtsHtml = `
+<div id="task-thoughts-section-${task.id}" class="mt-4">
     <div class="flex justify-between items-center">
-        <h4 class="font-bold">Notes</h4>
-        ${isHistorical ? `<button data-action="editHistoryNotes" data-history-event-id="${task.id}" class="btn btn-clear text-xs">[Edit]</button>` : ''}
+        <h4 class="font-bold">Thoughts</h4>
+        ${isHistorical ? `
+            <div class="flex space-x-2">
+                <button data-action="editHistoryIcon" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-clear text-xs">[Change Icon]</button>
+                <button data-action="editHistoryThoughts" data-history-event-id="${task.id}" class="btn btn-clear text-xs">[Edit]</button>
+            </div>
+        ` : ''}
     </div>
-    <div id="task-notes-content-${task.id}">
-        <p class="text-sm whitespace-pre-wrap">${task.notes || (isHistorical ? 'No notes for this instance.' : '')}</p>
+    <div id="task-thoughts-content-${task.id}">
+        <p class="text-sm whitespace-pre-wrap">${task.thoughts || (isHistorical ? 'No thoughts for this instance.' : '')}</p>
     </div>
 </div>
 `;
@@ -335,7 +340,7 @@ const notesHtml = `
             ${!isHistorical ? `<p><strong>Repetition:</strong> ${repetitionStr}</p>` : '<p><strong>Repetition:</strong> N/A (Historical Record)</p>'}
         </div>
         ${descriptionHtml}
-        ${notesHtml}
+        ${thoughtsHtml}
         <div id="task-view-actions-${task.id}" class="mt-6 responsive-button-grid">
             ${actionsHtml}
         </div>
@@ -570,8 +575,9 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
         ${chartHtml}
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
         <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">${historyHtml}</div>
-        <div class="flex justify-start items-center space-x-4">
-             <button data-action="backToTaskView" class="btn btn-clear mt-6">Back to Details</button>
+        <div class="flex justify-start items-center space-x-4 mt-6">
+             <button data-action="backToTaskView" class="btn btn-clear">Back to Details</button>
+             <button data-action="bulkUpdateIcon" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Set Icon for All History</button>
              ${reinstateButtonHtml}
         </div>
     `;
@@ -702,24 +708,7 @@ function categoryFilterTemplate(categories, categoryFilter) {
     return allLabel + uncategorizedLabel + categoryLabels;
 }
 
-function iconPickerTemplate(iconCategories, selectedStyle = 'fa-solid') {
-    const styles = [
-        { id: 'fa-solid', name: 'Solid' },
-        { id: 'fa-regular', name: 'Regular' },
-        { id: 'fa-brands', name: 'Brands' }
-    ];
-
-    const styleSelectorHtml = `
-        <div id="icon-style-selector" class="flex justify-center space-x-4 mb-4 p-2 border-b">
-            ${styles.map(style => `
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="icon-style" value="${style.id}" class="form-radio" data-action="changeIconStyle" ${selectedStyle === style.id ? 'checked' : ''}>
-                    <span>${style.name}</span>
-                </label>
-            `).join('')}
-        </div>
-    `;
-
+function iconPickerTemplate(iconCategories) {
     const categoriesHtml = Object.entries(iconCategories).map(([category, icons]) => `
         <div class="icon-picker-category">
             <div class="icon-picker-category-header p-2 font-bold rounded cursor-pointer flex justify-between items-center">
@@ -728,14 +717,14 @@ function iconPickerTemplate(iconCategories, selectedStyle = 'fa-solid') {
             <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                 ${icons.map(iconClass => {
                     const isBrand = iconClass.startsWith('fa-brands');
-                    const finalIconClass = isBrand ? iconClass : `${selectedStyle} ${iconClass}`;
+                    const finalIconClass = isBrand ? iconClass : `fa-solid ${iconClass}`;
                     return `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${finalIconClass}"><i class="${finalIconClass} fa-2x"></i></div>`;
                 }).join('')}
             </div>
         </div>
     `).join('');
 
-    return styleSelectorHtml + `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
+    return `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
 }
 
 function editProgressTemplate(taskId, currentValue, max) {
@@ -946,8 +935,23 @@ export {
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
     calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
-    conflictResolutionModalTemplate
+    conflictResolutionModalTemplate, addIconPromptModalTemplate
 };
+
+function addIconPromptModalTemplate(taskId) {
+    return `
+        <div id="add-icon-prompt-modal" class="modal active">
+            <div class="modal-content bg-modal">
+                <h3 class="text-xl font-semibold mb-4">Assign an Icon?</h3>
+                <p class="mb-4 text-sm">This task doesn't have an icon. Would you like to assign one? Icons help with sorting in the Journal.</p>
+                <div class="flex justify-end space-x-2">
+                    <button id="prompt-no-thanks" class="btn btn-tertiary btn-md">No, Thanks</button>
+                    <button id="prompt-choose-icon" data-task-id="${taskId}" class="btn btn-secondary btn-md">Yes, Choose Icon</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 function conflictResolutionModalTemplate(conflicts) {
     const conflictItemsHtml = conflicts.map((conflict, index) => `
