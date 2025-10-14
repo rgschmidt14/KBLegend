@@ -100,6 +100,15 @@
 
             <!-- Dashboard View -->
             <div id="dashboard-view">
+                <div class="mb-4 bg-secondary p-2 rounded-lg flex justify-between items-center gap-2 flex-wrap">
+                    <div class="flex-1"></div> <!-- Spacer -->
+                    <div class="flex items-center gap-2">
+                        <button id="dashboard-prev-week-btn" class="btn btn-secondary btn-sm">&lt; Prev</button>
+                        <button id="dashboard-today-btn" class="btn btn-secondary btn-sm">Today</button>
+                        <button id="dashboard-next-week-btn" class="btn btn-secondary btn-sm">Next &gt;</button>
+                    </div>
+                    <div id="dashboard-week-display" class="flex-1 text-right text-sm font-semibold"></div>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-secondary lg:col-span-1">
                         <h2 id="weekly-goal-label" class="text-lg font-semibold mb-3 border-b pb-2"></h2>
@@ -117,11 +126,6 @@
                     <div class="bg-secondary lg:col-span-3">
                         <div class="flex flex-col items-center mb-3 border-b pb-2 gap-4">
                             <h2 class="text-lg font-semibold">Key Performance Indicators</h2>
-                            <div class="kpi-nav-container">
-                                <button id="kpi-prev-week-btn" class="btn btn-secondary btn-sm">&lt; Prev</button>
-                                <button id="kpi-today-btn" class="btn btn-secondary btn-sm">Today</button>
-                                <button id="kpi-next-week-btn" class="btn btn-secondary btn-sm">Next &gt;</button>
-                            </div>
                             <div id="kpi-controls" class="kpi-controls-container"></div>
                         </div>
                         <div id="kpi-chart-container" class="relative" style="min-height: 400px;">
