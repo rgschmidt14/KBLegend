@@ -3743,9 +3743,18 @@ function confirmCompletionAction(taskId, confirmed) {
 
         // --- Common Cleanup ---
         task.currentProgress = 0;
-        task.confirmationState = null;
         delete task.pendingCycles;
         delete task.overdueStartDate;
+
+        // If there are still overdue cycles, re-trigger the overdue input state
+        const remainingCycles = calculatePendingCycles(task, now.getTime());
+        if (remainingCycles > 0) {
+            task.confirmationState = 'awaiting_overdue_input';
+            task.pendingCycles = remainingCycles;
+            task.overdueStartDate = baseDate.toISOString();
+        } else {
+            task.confirmationState = null;
+        }
 
     } else { // User clicked "No"
         if (wasOverdue) {
@@ -3945,7 +3954,11 @@ function handleOverdueChoice(taskId, choice) {
     if (!task) return;
     if (!task.overdueStartDate) task.overdueStartDate = task.dueDate ? task.dueDate.toISOString() : null;
     task.pendingCycles = calculatePendingCycles(task, Date.now());
-    task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
+    if (choice === 'partial') {
+        task.confirmationState = 'confirming_complete';
+    } else {
+        task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
+    }
     saveData();
     const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
     if (taskElement) {
@@ -4026,6 +4039,8 @@ function editProgress(taskId) {
         toggleTimer(taskId);
     }
 
+    container.classList.remove('h-5');
+
     let currentValue, max;
     if (task.completionType === 'count') {
         currentValue = task.currentProgress || 0;
@@ -4043,20 +4058,37 @@ function saveProgressEdit(taskId) {
     const input = document.getElementById(`edit-progress-input-${taskId}`);
     if (!task || !input) return;
     let newValue = parseInt(input.value, 10);
-    if (isNaN(newValue)) { renderTasks(); return; }
+    if (isNaN(newValue)) {
+        renderTasks();
+        return;
+    }
     if (task.completionType === 'count') {
         const target = task.countTarget || Infinity;
         task.currentProgress = Math.max(0, Math.min(newValue, target));
-        if (task.currentProgress >= target) { triggerCompletion(taskId); }
+        if (task.currentProgress >= target) {
+            triggerCompletion(taskId);
+        }
     } else if (task.completionType === 'time') {
         const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
         task.currentProgress = Math.max(0, Math.min(parseMinutesToMs(newValue), targetMs));
-        if (task.currentProgress >= targetMs) { triggerCompletion(taskId); }
+        if (task.currentProgress >= targetMs) {
+            triggerCompletion(taskId);
+        }
+    }
+    const container = document.getElementById(`progress-container-${taskId}`);
+    if (container) {
+        container.classList.add('h-5');
     }
     saveData();
     renderTasks();
 }
-function cancelProgressEdit(taskId) { renderTasks(); }
+function cancelProgressEdit(taskId) {
+    const container = document.getElementById(`progress-container-${taskId}`);
+    if (container) {
+        container.classList.add('h-5');
+    }
+    renderTasks();
+}
 function deleteCategory(categoryId) {
     // Filter out tasks that belong to the category being deleted
     tasks = tasks.filter(task => task.categoryId !== categoryId);
@@ -6477,11 +6509,17 @@ function updateAllTaskStatuses(forceRender = false) {
         processEvent({ start, end, baseProps, isHistorical: false, originalId: occurrence.id });
     });
 
-    // Process recent historical tasks
-    const thirtyDaysAgo = new Date(nowMs - 30 * MS_PER_DAY);
+    // Process recent historical tasks.
+    // The view limit is tied to the history deletion setting for consistency.
+    // If deletion is off, we default to a year to balance utility and performance.
+    const historyViewDays = (uiSettings.historyDeletionEnabled && uiSettings.historyDeletionPeriod)
+        ? uiSettings.historyDeletionPeriod
+        : 365;
+    const historyCutoffDate = new Date(nowMs - historyViewDays * MS_PER_DAY);
+
     if (appState.historicalTasks && Array.isArray(appState.historicalTasks)) {
         appState.historicalTasks
-            .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= thirtyDaysAgo)
+            .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= historyCutoffDate)
             .forEach(ht => {
                 const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
                 const endDate = new Date(ht.completionDate);
