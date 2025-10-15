@@ -324,8 +324,10 @@ const thoughtsHtml = `
             </div>
         ` : ''}
     </div>
-    <div id="task-thoughts-content-${task.id}">
-        <p class="text-sm whitespace-pre-wrap">${task.thoughts || (isHistorical ? 'No thoughts for this instance.' : '')}</p>
+    <div id="task-thoughts-content-${task.id}"
+         class="prose prose-sm min-h-[80px] p-2 rounded-md focus:outline-none focus:ring-2 whitespace-pre-wrap"
+         ${!isHistorical ? 'contenteditable="true"' : ''}>
+        ${task.thoughts || (isHistorical ? '<p class="text-sm italic">No thoughts for this instance.</p>' : '')}
     </div>
 </div>
 `;
