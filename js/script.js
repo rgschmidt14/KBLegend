@@ -1410,7 +1410,6 @@ function openModal(taskId = null, options = {}) {
             taskIdInput.value = task.id;
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description || '';
-            taskThoughtsInput.value = task.thoughts || '';
             taskIconInput.value = task.icon || '';
 
             // Set Time Input Type and corresponding date fields
@@ -1977,6 +1976,22 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         }
         if (andRefreshCalendar && calendar) calendar.refetchEvents();
     };
+
+    newContentView.addEventListener('blur', (e) => {
+        const thoughtsEl = e.target.closest('[contenteditable="true"]');
+        if (thoughtsEl && thoughtsEl.id.startsWith('task-thoughts-content-')) {
+            const taskId = isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id;
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                const newThoughts = thoughtsEl.innerHTML.trim();
+                if (task.thoughts !== newThoughts) {
+                    task.thoughts = newThoughts;
+                    saveData();
+                    // Maybe show a subtle save indicator in the future
+                }
+            }
+        }
+    }, true); // Use capture phase to ensure this fires
 
     newContentView.addEventListener('click', (e) => {
         const target = e.target.closest('[data-action]');
@@ -3025,7 +3040,7 @@ function renderJournal() {
 
     list.innerHTML = '';
 
-    if (appState.journal.length === 0) {
+    if (!appState.journal || appState.journal.length === 0) {
         list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
         return;
     }
@@ -3034,45 +3049,55 @@ function renderJournal() {
     const sortDir = document.getElementById('journal-sort-direction').value;
 
     if (sortBy === 'date') {
-        const allEntries = [...appState.journal];
-
-        // Group entries by the start of their week
         const entriesByWeek = {};
-        allEntries.forEach(entry => {
-            const entryDate = new Date(entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt);
-            const weekStartKey = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
+        // Defensively group all entries, putting invalid ones in a special group
+        appState.journal.forEach(entry => {
+            const entryDateSource = entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt;
+            const entryDate = new Date(entryDateSource);
+            let weekStartKey;
+
+            if (entryDateSource && !isNaN(entryDate)) {
+                weekStartKey = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
+            } else {
+                weekStartKey = 'undated';
+            }
+
             if (!entriesByWeek[weekStartKey]) {
                 entriesByWeek[weekStartKey] = [];
             }
             entriesByWeek[weekStartKey].push(entry);
         });
 
-        // Sort the weeks first
         const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
+            if (a === 'undated') return 1; // Always sort undated to the end
+            if (b === 'undated') return -1;
             const dateA = new Date(a);
             const dateB = new Date(b);
             return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
-        // Render each week
         sortedWeeks.forEach(weekStartKey => {
-            const weekStartDate = new Date(weekStartKey);
-            const weekEndDate = new Date(weekStartDate);
-            weekEndDate.setDate(weekEndDate.getDate() + 6);
-
-            list.insertAdjacentHTML('beforeend', `
-                <div class="journal-week-header my-4 p-3 rounded-lg">
-                    <h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3>
-                </div>
-            `);
+            if (weekStartKey === 'undated') {
+                 list.insertAdjacentHTML('beforeend', `<div class="journal-week-header my-4 p-3 rounded-lg"><h3 class="text-lg font-bold">Undated Entries</h3></div>`);
+            } else {
+                const weekStartDate = new Date(weekStartKey);
+                const weekEndDate = new Date(weekStartDate);
+                weekEndDate.setDate(weekEndDate.getDate() + 6);
+                list.insertAdjacentHTML('beforeend', `<div class="journal-week-header my-4 p-3 rounded-lg"><h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3></div>`);
+            }
 
             const entriesForWeek = entriesByWeek[weekStartKey];
-            // Sort entries within the week: goals first, then by date
             entriesForWeek.sort((a, b) => {
-                if (a.isWeeklyGoal && !b.isWeeklyGoal) return -1;
-                if (!a.isWeeklyGoal && b.isWeeklyGoal) return 1;
-                const dateA = new Date(a.createdAt);
-                const dateB = new Date(b.createdAt);
+                // Implement user's requested sorting logic
+                if (sortDir === 'asc') {
+                    if (a.isWeeklyGoal && !b.isWeeklyGoal) return -1; // a (goal) comes first
+                    if (!a.isWeeklyGoal && b.isWeeklyGoal) return 1;  // b (goal) comes first
+                } else { // desc
+                    if (a.isWeeklyGoal && !b.isWeeklyGoal) return 1;  // a (goal) comes last
+                    if (!a.isWeeklyGoal && b.isWeeklyGoal) return -1; // b (goal) comes last
+                }
+                const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
+                const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
                 return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
             });
 
@@ -3098,20 +3123,31 @@ function renderJournal() {
             const displayName = icon.replace(/fa-(solid|regular|brands)\s*/, '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
             const isCollapsed = uiSettings.journalIconCollapseState[icon] === true;
 
-            list.insertAdjacentHTML('beforeend', `
-                <div class="journal-icon-group">
-                    <div class="journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
-                        <h3 class="font-bold">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
-                        <i class="fa-solid ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'}"></i>
+            const entriesHtml = entriesByIcon[icon]
+                .sort((a, b) => {
+                    const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
+                    const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
+                    // Inside icon groups, always sort newest to oldest for consistency
+                    return dateB - dateA;
+                })
+                .map(entry => renderJournalEntry(entry))
+                .join('');
+
+            try {
+                list.insertAdjacentHTML('beforeend', `
+                    <div class="journal-icon-group">
+                        <div class="journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
+                            <h3 class="font-bold">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
+                            <i class="fa-solid ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'}"></i>
+                        </div>
+                        <div class="journal-entries-container ${isCollapsed ? 'hidden' : ''}" data-icon-entries="${icon}">
+                            ${entriesHtml}
+                        </div>
                     </div>
-                    <div class="journal-entries-container ${isCollapsed ? 'hidden' : ''}" data-icon-entries="${icon}">
-                        ${entriesByIcon[icon]
-                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                            .map(entry => renderJournalEntry(entry))
-                            .join('')}
-                    </div>
-                </div>
-            `);
+                `);
+            } catch (e) {
+                console.error("Error rendering icon group:", icon, e);
+            }
         });
     }
 }
@@ -3502,7 +3538,6 @@ function handleFormSubmit(event) {
         const taskData = {
             name: taskNameInput.value.trim(),
             description: taskDescriptionInput.value.trim(),
-            thoughts: taskThoughtsInput.value.trim(),
             timeInputType: timeInputTypeSelect.value,
             dueDateType: dueDateTypeSelect.value,
             dueDate: null,
@@ -6204,23 +6239,11 @@ function setupEventListeners() {
                     const iconGroup = target.dataset.iconGroup;
                     const entriesContainer = journalViewEl.querySelector(`.journal-entries-container[data-icon-entries="${iconGroup}"]`);
                     const chevron = target.querySelector('i.fa-solid');
-                    if (entriesContainer) {
-                        const isCollapsed = entriesContainer.style.display === 'none';
-                        if (isCollapsed) {
-                            entriesContainer.style.display = '';
-                            if (chevron) {
-                                chevron.classList.remove('fa-chevron-right');
-                                chevron.classList.add('fa-chevron-down');
-                            }
-                            uiSettings.journalIconCollapseState[iconGroup] = false;
-                        } else {
-                            entriesContainer.style.display = 'none';
-                             if (chevron) {
-                                chevron.classList.remove('fa-chevron-down');
-                                chevron.classList.add('fa-chevron-right');
-                            }
-                            uiSettings.journalIconCollapseState[iconGroup] = true;
-                        }
+                    if (entriesContainer && chevron) {
+                        const isHidden = entriesContainer.classList.toggle('hidden');
+                        chevron.classList.toggle('fa-chevron-right', isHidden);
+                        chevron.classList.toggle('fa-chevron-down', !isHidden);
+                        uiSettings.journalIconCollapseState[iconGroup] = isHidden;
                         saveData();
                     }
                     break;
