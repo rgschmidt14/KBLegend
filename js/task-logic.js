@@ -232,8 +232,11 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
                 });
             }
         } else {
-            // For repeating tasks, get only future occurrences.
-            const dueDates = getOccurrences(task, now, calculationHorizon);
+             // For repeating tasks, find the most recent past-due occurrence if the task is overdue,
+            // and all future occurrences within the horizon.
+            const startScanDate = (task.overdueStartDate) ? new Date(task.overdueStartDate) : now;
+            const dueDates = getOccurrences(task, startScanDate, calculationHorizon);
+
             dueDates.forEach(dueDate => {
                 allOccurrences.push({
                     ...task,
@@ -301,10 +304,10 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     busySlots.sort((a, b) => a.start - b.start);
 
     flexibleTasks.forEach(task => {
-        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
-        if (!task.baseDueDate || durationMs <= 0) {
-            task.scheduledStartTime = task.baseDueDate;
-            task.scheduledEndTime = task.baseDueDate;
+        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000; // Default to 1 minute
+        if (!task.baseDueDate) {
+            task.scheduledStartTime = new Date();
+            task.scheduledEndTime = new Date(new Date().getTime() + durationMs);
             return;
         }
 

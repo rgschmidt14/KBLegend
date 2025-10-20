@@ -3053,9 +3053,18 @@ function renderJournal() {
         // Defensively group all entries, putting invalid ones in a special group
         appState.journal.forEach(entry => {
             const entryDateSource = entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt;
-            const entryDate = new Date(entryDateSource);
-            let weekStartKey;
+            let entryDate;
 
+            // Timezone fix: a 'YYYY-MM-DD' string is parsed as UTC midnight, which can be the previous day in some timezones.
+            // By splitting the string, we construct the date in the user's local timezone at midnight.
+            if (entry.isWeeklyGoal && typeof entryDateSource === 'string' && entryDateSource.includes('-')) {
+                const parts = entryDateSource.split('-');
+                entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            } else {
+                entryDate = new Date(entryDateSource);
+            }
+
+            let weekStartKey;
             if (entryDateSource && !isNaN(entryDate)) {
                 weekStartKey = startOfWeek(entryDate, { weekStartsOn: 0 }).toISOString();
             } else {
@@ -3109,7 +3118,7 @@ function renderJournal() {
     } else if (sortBy === 'icon') {
         const entriesByIcon = {};
         appState.journal.forEach(entry => {
-            const icon = entry.icon || 'No Icon';
+            const icon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
             if (!entriesByIcon[icon]) {
                 entriesByIcon[icon] = [];
             }
@@ -6079,38 +6088,29 @@ function setupEventListeners() {
 
             const existingGoalIndex = appState.journal.findIndex(entry => entry.isWeeklyGoal && entry.weekStartDate === weekStartDateStr);
 
-            if (newContent === '' || newContent === '<br>') {
-                // If content is empty, delete the existing entry
-                if (existingGoalIndex > -1) {
-                    appState.journal.splice(existingGoalIndex, 1);
+        if (existingGoalIndex > -1) {
+            // Update existing entry, even if it's empty. This is safer than deleting.
+            if (appState.journal[existingGoalIndex].content !== newContent) {
+                appState.journal[existingGoalIndex].content = newContent;
+                appState.journal[existingGoalIndex].editedAt = new Date().toISOString();
                     savePlannerData();
                     if (uiSettings.activeView === 'journal-view') renderJournal();
                 }
-            } else {
-                if (existingGoalIndex > -1) {
-                    // Update existing entry
-                    if (appState.journal[existingGoalIndex].content !== newContent) {
-                        appState.journal[existingGoalIndex].content = newContent;
-                        appState.journal[existingGoalIndex].editedAt = new Date().toISOString();
-                        savePlannerData();
-                        if (uiSettings.activeView === 'journal-view') renderJournal();
-                    }
-                } else {
-                    // Create new entry
-                    const newGoalEntry = {
-                        id: generateId(),
-                        createdAt: new Date().toISOString(),
-                        editedAt: null,
-                        title: `Weekly Goal`,
-                        content: newContent,
-                        icon: journalSettings.weeklyGoalIcon,
-                        isWeeklyGoal: true,
-                        weekStartDate: weekStartDateStr,
-                    };
-                    appState.journal.push(newGoalEntry);
-                    savePlannerData();
-                    if (uiSettings.activeView === 'journal-view') renderJournal();
-                }
+        } else if (newContent !== '' && newContent !== '<br>') {
+            // Only create a new entry if there's actual content.
+            const newGoalEntry = {
+                id: generateId(),
+                createdAt: new Date().toISOString(),
+                editedAt: null,
+                title: `Weekly Goal`,
+                content: newContent,
+                icon: journalSettings.weeklyGoalIcon,
+                isWeeklyGoal: true,
+                weekStartDate: weekStartDateStr,
+            };
+            appState.journal.push(newGoalEntry);
+            savePlannerData();
+            if (uiSettings.activeView === 'journal-view') renderJournal();
             }
         });
     }
