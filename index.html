@@ -585,6 +585,13 @@
                             <div id="category-filter-list" class="space-y-1"></div>
                         </fieldset>
                         <fieldset>
+                            <legend>Task Manager Sorting</legend>
+                            <div class="flex items-center justify-between">
+                                <label for="sort-by-start-date-toggle" class="form-label mb-0" title="When enabled, sorting by 'Due Date' will use the task's calculated start time (due date minus duration) instead.">Sort by Start Date:</label>
+                                <input type="checkbox" id="sort-by-start-date-toggle" data-action="toggleSortByStartDate" class="toggle-checkbox">
+                            </div>
+                        </fieldset>
+                        <fieldset>
                             <legend>Calendar Category Filters</legend>
                             <div class="flex items-center justify-between">
                                 <label for="show-calendar-filters-toggle" class="form-label mb-0">Show Category Filters Below Calendar:</label>

@@ -85,6 +85,7 @@ let uiSettings = {
     },
     dashboardWeekOffset: 0,
     syncTaskIcons: true,
+    useStartDateForSort: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1189,9 +1190,18 @@ function renderTasks() {
         if (sortBy === 'status') {
             comparison = (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5);
         } else if (sortBy === 'dueDate') {
-            const dueDateA = a.dueDate ? a.dueDate.getTime() : Infinity;
-            const dueDateB = b.dueDate ? b.dueDate.getTime() : Infinity;
-            comparison = dueDateA - dueDateB;
+            const getDateValue = (task) => {
+                if (!task.dueDate) return Infinity;
+                let date = new Date(task.dueDate);
+                if (uiSettings.useStartDateForSort) {
+                    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+                    date = new Date(date.getTime() - durationMs);
+                }
+                return date.getTime();
+            };
+            const dateA = getDateValue(a);
+            const dateB = getDateValue(b);
+            comparison = dateA - dateB;
         } else if (sortBy === 'category') {
             const categoryA = categories.find(c => c.id === a.categoryId)?.name || 'Uncategorized';
             const categoryB = categories.find(c => c.id === b.categoryId)?.name || 'Uncategorized';
@@ -1263,7 +1273,12 @@ function renderTasks() {
     if (sortBy === 'dueDate') {
         const groupedByDate = {};
         sortedTasks.forEach(task => {
-            const group = getDueDateGroup(task.dueDate);
+            let dateForGrouping = task.dueDate ? new Date(task.dueDate) : null;
+            if (uiSettings.useStartDateForSort && dateForGrouping) {
+                const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+                dateForGrouping = new Date(dateForGrouping.getTime() - durationMs);
+            }
+            const group = getDueDateGroup(dateForGrouping);
             if (!groupedByDate[group.index]) {
                 groupedByDate[group.index] = { name: group.name, tasks: [] };
             }
@@ -6053,6 +6068,11 @@ function setupEventListeners() {
             case 'toggleSyncTaskIcons':
                 uiSettings.syncTaskIcons = event.target.checked;
                 saveData();
+                break;
+            case 'toggleSortByStartDate':
+                uiSettings.useStartDateForSort = event.target.checked;
+                saveData();
+                renderTasks(); // Re-render tasks to apply the new sort logic
                 break;
             }
         });
