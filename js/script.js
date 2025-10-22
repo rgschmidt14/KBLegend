@@ -1487,7 +1487,7 @@ function openModal(taskId = null, options = {}) {
             document.getElementById('is-kpi').checked = task.isKpi || false;
             document.getElementById('prep-time-amount').value = task.prepTimeAmount || '';
             document.getElementById('prep-time-unit').value = task.prepTimeUnit || 'minutes';
-
+            document.getElementById('repeat-until-date').value = task.repeatUntil ? formatDateForInput(new Date(task.repeatUntil)) : '';
         } else {
             modalTitle.textContent = 'Add New Task';
             taskIdInput.value = '';
@@ -2909,15 +2909,21 @@ function renderCategoryPieChart(weekOffset = 0) {
     // 2. Aggregate data
     const categoryTime = {}; // { categoryId: { name, color, totalMinutes } }
 
-    const processTask = (task, date) => {
-        if (!task.estimatedDurationAmount) return;
+    const processTaskOccurrence = (task, occurrenceDate) => {
+        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+        if (durationMs === 0) return;
 
-        const taskDate = new Date(date);
-        if (taskDate >= weekStart && taskDate < weekEnd) {
+        const occurrenceEnd = new Date(occurrenceDate);
+        const occurrenceStart = new Date(occurrenceEnd.getTime() - durationMs);
+
+        // Clamp the occurrence to the week's boundaries
+        const effectiveStart = Math.max(occurrenceStart.getTime(), weekStart.getTime());
+        const effectiveEnd = Math.min(occurrenceEnd.getTime(), weekEnd.getTime());
+
+        const durationInWeekMs = Math.max(0, effectiveEnd - effectiveStart);
+        if (durationInWeekMs > 0) {
+            const durationInWeekMinutes = durationInWeekMs / MS_PER_MINUTE;
             const categoryId = task.categoryId || 'uncategorized';
-            const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
-            const durationMinutes = durationMs / MS_PER_MINUTE;
-
             if (!categoryTime[categoryId]) {
                 const category = categories.find(c => c.id === categoryId);
                 categoryTime[categoryId] = {
@@ -2926,26 +2932,44 @@ function renderCategoryPieChart(weekOffset = 0) {
                     totalMinutes: 0
                 };
             }
-            categoryTime[categoryId].totalMinutes += durationMinutes;
+            categoryTime[categoryId].totalMinutes += durationInWeekMinutes;
         }
     };
 
     // Process active tasks (considering their occurrences)
     tasks.forEach(task => {
-        const occurrences = getOccurrences(task, weekStart, weekEnd);
+        // Broaden the search window slightly to catch tasks that start just before the week
+        const searchStart = new Date(weekStart.getTime() - (7 * MS_PER_DAY)); // One week buffer
+        const occurrences = getOccurrences(task, searchStart, weekEnd);
         occurrences.forEach(occurrenceDate => {
-            processTask(task, occurrenceDate);
+            processTaskOccurrence(task, occurrenceDate);
         });
     });
 
     // Process historical tasks
     appState.historicalTasks.forEach(historicalTask => {
-        processTask({
+        processTaskOccurrence({
             categoryId: historicalTask.categoryId,
             estimatedDurationAmount: historicalTask.durationAmount,
             estimatedDurationUnit: historicalTask.durationUnit
         }, historicalTask.completionDate);
     });
+
+    const totalMinutesInWeek = 7 * 24 * 60;
+    const totalPlannedMinutes = Object.values(categoryTime).reduce((sum, cat) => sum + cat.totalMinutes, 0);
+    const unplannedMinutes = Math.max(0, totalMinutesInWeek - totalPlannedMinutes);
+
+    if (unplannedMinutes > 0) {
+        const unplannedRatio = unplannedMinutes / totalMinutesInWeek;
+        const unplannedLabel = unplannedRatio >= 0.3 ? 'Unplanned' : 'Free Time';
+        const unplannedColor = '#4a5568'; // A neutral gray color
+
+        categoryTime['unplanned'] = {
+            name: unplannedLabel,
+            color: unplannedColor,
+            totalMinutes: unplannedMinutes
+        };
+    }
 
     const labels = Object.values(categoryTime).map(c => c.name);
     const data = Object.values(categoryTime).map(c => c.totalMinutes);
@@ -3613,7 +3637,8 @@ function handleFormSubmit(event) {
             categoryId: null,
             isKpi: document.getElementById('is-kpi').checked,
             prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
-            prepTimeUnit: document.getElementById('prep-time-unit').value
+            prepTimeUnit: document.getElementById('prep-time-unit').value,
+            repeatUntil: document.getElementById('repeat-until-date').value ? new Date(document.getElementById('repeat-until-date').value) : null,
         };
 
         if (uiSettings.userInteractions && taskData.prepTimeAmount > 0) {
@@ -3665,8 +3690,15 @@ function handleFormSubmit(event) {
                     taskData.repetitionAbsoluteYearlyDaysOfMonth = Array.from(yearlyDayCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
                 }
             }
-            taskData.maxMisses = maxMissesInput.value ? parseInt(maxMissesInput.value, 10) : null;
             taskData.trackMisses = trackMissesInput.checked;
+            const maxMissesValue = maxMissesInput.value;
+            if (taskData.trackMisses && (maxMissesValue === '' || maxMissesValue === null)) {
+                taskData.maxMisses = 1;
+            } else if (maxMissesValue !== '' && maxMissesValue !== null) {
+                taskData.maxMisses = parseInt(maxMissesValue, 10);
+            } else {
+                taskData.maxMisses = null;
+            }
         }
         const categoryValue = taskCategorySelect.value;
         if (categoryValue === 'new_category') {

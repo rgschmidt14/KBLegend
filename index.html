@@ -454,6 +454,14 @@
                         </div>
                         <div id="repeating-options-group" class="mb-4 hidden">
                             <fieldset>
+                                <legend>Repetition End Date</legend>
+                                <div id="repeat-until-group" class="mb-4">
+                                    <label for="repeat-until-date" class="form-label">Repeat Until:</label>
+                                    <input type="datetime-local" id="repeat-until-date" name="repeat-until-date">
+                                    <p class="form-hint">Optional. The task will not repeat after this date.</p>
+                                </div>
+                            </fieldset>
+                            <fieldset>
                                 <legend>Failure Tracking</legend>
                                 <div id="max-misses-group" class="mb-4">
                                     <label for="max-misses" class="form-label">Max Misses Before Failure:</label>

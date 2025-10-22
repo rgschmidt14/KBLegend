@@ -130,15 +130,17 @@ function getOccurrences(task, startDate, endDate) {
     const dueDates = [];
     if (!task.dueDate) return dueDates;
 
+    const repeatUntilDate = task.repeatUntil ? new Date(task.repeatUntil) : null;
+    const finalEndDate = (repeatUntilDate && repeatUntilDate < endDate) ? repeatUntilDate : endDate;
+
     const initialDueDate = new Date(task.dueDate);
 
     if (task.repetitionType === 'none') {
-        // A non-repeating task is considered an "occurrence" if its due date is within the window.
-        if (initialDueDate >= startDate && initialDueDate <= endDate) {
+        if (initialDueDate >= startDate && initialDueDate <= finalEndDate) {
             dueDates.push(initialDueDate);
         }
     } else if (task.repetitionType === 'absolute') {
-        return generateAbsoluteOccurrences(task, startDate, endDate);
+        return generateAbsoluteOccurrences(task, startDate, finalEndDate);
     } else if (task.repetitionType === 'relative') {
         const intervalMs = getDurationMs(task.repetitionAmount, task.repetitionUnit);
         if (intervalMs > 0) {
@@ -147,7 +149,7 @@ function getOccurrences(task, startDate, endDate) {
                 currentDate = new Date(currentDate.getTime() + intervalMs);
             }
             let i = 0; // Safety break
-            while (currentDate.getTime() <= endDate.getTime() && i < 500) {
+            while (currentDate.getTime() <= finalEndDate.getTime() && i < 500) {
                 dueDates.push(new Date(currentDate));
                 currentDate = new Date(currentDate.getTime() + intervalMs);
                 i++;
