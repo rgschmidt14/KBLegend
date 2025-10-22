@@ -361,6 +361,22 @@ function historyDeleteConfirmationTemplate(historyId, taskId) {
     `;
 }
 
+export function confirmOverrideModalTemplate(occurrenceId) {
+    return `
+        <div class="modal active" id="confirm-override-modal">
+            <div class="modal-content">
+                <h2 class="text-xl font-bold mb-4">Apply Changes</h2>
+                <p class="mb-6">Do you want to apply this change to just this specific occurrence or to this and all future occurrences of the task?</p>
+                <div class="flex justify-end space-x-4">
+                    <button data-action="cancel-override" class="btn btn-secondary">Cancel</button>
+                    <button data-action="apply-override" data-scope="single" data-occurrence-id="${occurrenceId}" class="btn btn-primary">Just This One</button>
+                    <button data-action="apply-override" data-scope="future" data-occurrence-id="${occurrenceId}" class="btn btn-primary">This and All Future</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function vacationChangeConfirmationModalTemplate(changedTasks) {
     const taskListHtml = changedTasks.map(t => `
         <li class="text-sm p-1 rounded">

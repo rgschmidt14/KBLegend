@@ -219,29 +219,36 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     let allOccurrences = [];
     filteredTasks.forEach(task => {
         if (!task.dueDate) return;
+        // Ensure the task has an overrides object
+        if (!task.occurrenceOverrides) {
+            task.occurrenceOverrides = {};
+        }
 
         if (task.repetitionType === 'none') {
-            // For non-repeating tasks, just add them if they are not completed.
-            // The pipeline will handle their status based on due date.
             if (!task.completed) {
-                 allOccurrences.push({
+                const occurrenceId = `${task.id}_${new Date(task.dueDate).toISOString()}`;
+                const override = task.occurrenceOverrides[occurrenceId] || {};
+                allOccurrences.push({
                     ...task,
+                    ...override, // Apply any specific overrides
                     originalId: task.id,
-                    id: `${task.id}_${new Date(task.dueDate).toISOString()}`,
+                    id: occurrenceId,
                     occurrenceDueDate: new Date(task.dueDate),
                 });
             }
         } else {
-             // For repeating tasks, find the most recent past-due occurrence if the task is overdue,
-            // and all future occurrences within the horizon.
             const startScanDate = (task.overdueStartDate) ? new Date(task.overdueStartDate) : now;
             const dueDates = getOccurrences(task, startScanDate, calculationHorizon);
 
             dueDates.forEach(dueDate => {
+                // This is the new unique ID for each projected instance.
+                const occurrenceId = `${task.id}_${dueDate.toISOString()}`;
+                const override = task.occurrenceOverrides[occurrenceId] || {};
                 allOccurrences.push({
                     ...task,
+                    ...override, // Apply any specific overrides
                     originalId: task.id,
-                    id: `${task.id}_${dueDate.toISOString()}`,
+                    id: occurrenceId,
                     occurrenceDueDate: dueDate,
                 });
             });
