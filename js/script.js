@@ -64,6 +64,7 @@ let uiSettings = {
     kpiChartDateRange: '8d', // '8d', '30d', etc.
     journalIconCollapseState: {},
     advancedOptionsCollapseState: {},
+    taskManagerCollapseState: {},
     calculationHorizonAmount: 1,
     calculationHorizonUnit: 'years',
     hintsDisabled: false,
@@ -1149,11 +1150,14 @@ function stopTaskTimer(taskId) {
 function renderTasks() {
     stopAllTimers();
     taskListDiv.innerHTML = '';
+    console.log('--- renderTasks ---');
+    console.log('Initial tasks:', JSON.parse(JSON.stringify(tasks)));
     const filteredTasks = tasks.filter(task => {
         if (categoryFilter.length === 0) return true;
         if (!task.categoryId) return categoryFilter.includes(null);
         return categoryFilter.includes(task.categoryId);
     });
+    console.log('Filtered tasks:', JSON.parse(JSON.stringify(filteredTasks)));
     if (filteredTasks.length === 0) {
         taskListDiv.innerHTML = '<p class="text-gray-500 text-center italic">No tasks match the current filter.</p>';
         return;
@@ -1222,6 +1226,22 @@ function renderTasks() {
         const commonButtonsArea = taskElement.querySelector(`#common-buttons-${task.id}`);
         if (actionArea) actionArea.innerHTML = actionAreaTemplate(task);
         if (commonButtonsArea) commonButtonsArea.innerHTML = commonButtonsTemplate(task);
+        return taskElement;
+    };
+
+    if (!uiSettings.taskManagerCollapseState) {
+        uiSettings.taskManagerCollapseState = {};
+    }
+
+    const renderGroup = (groupName, tasksInGroup, color, styleString) => {
+        const isCollapsed = uiSettings.taskManagerCollapseState[groupName] === true;
+        taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(groupName, color, styleString, isCollapsed));
+        tasksInGroup.forEach(task => {
+            const taskElement = renderTaskItem(task, groupName);
+            if (isCollapsed) {
+                taskElement.classList.add('hidden');
+            }
+        });
     };
 
     if (sortBy === 'dueDate') {
@@ -1243,32 +1263,58 @@ function renderTasks() {
             const bgColor = interpolateFiveColors(percent);
             const textStyles = getContrastingTextColor(bgColor);
             const styleString = Object.entries(textStyles).map(([key, value]) => `${key}: ${value};`).join(' ');
-            taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(group.name, bgColor, styleString));
-            group.tasks.forEach(task => renderTaskItem(task, group.name));
+            renderGroup(group.name, group.tasks, bgColor, styleString);
         });
 
     } else { // Handles 'status' and 'category' sorting
-        let lastGroup = null;
+        const groupedTasks = {};
         sortedTasks.forEach(task => {
-            let currentGroup = '';
+            let groupName = '';
+            if (sortBy === 'status') {
+                groupName = statusNames[task.status] || task.status;
+            } else if (sortBy === 'category') {
+                const category = categories.find(c => c.id === task.categoryId);
+                groupName = category ? category.name : 'Uncategorized';
+            }
+            if (!groupedTasks[groupName]) {
+                groupedTasks[groupName] = [];
+            }
+            groupedTasks[groupName].push(task);
+        });
+
+        const groupNames = Object.keys(groupedTasks);
+        // Custom sort for status
+        if (sortBy === 'status') {
+            const statusOrder = { 'black': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
+            const statusKeyOrder = Object.keys(statusNames).sort((a,b) => statusOrder[a] - statusOrder[b]);
+            groupNames.sort((a, b) => {
+                 const keyA = Object.keys(statusNames).find(key => statusNames[key] === a);
+                 const keyB = Object.keys(statusNames).find(key => statusNames[key] === b);
+                 return statusKeyOrder.indexOf(keyA) - statusKeyOrder.indexOf(keyB);
+            });
+
+        } else { // Default alphabetical sort for categories
+            groupNames.sort((a, b) => a.localeCompare(b));
+        }
+
+
+        if (sortDirection === 'desc') groupNames.reverse();
+
+
+        groupNames.forEach(groupName => {
+            const tasksInGroup = groupedTasks[groupName];
             let groupColor = '#e5e7eb';
 
             if (sortBy === 'status') {
-                currentGroup = statusNames[task.status] || task.status;
-                groupColor = statusColors[task.status] || '#e5e7eb';
+                const statusKey = Object.keys(statusNames).find(key => statusNames[key] === groupName);
+                groupColor = statusColors[statusKey] || '#e5e7eb';
             } else if (sortBy === 'category') {
-                const category = categories.find(c => c.id === task.categoryId);
-                currentGroup = category ? category.name : 'Uncategorized';
+                const category = categories.find(c => c.name === groupName);
                 groupColor = category ? category.color : '#FFFFFF';
             }
-
-            if (currentGroup !== lastGroup) {
-                const textStyles = getContrastingTextColor(groupColor);
-                const styleString = Object.entries(textStyles).map(([key, value]) => `${key}: ${value};`).join(' ');
-                taskListDiv.insertAdjacentHTML('beforeend', taskGroupHeaderTemplate(currentGroup, groupColor, styleString));
-                lastGroup = currentGroup;
-            }
-            renderTaskItem(task, currentGroup);
+            const textStyles = getContrastingTextColor(groupColor);
+            const styleString = Object.entries(textStyles).map(([key, value]) => `${key}: ${value};`).join(' ');
+            renderGroup(groupName, tasksInGroup, groupColor, styleString);
         });
     }
 
@@ -5726,16 +5772,17 @@ function setupEventListeners() {
             const collapsibleHeader = event.target.closest('.collapsible-header');
             if (collapsibleHeader) {
                 const group = collapsibleHeader.dataset.group;
-                const tasksToToggle = taskListDivEl.querySelectorAll(`.task-item[data-group="${group}"]`);
-                const icon = collapsibleHeader.querySelector('span');
-                collapsibleHeader.classList.toggle('collapsed');
-                if (collapsibleHeader.classList.contains('collapsed')) {
-                    icon.style.transform = 'rotate(-90deg)';
-                    tasksToToggle.forEach(t => t.style.display = 'none');
-                } else {
-                    icon.style.transform = 'rotate(0deg)';
-                    tasksToToggle.forEach(t => t.style.display = 'flex');
+                if (!uiSettings.taskManagerCollapseState) {
+                    uiSettings.taskManagerCollapseState = {};
                 }
+                // Toggle the state
+                uiSettings.taskManagerCollapseState[group] = !uiSettings.taskManagerCollapseState[group];
+                saveData();
+
+                // Re-render the entire task list to reflect the new state.
+                // This is more robust than manually manipulating the DOM.
+                renderTasks();
+
                 return;
             }
 
@@ -6435,6 +6482,10 @@ function loadData() {
         }
     }
 
+    // Always reset tasks array before loading to ensure injected test data is used.
+    tasks = [];
+    categories = [];
+
     const storedTasks = localStorage.getItem('tasks');
     const storedCategories = localStorage.getItem('categories');
     const storedColors = localStorage.getItem('statusColors');
@@ -6962,6 +7013,36 @@ const loadPlannerData = () => {
             if (goalsMigrated > 0) {
                 // Save the newly migrated goals
                 savePlannerData();
+            }
+        }
+
+        // --- One-time Data Migration for Weekly Goal Timezones ---
+        const weeklyGoalTimezoneFixNeeded = !localStorage.getItem('weeklyGoalTimezoneFixV1');
+        if (weeklyGoalTimezoneFixNeeded && Array.isArray(appState.journal)) {
+            console.log("Running one-time weekly goal timezone fix migration...");
+            let goalsFixed = 0;
+            appState.journal.forEach(entry => {
+                if (entry.isWeeklyGoal && entry.weekStartDate && typeof entry.weekStartDate === 'string') {
+                    const originalDateString = entry.weekStartDate;
+                    const parts = originalDateString.split('T')[0].split('-');
+                    if (parts.length === 3) {
+                        const localDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                        const startOfWeekDate = startOfWeek(localDate, { weekStartsOn: 0 });
+                        startOfWeekDate.setHours(0, 0, 0, 0); // Ensure midnight
+                        const correctedDateString = startOfWeekDate.toISOString().split('T')[0];
+                        if (correctedDateString !== originalDateString) {
+                            entry.weekStartDate = correctedDateString;
+                            goalsFixed++;
+                        }
+                    }
+                }
+            });
+            localStorage.setItem('weeklyGoalTimezoneFixV1', 'true');
+            if (goalsFixed > 0) {
+                console.log(`Weekly goal timezone fix complete. Corrected ${goalsFixed} goals.`);
+                savePlannerData();
+            } else {
+                console.log("Weekly goal timezone fix complete. No changes needed.");
             }
         }
 

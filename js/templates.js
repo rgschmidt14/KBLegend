@@ -775,12 +775,18 @@ function restoreDefaultsConfirmationTemplate() {
             </div>`;
 }
 
-function taskGroupHeaderTemplate(groupName, groupColor, textStyle) {
-    return `<div class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4"
+function taskGroupHeaderTemplate(groupName, groupColor, textStyle, isCollapsed = false) {
+    // Sanitize groupName to create a valid ID
+    const groupId = `task-group-header-${groupName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const collapsedClass = isCollapsed ? 'collapsed' : '';
+    const iconStyle = isCollapsed ? 'transform: rotate(-90deg);' : '';
+
+    return `<div id="${groupId}"
+                 class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4 ${collapsedClass}"
                  data-group="${groupName}"
                  style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
                 <h4 class="font-bold">${groupName}</h4>
-                <span class="transform transition-transform duration-200">▼</span>
+                <span class="transform transition-transform duration-200" style="${iconStyle}">▼</span>
             </div>`;
 }
 
