@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate, confirmOverrideModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -320,6 +320,7 @@ function sanitizeAndUpgradeTask(task) {
         prepTimeAmount: null,
         prepTimeUnit: 'minutes',
         thoughts: '',
+        occurrenceOverrides: {},
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1985,9 +1986,12 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
             if (task) {
                 const newThoughts = thoughtsEl.innerHTML.trim();
                 if (task.thoughts !== newThoughts) {
-                    task.thoughts = newThoughts;
-                    saveData();
-                    // Maybe show a subtle save indicator in the future
+                    if (task.repetitionType !== 'none' && !isHistorical) {
+                        openConfirmOverrideModal(task, 'thoughts', newThoughts, eventId);
+                    } else {
+                        task.thoughts = newThoughts;
+                        saveData();
+                    }
                 }
             }
         }
@@ -2478,6 +2482,50 @@ function openHistoricalOverviewModal() {
     closeButton.addEventListener('click', closeHandler);
 
     activateModal(modal);
+}
+
+function openConfirmOverrideModal(task, field, value, occurrenceId) {
+    const modalHtml = confirmOverrideModalTemplate(occurrenceId);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('confirm-override-modal');
+
+    const handleOverride = (e) => {
+        const target = e.target.closest('[data-action="apply-override"]');
+        if (target) {
+            applyOverride(task, field, value, occurrenceId, target.dataset.scope);
+        }
+        modal.removeEventListener('click', handleOverride);
+        deactivateModal(modal);
+        modal.remove();
+    };
+
+    modal.addEventListener('click', handleOverride);
+    activateModal(modal);
+}
+
+function applyOverride(task, field, value, occurrenceId, scope) {
+    if (scope === 'single') {
+        if (!task.occurrenceOverrides) {
+            task.occurrenceOverrides = {};
+        }
+        if (!task.occurrenceOverrides[occurrenceId]) {
+            task.occurrenceOverrides[occurrenceId] = {};
+        }
+        task.occurrenceOverrides[occurrenceId][field] = value;
+    } else { // 'future'
+        task[field] = value;
+        // Optionally, clear out any specific overrides for this field that are now superseded
+        for (const key in task.occurrenceOverrides) {
+            if (task.occurrenceOverrides.hasOwnProperty(key)) {
+                delete task.occurrenceOverrides[key][field];
+                if (Object.keys(task.occurrenceOverrides[key]).length === 0) {
+                    delete task.occurrenceOverrides[key];
+                }
+            }
+        }
+    }
+    saveData();
+    updateAllTaskStatuses(true);
 }
 
 function confirmHistoryDelete(historyId, taskId, deleteType) {
@@ -3060,6 +3108,7 @@ function renderJournal() {
             if (entry.isWeeklyGoal && typeof entryDateSource === 'string' && entryDateSource.includes('-')) {
                 const parts = entryDateSource.split('-');
                 entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                 entryDate.setHours(0, 0, 0, 0);
             } else {
                 entryDate = new Date(entryDateSource);
             }
@@ -3808,21 +3857,24 @@ function confirmCompletionAction(taskId, confirmed) {
             cyclesToProcess.forEach((dueDate, index) => {
                 const isLastCycle = index === cyclesToProcess.length - 1;
                 const isEarly = now < dueDate;
-                // New GPA Logic: 4.0 for early, 3.0 for on-time/late
                 const historicalStatus = isEarly ? 'blue' : 'green'; // blue = 4.0, green = 3.0
+                const occurrenceId = `${task.id}_${dueDate.toISOString()}`;
+                const override = task.occurrenceOverrides[occurrenceId] || {};
 
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name,
+                    originalTaskId: task.id,
+                    name: override.name || task.name,
                     completionDate: new Date(dueDate),
                     actionDate: now,
                     status: historicalStatus,
-                    categoryId: task.categoryId,
-                    durationAmount: task.estimatedDurationAmount,
-                    durationUnit: task.estimatedDurationUnit,
+                    categoryId: override.categoryId || task.categoryId,
+                    durationAmount: override.estimatedDurationAmount || task.estimatedDurationAmount,
+                    durationUnit: override.estimatedDurationUnit || task.estimatedDurationUnit,
                     progress: isLastCycle ? progressToSave : 1,
-                    icon: task.icon,
-                    thoughts: task.thoughts,
-                    originalDueDate: new Date(dueDate)
+                    icon: override.icon || task.icon,
+                    thoughts: override.thoughts || task.thoughts,
+                    originalDueDate: new Date(dueDate),
+                    occurrenceId: occurrenceId
                 });
             });
 
@@ -3979,43 +4031,51 @@ function confirmMissAction(taskId, confirmed) {
             // GPA 3.0: Handle the "catch-up" completions. These are considered on-time/late.
             completionDates.forEach((dueDate, index) => {
                 const isFinalRecord = (index === completionDates.length - 1) && (missDates.length === 0);
+                const occurrenceId = `${task.id}_${dueDate.toISOString()}`;
+                const override = task.occurrenceOverrides[occurrenceId] || {};
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(dueDate), actionDate: new Date(),
+                    originalTaskId: task.id, name: override.name || task.name, completionDate: new Date(dueDate), actionDate: new Date(),
                     status: 'green', // GPA 3.0
-                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    categoryId: override.categoryId || task.categoryId,
+                    durationAmount: override.estimatedDurationAmount || task.estimatedDurationAmount,
+                    durationUnit: override.estimatedDurationUnit || task.estimatedDurationUnit,
                     progress: isFinalRecord ? progressRatio : 1,
-                    icon: task.icon,
-                    thoughts: task.thoughts,
-                    originalDueDate: new Date(dueDate)
+                    icon: override.icon || task.icon,
+                    thoughts: override.thoughts || task.thoughts,
+                    originalDueDate: new Date(dueDate),
+                    occurrenceId: occurrenceId
                 });
             });
 
             // GPA 2.0-0.0: Handle the misses.
             missDates.forEach((dueDate, index) => {
                 const isFinalRecordWithProgress = (index === missDates.length - 1) && progressRatio > 0;
+                const occurrenceId = `${task.id}_${dueDate.toISOString()}`;
+                const override = task.occurrenceOverrides[occurrenceId] || {};
                 let historicalStatus;
 
                 if (isFinalRecordWithProgress) {
-                    // GPA 2.0-2.99: Partial miss on the final recorded action
                     historicalStatus = 'yellow';
                 } else {
-                    // GPA 1.0 or 0.0: Full miss
                     if (runningMissesCount === 0 && task.trackMisses) {
-                        historicalStatus = 'red'; // GPA 1.0: First tracked miss
+                        historicalStatus = 'red';
                     } else {
-                        historicalStatus = 'black'; // GPA 0.0: Subsequent or untracked miss
+                        historicalStatus = 'black';
                     }
                     runningMissesCount++;
                 }
 
                 appState.historicalTasks.push({
-                    originalTaskId: task.id, name: task.name, completionDate: new Date(dueDate), actionDate: new Date(),
+                    originalTaskId: task.id, name: override.name || task.name, completionDate: new Date(dueDate), actionDate: new Date(),
                     status: historicalStatus,
-                    categoryId: task.categoryId, durationAmount: task.estimatedDurationAmount, durationUnit: task.estimatedDurationUnit,
+                    categoryId: override.categoryId || task.categoryId,
+                    durationAmount: override.estimatedDurationAmount || task.estimatedDurationAmount,
+                    durationUnit: override.estimatedDurationUnit || task.estimatedDurationUnit,
                     progress: isFinalRecordWithProgress ? progressRatio : 0,
-                    icon: task.icon,
-                    thoughts: task.thoughts,
-                    originalDueDate: new Date(dueDate)
+                    icon: override.icon || task.icon,
+                    thoughts: override.thoughts || task.thoughts,
+                    originalDueDate: new Date(dueDate),
+                    occurrenceId: occurrenceId
                 });
             });
 
@@ -6674,7 +6734,8 @@ function updateAllTaskStatuses(forceRender = false) {
                 occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
                 isHistorical: false,
                 category: category,
-                icon: task.icon
+                icon: task.icon,
+                positioningGpa: occurrence.positioningGpa // Pass GPA for sorting
             },
             id: occurrence.id // Pass the unique occurrence ID
         };
@@ -7070,26 +7131,23 @@ function initializeCalendar() {
         navLinks: true, // Allow clicking on day/week numbers to navigate
         eventOrder: (a, b) => {
             const startA_date = a.start ? new Date(a.start) : null;
-            const endA_date = a.end ? new Date(a.end) : null;
             const startB_date = b.start ? new Date(b.start) : null;
-            const endB_date = b.end ? new Date(b.end) : null;
-            if (!startA_date || !endA_date || !startB_date || !endB_date || isNaN(startA_date) || isNaN(endA_date) || isNaN(startB_date) || isNaN(endB_date)) {
-                // This console.warn is now less likely to fire, but is good to keep as a fallback.
-                console.warn("Invalid event object passed to eventOrder. Skipping sort.", JSON.stringify({ a, b }, null, 2));
-                return 0; // Return a neutral sort order to prevent crashing
+
+            // Defensive check for valid start dates
+            if (!startA_date || !startB_date || isNaN(startA_date) || isNaN(startB_date)) {
+                return 0;
             }
 
-            const durationA = endA_date.getTime() - startA_date.getTime();
-            const durationB = endB_date.getTime() - startB_date.getTime();
-
-            // Primary sort: duration (longer events first)
-            if (durationA !== durationB) {
-                return durationB - durationA;
-            }
-
-            // Secondary sort: start time
+            // Primary sort: start time (earlier first)
             if (startA_date.getTime() !== startB_date.getTime()) {
                 return startA_date.getTime() - startB_date.getTime();
+            }
+
+            // Secondary sort: Positioning GPA (lower GPA is more urgent and comes first)
+            const gpaA = a.extendedProps.positioningGpa ?? 4.0;
+            const gpaB = b.extendedProps.positioningGpa ?? 4.0;
+            if (gpaA !== gpaB) {
+                return gpaA - gpaB;
             }
 
             // Tertiary sort: alphabetical by title
