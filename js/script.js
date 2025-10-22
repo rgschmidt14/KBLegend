@@ -85,6 +85,7 @@ let uiSettings = {
     },
     dashboardWeekOffset: 0,
     syncTaskIcons: true,
+    useStartDateForSort: false,
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -526,7 +527,7 @@ function interpolateFiveColors(percent) {
     return HSLToHex(hsl.h, hsl.s, hsl.l);
 }
 function getDueDateGroup(dueDate) {
-    if (!dueDate || isNaN(dueDate)) return { name: 'Unscheduled', index: 12 };
+    if (!dueDate || isNaN(dueDate)) return { name: 'Unscheduled', index: 17 };
 
     const now = new Date();
     const diffMs = dueDate.getTime() - now.getTime();
@@ -540,32 +541,48 @@ function getDueDateGroup(dueDate) {
     endOfDay.setHours(23, 59, 59, 999);
     if (dueDate <= endOfDay) return { name: 'End of Day', index: 4 };
 
-    const endOfTomorrow = new Date(endOfDay);
-    endOfTomorrow.setDate(endOfTomorrow.getDate() + 1);
-    if (dueDate <= endOfTomorrow) return { name: 'End of Tomorrow', index: 5 };
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    if (dueDate <= tomorrow) return { name: 'Tomorrow', index: 5 };
 
     const endOfWeek = new Date(now);
-    endOfWeek.setDate(now.getDate() + (6 - now.getDay())); // Assuming Sunday is day 0
+    // Sunday is day 0. If today is Sunday, we want today. If Monday (1), we want 6 days from now to get to next Sunday.
+    endOfWeek.setDate(now.getDate() + (7 - now.getDay()) % 7);
     endOfWeek.setHours(23, 59, 59, 999);
     if (dueDate <= endOfWeek) return { name: 'End of Week', index: 6 };
 
+    const endOfNextWeek = new Date(endOfWeek);
+    endOfNextWeek.setDate(endOfWeek.getDate() + 7);
+    if (dueDate <= endOfNextWeek) return { name: 'Next Week', index: 7 };
+
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    if (dueDate <= endOfMonth) return { name: 'End of Month', index: 7 };
+    if (dueDate <= endOfMonth) return { name: 'End of Month', index: 8 };
 
     const quarter = Math.floor(now.getMonth() / 3);
     const endOfQuarter = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
-    if (dueDate <= endOfQuarter) return { name: 'End of Quarter', index: 8 };
+    if (dueDate <= endOfQuarter) return { name: 'This Quarter', index: 9 };
 
-    const endOfYear = new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999);
-    if (dueDate <= endOfYear) return { name: 'End of Year', index: 9 };
+    const next6Months = new Date(now);
+    next6Months.setMonth(now.getMonth() + 6);
+    if (dueDate <= next6Months) return { name: 'Next 6 Months', index: 10 };
+
+    const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    if (dueDate <= endOfYear) return { name: 'End of Year', index: 11 };
+
+    const endOfNextYear = new Date(now.getFullYear() + 1, 11, 31, 23, 59, 59, 999);
+    if (dueDate <= endOfNextYear) return { name: 'Next Year', index: 12 };
 
     const endOf5Years = new Date(now.getFullYear() + 5, 11, 31, 23, 59, 59, 999);
-    if (dueDate <= endOf5Years) return { name: 'Next 5 Years', index: 10 };
+    if (dueDate <= endOf5Years) return { name: '5 Years', index: 13 };
 
     const endOf10Years = new Date(now.getFullYear() + 10, 11, 31, 23, 59, 59, 999);
-    if (dueDate <= endOf10Years) return { name: 'Next 10 Years', index: 11 };
+    if (dueDate <= endOf10Years) return { name: '10 Years', index: 14 };
 
-    return { name: 'Beyond 10 Years', index: 12 };
+    const endOf20Years = new Date(now.getFullYear() + 20, 11, 31, 23, 59, 59, 999);
+    if (dueDate <= endOf20Years) return { name: '20 Years', index: 15 };
+
+    return { name: 'Lifetime', index: 16 };
 }
 
 function updateAdaptiveSensitivity() {
@@ -1173,9 +1190,18 @@ function renderTasks() {
         if (sortBy === 'status') {
             comparison = (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5);
         } else if (sortBy === 'dueDate') {
-            const dueDateA = a.dueDate ? a.dueDate.getTime() : Infinity;
-            const dueDateB = b.dueDate ? b.dueDate.getTime() : Infinity;
-            comparison = dueDateA - dueDateB;
+            const getDateValue = (task) => {
+                if (!task.dueDate) return Infinity;
+                let date = new Date(task.dueDate);
+                if (uiSettings.useStartDateForSort) {
+                    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+                    date = new Date(date.getTime() - durationMs);
+                }
+                return date.getTime();
+            };
+            const dateA = getDateValue(a);
+            const dateB = getDateValue(b);
+            comparison = dateA - dateB;
         } else if (sortBy === 'category') {
             const categoryA = categories.find(c => c.id === a.categoryId)?.name || 'Uncategorized';
             const categoryB = categories.find(c => c.id === b.categoryId)?.name || 'Uncategorized';
@@ -1247,7 +1273,12 @@ function renderTasks() {
     if (sortBy === 'dueDate') {
         const groupedByDate = {};
         sortedTasks.forEach(task => {
-            const group = getDueDateGroup(task.dueDate);
+            let dateForGrouping = task.dueDate ? new Date(task.dueDate) : null;
+            if (uiSettings.useStartDateForSort && dateForGrouping) {
+                const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+                dateForGrouping = new Date(dateForGrouping.getTime() - durationMs);
+            }
+            const group = getDueDateGroup(dateForGrouping);
             if (!groupedByDate[group.index]) {
                 groupedByDate[group.index] = { name: group.name, tasks: [] };
             }
@@ -6037,6 +6068,11 @@ function setupEventListeners() {
             case 'toggleSyncTaskIcons':
                 uiSettings.syncTaskIcons = event.target.checked;
                 saveData();
+                break;
+            case 'toggleSortByStartDate':
+                uiSettings.useStartDateForSort = event.target.checked;
+                saveData();
+                renderTasks(); // Re-render tasks to apply the new sort logic
                 break;
             }
         });
