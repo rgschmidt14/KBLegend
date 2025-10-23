@@ -3041,7 +3041,7 @@ function renderCategoryPieChart(weekOffset = 0) {
         return;
     }
 
-    // 1. Determine the date range
+    // 1. Determine the date range for the current week.
     const now = new Date();
     if (weekOffset !== 0) {
         now.setDate(now.getDate() + (weekOffset * 7));
@@ -3051,54 +3051,62 @@ function renderCategoryPieChart(weekOffset = 0) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
 
+    // Define a calculation horizon that looks a bit into the future to catch spanning tasks.
+    const calculationHorizon = new Date(weekEnd.getTime() + (7 * MS_PER_DAY));
+
     // 2. Aggregate data
-    const categoryTime = {}; // { categoryId: { name, color, totalMinutes } }
+    const categoryTime = {};
 
-    const processTaskOccurrence = (task, occurrenceDate) => {
-        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
-        if (durationMs === 0) return;
-
-        const occurrenceEnd = new Date(occurrenceDate);
-        const occurrenceStart = new Date(occurrenceEnd.getTime() - durationMs);
-
+    // --- Helper to process any timed event (live or historical) ---
+    const processEventDuration = (eventStart, eventEnd, categoryId) => {
         // Clamp the occurrence to the week's boundaries
-        const effectiveStart = Math.max(occurrenceStart.getTime(), weekStart.getTime());
-        const effectiveEnd = Math.min(occurrenceEnd.getTime(), weekEnd.getTime());
+        const effectiveStart = Math.max(new Date(eventStart).getTime(), weekStart.getTime());
+        const effectiveEnd = Math.min(new Date(eventEnd).getTime(), weekEnd.getTime());
 
         const durationInWeekMs = Math.max(0, effectiveEnd - effectiveStart);
+
         if (durationInWeekMs > 0) {
             const durationInWeekMinutes = durationInWeekMs / MS_PER_MINUTE;
-            const categoryId = task.categoryId || 'uncategorized';
-            if (!categoryTime[categoryId]) {
-                const category = categories.find(c => c.id === categoryId);
-                categoryTime[categoryId] = {
+            const catId = categoryId || 'uncategorized';
+            if (!categoryTime[catId]) {
+                const category = categories.find(c => c.id === catId);
+                categoryTime[catId] = {
                     name: category ? category.name : 'Uncategorized',
                     color: category ? category.color : '#808080',
                     totalMinutes: 0
                 };
             }
-            categoryTime[categoryId].totalMinutes += durationInWeekMinutes;
+            categoryTime[catId].totalMinutes += durationInWeekMinutes;
         }
     };
 
-    // Process active tasks (considering their occurrences)
-    tasks.forEach(task => {
-        // Broaden the search window slightly to catch tasks that start just before the week
-        const searchStart = new Date(weekStart.getTime() - (7 * MS_PER_DAY)); // One week buffer
-        const occurrences = getOccurrences(task, searchStart, weekEnd);
-        occurrences.forEach(occurrenceDate => {
-            processTaskOccurrence(task, occurrenceDate);
-        });
+
+    // --- Use runCalculationPipeline for active/future tasks ---
+    const settings = {
+        sensitivity: sensitivitySettings,
+        vacations: appState.vacations,
+        categories: categories,
+        calendarCategoryFilters: {}, // Pass empty object to disable filtering
+        earlyOnTimeSettings: uiSettings.earlyOnTimeSettings,
+    };
+
+    const allOccurrences = runCalculationPipeline([...tasks], calculationHorizon, settings);
+    allOccurrences.forEach(occurrence => {
+        if (occurrence.scheduledStartTime && occurrence.scheduledEndTime) {
+            processEventDuration(occurrence.scheduledStartTime, occurrence.scheduledEndTime, occurrence.categoryId);
+        }
     });
 
-    // Process historical tasks
+    // --- Process historical tasks separately ---
     appState.historicalTasks.forEach(historicalTask => {
-        processTaskOccurrence({
-            categoryId: historicalTask.categoryId,
-            estimatedDurationAmount: historicalTask.durationAmount,
-            estimatedDurationUnit: historicalTask.durationUnit
-        }, historicalTask.completionDate);
+        const durationMs = getDurationMs(historicalTask.durationAmount, historicalTask.durationUnit);
+        if (durationMs > 0) {
+            const occurrenceEnd = new Date(historicalTask.completionDate);
+            const occurrenceStart = new Date(occurrenceEnd.getTime() - durationMs);
+            processEventDuration(occurrenceStart, occurrenceEnd, historicalTask.categoryId);
+        }
     });
+
 
     const totalMinutesInWeek = 7 * 24 * 60;
     const totalPlannedMinutes = Object.values(categoryTime).reduce((sum, cat) => sum + cat.totalMinutes, 0);
