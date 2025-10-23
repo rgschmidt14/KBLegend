@@ -4792,31 +4792,33 @@ function deleteAllHistory() {
     }
 }
 
-function openDataMigrationModal(tasksData = null) {
+function openDataMigrationModal(options = {}) {
     const dataMigrationModalEl = document.getElementById('data-migration-modal');
     if (!dataMigrationModalEl) return;
 
     dataMigrationModalEl.innerHTML = dataMigrationModalTemplate();
 
     // --- Weekly Goal Timezone Fix ---
-    const goalFixSection = dataMigrationModalEl.querySelector('#goal-timezone-fix-section');
+    const goalFixSection = dataMigrationModalEl.querySelector('[data-section="goal-fix"]');
     const goalSummary = dataMigrationModalEl.querySelector('#goal-fix-summary');
     const goalListContainer = dataMigrationModalEl.querySelector('#goal-fix-list-container');
     const fixGoalsBtn = dataMigrationModalEl.querySelector('#fix-all-goals-btn');
 
     const affectedGoals = appState.journal.filter(entry => {
         if (!entry.isWeeklyGoal || !entry.weekStartDate) return false;
-        // Manually parse the date string to avoid timezone issues
-        const parts = entry.weekStartDate.split('-');
-        const entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
-        return entryDate.getUTCDay() !== 0; // Find goals that don't start on a Sunday in UTC
+        // Create a date object treating the string as local time.
+        // The issue arises because 'YYYY-MM-DD' is parsed as UTC midnight,
+        // which can be the previous day in local time.
+        const entryDate = new Date(entry.weekStartDate + 'T00:00:00');
+        // A goal is affected if its local day is not Sunday (0).
+        return entryDate.getDay() !== 0;
     });
 
     if (affectedGoals.length > 0 && goalFixSection) {
         goalSummary.textContent = `Found ${affectedGoals.length} weekly goal(s) that appear to be affected by a timezone issue (not starting on Sunday).`;
         goalListContainer.innerHTML = affectedGoals.map(goal => {
-            const parts = goal.weekStartDate.split('-');
-            const originalDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const originalDate = new Date(goal.weekStartDate + 'T00:00:00');
+            // Find the correct start of the week (Sunday) for that local date.
             const correctedDate = startOfWeek(originalDate, { weekStartsOn: 0 });
             return `
                 <div class="p-2 border-b">
@@ -4827,12 +4829,16 @@ function openDataMigrationModal(tasksData = null) {
         }).join('');
         fixGoalsBtn.addEventListener('click', () => {
             affectedGoals.forEach(goal => {
-                const parts = goal.weekStartDate.split('-');
-                const originalDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                const originalDate = new Date(goal.weekStartDate + 'T00:00:00');
                 const correctedDate = startOfWeek(originalDate, { weekStartsOn: 0 });
                 goal.weekStartDate = correctedDate.toISOString().split('T')[0];
             });
-            saveData();
+            // Set a flag in localStorage so this doesn't run again automatically
+            const currentData = JSON.parse(localStorage.getItem('pilotPlannerDataV8')) || {};
+            currentData.goalTimezoneFixApplied = true;
+            localStorage.setItem('pilotPlannerDataV8', JSON.stringify(currentData));
+
+            saveData(); // Save the corrected journal entries
             alert(`${affectedGoals.length} weekly goals have been corrected.`);
             deactivateModal(dataMigrationModalEl);
             renderJournal();
@@ -4840,17 +4846,26 @@ function openDataMigrationModal(tasksData = null) {
         goalFixSection.classList.remove('hidden');
     }
 
-
     // --- Orphan Cleanup & Other Listeners ---
+    analyzeAndPrepareMigrationModal(dataMigrationModalEl); // Run analysis for orphans
+
+    // --- Modal View Logic ---
+    if (options.show) {
+        const allSections = dataMigrationModalEl.querySelectorAll('[data-section]');
+        allSections.forEach(section => {
+            if (section.dataset.section !== options.show) {
+                section.classList.add('hidden');
+            } else {
+                section.classList.remove('hidden');
+            }
+        });
+    }
+
+    // --- Event Listeners ---
     const closeButton = dataMigrationModalEl.querySelector('.close-button');
     if (closeButton) {
         closeButton.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
     }
-    const fileInput = document.getElementById('migration-file-input');
-    if (fileInput) {
-        fileInput.addEventListener('change', handleMigrationFileSelect);
-    }
-
     const deleteSelectedBtn = document.getElementById('delete-selected-orphans-btn');
     if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener('click', () => {
@@ -4870,34 +4885,6 @@ function openDataMigrationModal(tasksData = null) {
     const deleteAllHistoryBtn = document.getElementById('delete-all-history-btn');
     if (deleteAllHistoryBtn) {
         deleteAllHistoryBtn.addEventListener('click', deleteAllHistory);
-    }
-
-    const cancelBtn = document.getElementById('cancel-migration-btn');
-    if(cancelBtn) {
-        cancelBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
-    }
-    const runBtn = document.getElementById('run-migration-btn');
-    if(runBtn) {
-        runBtn.addEventListener('click', () => runMigration(dataMigrationModalEl));
-    }
-
-    const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
-    if (cancelConfirmBtn) {
-        cancelConfirmBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
-    }
-    const runConfirmBtn = document.getElementById('run-confirm-btn');
-    if (runConfirmBtn) {
-        runConfirmBtn.addEventListener('click', () => runMigration(dataMigrationModalEl));
-    }
-
-    analyzeAndPrepareMigrationModal(dataMigrationModalEl);
-
-    if (tasksData) {
-        prepareMigrationUI(tasksData, dataMigrationModalEl);
-        const step1Prompt = dataMigrationModalEl.querySelector('#migration-step-1 p');
-        if (step1Prompt) {
-            step1Prompt.textContent = 'Outdated task format detected. Please map your old task fields to the new format below to continue.';
-        }
     }
 
     activateModal(dataMigrationModalEl);
@@ -7160,6 +7147,22 @@ const loadPlannerData = () => {
         });
         appState.indicators = parsedData.indicators || appState.indicators;
         appState.journal = parsedData.journal || [];
+
+        // One-time check for weekly goal timezone issue
+        if (!parsedData.goalTimezoneFixApplied) {
+            const affectedGoals = (parsedData.journal || []).filter(entry => {
+                if (!entry.isWeeklyGoal || !entry.weekStartDate) return false;
+                const entryDate = new Date(entry.weekStartDate + 'T00:00:00');
+                return entryDate.getDay() !== 0;
+            });
+
+            if (affectedGoals.length > 0) {
+                // Use a setTimeout to ensure the rest of the app initializes
+                setTimeout(() => {
+                    openDataMigrationModal({ show: 'goal-fix' });
+                }, 500);
+            }
+        }
 
         // --- One-time Data Migration for Journal Entries ---
         const journalMigrationNeeded = !localStorage.getItem('journalMigrationV1');

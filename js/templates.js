@@ -503,7 +503,7 @@ function dataMigrationModalTemplate() {
         <h3 class="text-xl font-semibold mb-4">Data Migration & Integrity Tool</h3>
         <button class="close-button">&times;</button>
 
-        <div id="goal-timezone-fix-section" class="hidden mb-4 p-3 border rounded">
+        <div id="goal-timezone-fix-section" data-section="goal-fix" class="hidden mb-4 p-3 border rounded">
             <h4 class="font-semibold">Weekly Goal Timezone Correction</h4>
             <p id="goal-fix-summary" class="text-sm my-2"></p>
             <p class="text-xs mb-3">The following weekly goals appear to have an incorrect timezone offset and will be shifted to the start of the week in your local time.</p>
@@ -513,7 +513,7 @@ function dataMigrationModalTemplate() {
             </div>
         </div>
 
-        <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded">
+        <div id="orphan-cleanup-section" data-section="orphan-cleanup" class="hidden mb-4 p-3 border rounded">
             <h4 class="font-semibold">Orphaned History Cleanup</h4>
             <p id="orphan-summary" class="text-sm my-2"></p>
             <p class="text-xs mb-3">The following records belong to deleted tasks.</p>
@@ -523,7 +523,7 @@ function dataMigrationModalTemplate() {
                 <button id="delete-selected-orphans-btn" data-action="deleteSelectedOrphans" class="btn btn-deny btn-sm">Delete Selected</button>
             </div>
         </div>
-        <div class="mt-6 pt-4 border-t">
+        <div class="mt-6 pt-4 border-t" data-section="danger-zone">
             <h4 class="font-semibold">Danger Zone</h4>
             <p class="text-sm my-2">This action is permanent and cannot be undone.</p>
             <button id="delete-all-history-btn" data-action="deleteAllHistory" class="btn btn-deny btn-md w-full">Delete All Task History</button>
