@@ -3212,8 +3212,10 @@ function openIconPicker(context = 'task') {
 
 function renderJournalEntry(entry) {
     // For weekly goals, the title shows the date range. For others, it's the entry title.
-    const title = entry.isWeeklyGoal ? `Week of ${new Date(entry.weekStartDate).toLocaleDateString()}` : entry.title;
-    const timestamp = entry.isWeeklyGoal ? new Date(entry.weekStartDate) : new Date(entry.createdAt);
+    // By appending T00:00:00, we ensure the date string is parsed as local time, not UTC.
+    const goalDate = entry.isWeeklyGoal ? new Date(entry.weekStartDate + 'T00:00:00') : null;
+    const title = entry.isWeeklyGoal ? `Week of ${goalDate.toLocaleDateString()}` : entry.title;
+    const timestamp = entry.isWeeklyGoal ? goalDate : new Date(entry.createdAt);
 
     const buttonsHtml = `
         <div class="flex justify-end space-x-2 mt-2">
@@ -4835,7 +4837,7 @@ function openDataMigrationModal(options = {}) {
             });
             // Set a flag in localStorage so this doesn't run again automatically
             const currentData = JSON.parse(localStorage.getItem('pilotPlannerDataV8')) || {};
-            currentData.goalTimezoneFixApplied = true;
+            currentData.goalTimezoneFixV2Applied = true;
             localStorage.setItem('pilotPlannerDataV8', JSON.stringify(currentData));
 
             saveData(); // Save the corrected journal entries
@@ -7149,7 +7151,7 @@ const loadPlannerData = () => {
         appState.journal = parsedData.journal || [];
 
         // One-time check for weekly goal timezone issue
-        if (!parsedData.goalTimezoneFixApplied) {
+        if (!parsedData.goalTimezoneFixV2Applied) {
             const affectedGoals = (parsedData.journal || []).filter(entry => {
                 if (!entry.isWeeklyGoal || !entry.weekStartDate) return false;
                 const entryDate = new Date(entry.weekStartDate + 'T00:00:00');
