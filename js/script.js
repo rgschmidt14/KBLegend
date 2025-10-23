@@ -1150,17 +1150,17 @@ function stopAllTimers() {
 }
 function stopCountdownTimer(taskId) {
     if (countdownIntervals[taskId]) {
-        clearInterval(countdownIntervals[taskId]);
+        clearTimeout(countdownIntervals[taskId]);
         delete countdownIntervals[taskId];
     }
 }
 function stopAllCountdownTimers() {
-    Object.keys(countdownIntervals).forEach(taskId => clearInterval(countdownIntervals[taskId]));
+    Object.values(countdownIntervals).forEach(timeoutId => clearTimeout(timeoutId));
     countdownIntervals = {};
 }
 function stopTaskTimer(taskId) {
     if (taskTimers[taskId]) {
-        clearInterval(taskTimers[taskId]);
+        clearTimeout(taskTimers[taskId]);
         delete taskTimers[taskId];
     }
 }
@@ -1420,26 +1420,47 @@ function updateCountdown(taskId) {
     }
 }
 function startAllCountdownTimers() {
-    stopAllCountdownTimers();
+    stopAllCountdownTimers(); // Clears any existing timeouts
+
+    const scheduleCountdownUpdate = (taskId) => {
+        // This function will be called recursively by setTimeout.
+        // First, perform the UI update.
+        updateCountdown(taskId);
+
+        const task = tasks.find(t => t.id === taskId);
+        // Stop the loop if the task is gone, or if it's a non-repeating task that's completed.
+        if (!task || (task.repetitionType === 'none' && task.completed)) {
+            stopCountdownTimer(taskId);
+            return;
+        }
+
+        // Calculate the delay to align with the *next* second on the system clock.
+        const nowMs = Date.now();
+        const delay = 1000 - (nowMs % 1000);
+
+        // Schedule the next update.
+        countdownIntervals[taskId] = setTimeout(() => scheduleCountdownUpdate(taskId), delay);
+    };
+
     tasks.forEach(task => {
         try {
             if (task.repetitionType === 'none' && task.completed) return;
+
             let targetDate = null;
             if (task.status === 'blue' && task.cycleEndDate && !isNaN(task.cycleEndDate)) {
                 targetDate = task.cycleEndDate;
             } else if (task.dueDate && !isNaN(task.dueDate)) {
                 targetDate = task.dueDate;
             }
+
             if (targetDate) {
-                updateCountdown(task.id);
                 const timeRemaining = targetDate.getTime() - Date.now();
-                if ((task.status === 'blue' && timeRemaining > 0) || task.status !== 'blue') {
-                    if (!countdownIntervals[task.id]) {
-                        countdownIntervals[task.id] = setInterval(() => updateCountdown(task.id), 1000);
-                    }
+                // Only start the timer loop if the countdown is relevant.
+                if (((task.status === 'blue' && timeRemaining > 0) || task.status !== 'blue') && !countdownIntervals[task.id]) {
+                   scheduleCountdownUpdate(task.id);
                 }
             }
-        } catch(e) {
+        } catch (e) {
             console.error("Error starting countdown timer for task:", task?.id, e);
         }
     });
@@ -1456,10 +1477,42 @@ function deactivateModal(modalElement) {
     document.body.classList.remove('modal-open');
 }
 
+function openReinstateTaskModal(taskToReinstate) {
+    const taskViewModalEl = document.getElementById('task-view-modal');
+    if (taskViewModalEl) deactivateModal(taskViewModalEl);
+
+    let nextDueDate;
+    // Try to find the full task data in archives to get repetition rules
+    const archivedTask = appState.archivedTasks && appState.archivedTasks.find(t => t.id === taskToReinstate.id);
+    const taskForRepetition = archivedTask || taskToReinstate;
+
+    if (taskForRepetition.repetitionType && taskForRepetition.repetitionType !== 'none') {
+        const occurrences = getOccurrences(taskForRepetition, new Date(), getCalculationHorizonDate());
+        if (occurrences.length > 0) {
+            nextDueDate = occurrences[0];
+        }
+    }
+
+    // Fallback: If no future occurrence is found or it's non-repeating, set it for the next day
+    if (!nextDueDate) {
+        nextDueDate = new Date(Date.now() + MS_PER_DAY);
+    }
+
+    // Set the calculated due date on the object we pass to the modal
+    const finalTaskObject = { ...taskToReinstate, dueDate: nextDueDate };
+
+    openModal(null, {
+        reinstateTask: finalTaskObject,
+        title: 'Reinstate Task?',
+        submitText: 'Confirm Reinstatement'
+    });
+}
+
 function openModal(taskId = null, options = {}) {
     try {
         taskForm.reset();
         editingTaskId = taskId;
+        const reinstateTask = options.reinstateTask;
 
         // Reset all dynamic fields to their default state
         dueDateGroup.classList.remove('hidden');
@@ -1483,11 +1536,18 @@ function openModal(taskId = null, options = {}) {
             taskCategorySelect.appendChild(option);
         });
 
-        if (taskId) {
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) { console.error("Task not found for editing:", taskId); return; }
-            modalTitle.textContent = 'Edit Task';
+        const submitButton = taskForm.querySelector('button[type="submit"]');
+        if (options.title) modalTitle.textContent = options.title;
+        if (options.submitText) submitButton.textContent = options.submitText;
+
+
+        const taskToLoad = reinstateTask || (taskId ? tasks.find(t => t.id === taskId) : null);
+
+        if (taskToLoad) {
+            const task = taskToLoad; // Use a consistent variable name
+            // CRITICAL: For reinstating, we use the original ID. For editing, we use the existing ID.
             taskIdInput.value = task.id;
+            modalTitle.textContent = reinstateTask ? (options.title || 'Reinstate Task') : 'Edit Task';
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description || '';
             taskIconInput.value = task.icon || '';
@@ -2046,8 +2106,11 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     taskStatsContentEl.classList.add('hidden');
     taskStatsContentEl.innerHTML = '';
 
-    const newContentView = taskViewContentEl.cloneNode(true);
-    taskViewContentEl.parentNode.replaceChild(newContentView, taskViewContentEl);
+    // Remove old listeners before adding new ones
+    if (taskViewContentEl.eventListener) {
+        taskViewContentEl.removeEventListener('click', taskViewContentEl.eventListener);
+        taskViewContentEl.removeEventListener('blur', taskViewContentEl.blurListener, true);
+    }
 
     const afterAction = (andRefreshCalendar = true) => {
         if (uiSettings.closeModalAfterAction) {
@@ -2057,7 +2120,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         if (andRefreshCalendar && calendar) calendar.refetchEvents();
     };
 
-    newContentView.addEventListener('blur', (e) => {
+    taskViewContentEl.blurListener = (e) => {
         const thoughtsEl = e.target.closest('[contenteditable="true"]');
         if (thoughtsEl && thoughtsEl.id.startsWith('task-thoughts-content-')) {
             const taskId = isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id;
@@ -2074,9 +2137,10 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
                 }
             }
         }
-    }, true); // Use capture phase to ensure this fires
+    };
+    taskViewContentEl.addEventListener('blur', taskViewContentEl.blurListener, true); // Use capture phase
 
-    newContentView.addEventListener('click', (e) => {
+    taskViewContentEl.eventListener = (e) => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -2242,7 +2306,8 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
                 }
                 break;
         }
-    });
+    };
+    taskViewContentEl.addEventListener('click', taskViewContentEl.eventListener);
     activateModal(taskViewModalEl);
 }
 
@@ -2251,7 +2316,10 @@ function renderTaskStats(taskId) {
     const taskStatsContentEl = document.getElementById('task-stats-content');
 
     const isActive = tasks.some(t => t.id === taskId);
-    const isFullyCompleted = !isActive;
+    const isActive = tasks.some(t => t.id === taskId);
+    // A task is considered "fully completed" or "deleted" if it has history but is NOT in the active task list.
+    const isFullyCompleted = !isActive && appState.historicalTasks.some(h => h.originalTaskId === taskId);
+
 
     let task = tasks.find(t => t.id === taskId);
     if (!task && appState.archivedTasks) {
@@ -2263,8 +2331,19 @@ function renderTaskStats(taskId) {
         .filter(ht => ht.originalTaskId === taskId)
         .sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate));
 
+    // If we can't find an active or archived task, but history exists, create a placeholder.
+    // This is the key for reinstating deleted tasks.
     if (!task && history.length > 0) {
-        task = { id: taskId, name: history[0].name, isKpi: false };
+        const latestHistory = history[0];
+        task = {
+            id: taskId,
+            name: latestHistory.name,
+            icon: latestHistory.icon,
+            categoryId: latestHistory.categoryId,
+            estimatedDurationAmount: latestHistory.durationAmount,
+            estimatedDurationUnit: latestHistory.durationUnit,
+            isKpi: false // Default to false, user can re-enable
+        };
     }
 
     if (!task) {
@@ -2396,22 +2475,9 @@ function renderTaskStats(taskId) {
     const reinstateBtn = taskStatsContentEl.querySelector('[data-action="reinstateTask"]');
     if (reinstateBtn) {
         reinstateBtn.addEventListener('click', () => {
-            const archivedTask = appState.archivedTasks.find(t => t.id === taskId);
-            if (archivedTask) {
-                appState.archivedTasks = appState.archivedTasks.filter(t => t.id !== taskId);
-                archivedTask.completed = false;
-                archivedTask.status = 'green';
-                archivedTask.confirmationState = null;
-                archivedTask.cycleEndDate = null;
-                archivedTask.dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                tasks.push(archivedTask);
-                saveData();
-                updateAllTaskStatuses(true);
-                if (calendar) calendar.refetchEvents();
-                const taskViewModalEl = document.getElementById('task-view-modal');
-                if (taskViewModalEl) deactivateModal(taskViewModalEl);
-                alert(`Task "${archivedTask.name}" has been reinstated!`);
-            }
+            // The 'task' object at this point is either the archived task or a placeholder
+            // built from history. Both contain the necessary data.
+            openReinstateTaskModal(task);
         });
     }
 
@@ -3665,11 +3731,10 @@ function startTimerInterval(taskId) {
     stopTaskTimer(taskId);
 
     const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-    const progressBeforeStart = (task.currentProgress || 0);
-    const timerLastStartedTimestamp = (task.timerLastStarted ? new Date(task.timerLastStarted).getTime() : Date.now());
+    const progressBeforeStart = task.currentProgress || 0;
+    const timerLastStartedTimestamp = task.timerLastStarted ? new Date(task.timerLastStarted).getTime() : Date.now();
 
-
-    taskTimers[taskId] = setInterval(() => {
+    const scheduleUpdate = () => {
         const currentTask = tasks.find(t => t.id === taskId);
         if (!currentTask || !currentTask.isTimerRunning) {
             stopTaskTimer(taskId);
@@ -3685,9 +3750,17 @@ function startTimerInterval(taskId) {
         }
 
         if (totalCurrentProgress >= targetMs) {
+            // Timer is complete, stop and trigger completion logic.
             toggleTimer(taskId);
+        } else {
+            // Schedule the next update aligned to the next second.
+            const delay = 1000 - (Date.now() % 1000);
+            taskTimers[taskId] = setTimeout(scheduleUpdate, delay);
         }
-    }, 1000);
+    };
+
+    // Kick off the first update.
+    scheduleUpdate();
 }
 
 function handleFormSubmit(event) {
@@ -3817,8 +3890,10 @@ function handleFormSubmit(event) {
             taskData.estimatedDurationAmount = estimatedDurationAmountInput.value ? parseInt(estimatedDurationAmountInput.value, 10) : null;
             taskData.estimatedDurationUnit = estimatedDurationUnitSelect.value;
         }
+        // If an ID is present, we're either editing or reinstating.
         if (id) {
             const taskIndex = tasks.findIndex(t => t.id === id);
+            // If it's in the active tasks list, we're editing.
             if (taskIndex > -1) {
                 const originalTask = tasks[taskIndex];
                 const mergedTask = { ...originalTask, ...taskData, id: id };
@@ -3838,19 +3913,39 @@ function handleFormSubmit(event) {
                 if (originalTask.icon !== taskIconInput.value.trim()) {
                     updateTaskIcon(id, taskIconInput.value.trim());
                 }
+            } else {
+                // If it's NOT in the active list, we are reinstating it.
+                taskData.id = id; // Use the original ID
+                taskData.createdAt = now; // Give it a new creation date for tracking
+                taskData.misses = 0; // Reset misses
+                taskData.completed = false;
+                taskData.status = 'green';
+                taskData.icon = taskIconInput.value.trim();
+                const newTask = sanitizeAndUpgradeTask(taskData);
+                tasks.push(newTask);
+                // Also remove it from the archived list if it exists there
+                if (appState.archivedTasks) {
+                    appState.archivedTasks = appState.archivedTasks.filter(t => t.id !== id);
+                }
             }
         } else {
+            // No ID means it's a brand new task.
             taskData.id = generateId();
             taskData.createdAt = now;
             taskData.misses = 0;
             taskData.completed = false;
-            taskData.status = 'green'; // Start as green, pipeline will correct it
+            taskData.status = 'green';
             taskData.icon = taskIconInput.value.trim();
             const newTask = sanitizeAndUpgradeTask(taskData);
             tasks.push(newTask);
         }
 
-        closeModal(); // Now it's safe to close the modal
+        closeModal();
+
+        // Restore modal title and submit button text to defaults
+        modalTitle.textContent = 'Add New Task';
+        const submitButton = taskForm.querySelector('button[type="submit"]');
+        if (submitButton) submitButton.textContent = 'Create Task';
 
         // After adding or updating, immediately run the pipeline to get the correct status
         // and save before rendering.
@@ -3897,6 +3992,9 @@ function triggerUndoConfirmation(taskId) {
     }
 }
 function confirmDeleteAction(taskId, confirmed) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
     if (confirmed) {
         stopAllTimers();
         tasks = tasks.filter(t => t.id !== taskId);
@@ -3906,12 +4004,9 @@ function confirmDeleteAction(taskId, confirmed) {
         renderKpiList();
         if (calendar) calendar.refetchEvents();
     } else {
-        const task = tasks.find(t => t.id === taskId);
-        if (task) {
-            task.confirmationState = null;
-            saveData();
-            renderTasks();
-        }
+        task.confirmationState = null;
+        saveData();
+        renderTasks();
     }
 }
 function triggerCompletion(taskId) {
