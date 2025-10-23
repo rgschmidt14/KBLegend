@@ -72,11 +72,21 @@ let uiSettings = {
     closeModalAfterAction: false,
     calendarCategoryFilters: {},
     showCalendarFilters: true, // New setting
-    monthView: { // New settings for month view
+    monthView: {
         showIcon: true,
         showTime: false,
         showName: true,
         groupTasks: true,
+    },
+    weekView: { // New settings for week view
+        showIcon: true,
+        showTime: true,
+        showName: true,
+    },
+    dayView: { // New settings for day view
+        showIcon: true,
+        showTime: true,
+        showName: true,
     },
     welcomeScreenShown: false,
     earlyOnTimeSettings: {
@@ -1113,15 +1123,6 @@ function applyTheme() {
             white-space: nowrap;
         }
 
-        .fc-timegrid-event.fc-event-short {
-            min-height: 22px !important; /* Give it a minimum height to be visible */
-            padding: 1px 4px !important;    /* Adjust padding to fit content */
-        }
-
-        .fc-event-short .fc-event-main-inner {
-            align-items: center; /* Vertically center the title */
-        }
-
     `;
 
     // Inject styles into the document head
@@ -1962,6 +1963,33 @@ function renderMonthViewSettings() {
     }
 }
 
+function renderCalendarViewSettings() {
+    // Week View
+    const weekContainer = document.getElementById('week-view-display-options');
+    if (weekContainer) {
+        if (!uiSettings.weekView) {
+            uiSettings.weekView = { showIcon: true, showTime: true, showName: true };
+        }
+        for (const key in uiSettings.weekView) {
+            const checkbox = weekContainer.querySelector(`input[name="${key}"]`);
+            if (checkbox) checkbox.checked = uiSettings.weekView[key];
+        }
+    }
+
+    // Day View
+    const dayContainer = document.getElementById('day-view-display-options');
+    if (dayContainer) {
+        if (!uiSettings.dayView) {
+            uiSettings.dayView = { showIcon: true, showTime: true, showName: true };
+        }
+        for (const key in uiSettings.dayView) {
+            const checkbox = dayContainer.querySelector(`input[name="${key}"]`);
+            if (checkbox) checkbox.checked = uiSettings.dayView[key];
+        }
+    }
+}
+
+
 function openAdvancedOptionsModal() {
     renderCategoryManager();
     renderCategoryFilters();
@@ -1980,6 +2008,7 @@ function openAdvancedOptionsModal() {
     renderTaskHistorySettings();
     renderEarlyOnTimeSettings(); // Render the "Early is on Time" settings
     renderMonthViewSettings(); // Render the new month view settings
+    renderCalendarViewSettings();
 
     // Render the toggle for showing/hiding calendar filters
     const showFiltersToggle = document.getElementById('show-calendar-filters-toggle');
@@ -2018,6 +2047,7 @@ function renderVacationManager() {
 }
 
 function openTaskView(eventId, isHistorical, occurrenceDate) {
+    console.log(`openTaskView called with: eventId=${eventId}, isHistorical=${isHistorical}`);
     let taskOrHistoryItem;
     const getBaseId = (id) => {
         if (!id || !id.includes('_')) return id;
@@ -2028,10 +2058,11 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     if (isHistorical) {
         taskOrHistoryItem = appState.historicalTasks.find(h => 'hist_' + h.originalTaskId + '_' + h.completionDate === eventId);
         if (!taskOrHistoryItem) {
-            taskOrHistoryItem = tasks.find(t => t.id === eventId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === eventId));
+             taskOrHistoryItem = tasks.find(t => t.id === eventId) || (appState.archivedTasks && appState.archivedTasks.find(t => t.id === eventId));
         }
     } else {
-        taskOrHistoryItem = tasks.find(t => t.id === eventId);
+        const allTasks = [...tasks, ...(appState.archivedTasks || [])];
+        taskOrHistoryItem = allTasks.find(t => t.id === eventId);
         if (!taskOrHistoryItem && eventId && eventId.includes('_')) {
             const baseTaskId = getBaseId(eventId);
             taskOrHistoryItem = tasks.find(t => t.id === baseTaskId);
@@ -2102,7 +2133,12 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         delete taskViewModalEl.dataset.viewingTaskId;
     }
 
-    taskViewContentEl.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
+    try {
+        taskViewContentEl.innerHTML = taskViewTemplate(taskOrHistoryItem, { categories, appSettings, isHistorical });
+    } catch (e) {
+        console.error("Error rendering taskViewTemplate:", e);
+        return; // Stop execution if template fails
+    }
     taskViewContentEl.classList.remove('hidden');
     taskStatsContentEl.classList.add('hidden');
     taskStatsContentEl.innerHTML = '';
@@ -2849,7 +2885,8 @@ function renderKpiList(weekOffset = 0) {
     });
 
     // 4. Data Fetching and Processing
-    const kpiTasks = tasks.filter(task => task.isKpi);
+    const allPossibleKpiTasks = [...tasks, ...(appState.archivedTasks || [])];
+    const kpiTasks = allPossibleKpiTasks.filter(task => task.isKpi);
     if (kpiTasks.length === 0) {
         kpiChartContainer.innerHTML = '<p class="text-gray-500 italic text-center mt-4">No KPIs set. Add a task and mark it as a KPI to see progress here.</p>';
         kpiControls.classList.add('hidden');
@@ -2943,18 +2980,27 @@ function renderKpiList(weekOffset = 0) {
             }
         },
         onClick: (event, elements, chart) => {
+            console.log("KPI chart clicked. Elements:", elements);
             const canvas = chart.canvas;
             let taskId;
-            if (uiSettings.kpiChartMode === 'single' && elements.length > 0) {
-                const datasetIndex = elements[0].datasetIndex;
-                taskId = chart.data.datasets[datasetIndex].taskId;
-            } else {
-                taskId = canvas.dataset.taskId;
-            }
 
+            if (uiSettings.kpiChartMode === 'single') {
+                if (elements.length > 0) {
+                    const datasetIndex = elements[0].datasetIndex;
+                    taskId = chart.data.datasets[datasetIndex].taskId;
+                } else if (chart.data.datasets.length === 1) {
+                    // Fallback for single-KPI view: if the click is anywhere on the chart, open the one task.
+                    taskId = chart.data.datasets[0].taskId;
+                }
+            } else {
+                // In stacked mode, the taskId is on the wrapper div, which is the canvas's parent.
+                if (canvas.parentElement) {
+                    taskId = canvas.parentElement.dataset.taskId;
+                }
+            }
+            console.log("Determined taskId:", taskId);
             if (taskId) {
                 openTaskView(taskId, false);
-                renderTaskStats(taskId);
             }
         }
     };
@@ -2962,8 +3008,12 @@ function renderKpiList(weekOffset = 0) {
     if (uiSettings.kpiChartMode === 'single') {
         kpiChartContainer.classList.add('gradient-bordered-content', 'cursor-pointer');
         kpiChartContainer.style.height = '400px';
-        kpiChartContainer.innerHTML = '<canvas id="kpi-main-chart"></canvas>';
-        const ctx = document.getElementById('kpi-main-chart').getContext('2d');
+
+        // Create canvas element programmatically to avoid race conditions
+        const canvas = document.createElement('canvas');
+        kpiChartContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
         kpiChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -2980,10 +3030,11 @@ function renderKpiList(weekOffset = 0) {
             const chartWrapper = document.createElement('div');
             chartWrapper.className = 'gradient-bordered-content cursor-pointer';
             chartWrapper.style.height = '250px';
+            chartWrapper.dataset.taskId = task.id; // Store task ID on the wrapper for the click event
 
             const canvas = document.createElement('canvas');
             canvas.id = `kpi-chart-${index}`;
-            canvas.dataset.taskId = task.id; // Store task ID on the canvas
+            // The canvas itself doesn't need the taskId, the wrapper handles the click.
             chartWrapper.appendChild(canvas);
             kpiChartContainer.appendChild(chartWrapper);
 
@@ -6262,6 +6313,26 @@ function setupEventListeners() {
                 return;
             }
 
+            if (target.classList.contains('week-view-display-toggle')) {
+                const key = target.name;
+                if (uiSettings.weekView.hasOwnProperty(key)) {
+                    uiSettings.weekView[key] = target.checked;
+                    saveData();
+                    if (calendar) calendar.refetchEvents();
+                }
+                return;
+            }
+
+            if (target.classList.contains('day-view-display-toggle')) {
+                const key = target.name;
+                if (uiSettings.dayView.hasOwnProperty(key)) {
+                    uiSettings.dayView[key] = target.checked;
+                    saveData();
+                    if (calendar) calendar.refetchEvents();
+                }
+                return;
+            }
+
             if (target.classList.contains('hint-seen-checkbox')) {
                 const interaction = target.dataset.interaction;
                 if (interaction) {
@@ -7445,6 +7516,15 @@ function initializeCalendar() {
             // Tertiary sort: alphabetical by title
             return a.title.localeCompare(b.title);
         },
+        eventClassNames: function(arg) {
+            const { event } = arg;
+            const durationMs = event.end - event.start;
+            const thirtyMinutesMs = 30 * 60 * 1000;
+            if (durationMs > 0 && durationMs < thirtyMinutesMs) {
+                return ['fc-event-short'];
+            }
+            return [];
+        },
         eventContent: function(arg) {
             const { event, timeText, view } = arg;
             const { extendedProps } = event;
@@ -7471,31 +7551,24 @@ function initializeCalendar() {
                 return { html: `<div class="month-view-event-item" style="background-color: ${categoryColor}; color: ${textColor};">${iconHtml} ${timeHtml} ${nameHtml}</div>` };
             }
 
-            // --- TimeGrid Day/Week View Rendering ---
-            const durationMs = event.end - event.start;
-            const isShort = durationMs < (30 * 60 * 1000);
-
-            // Conditional content based on user requirements
-            const iconHtml = extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon"></i> ` : '';
-            const timeHtml = `<span class="fc-event-time">${timeText}</span> `;
-            const titleHtml = `<span class="fc-event-title">${event.title}</span>`;
-
-            let contentHtml;
-            if (isShort) {
-                contentHtml = titleHtml;
-            } else {
-                contentHtml = `${iconHtml}${timeHtml}${titleHtml}`;
+            // --- TimeGrid Week View Rendering ---
+            if (view.type === 'timeGridWeek') {
+                const iconHtml = uiSettings.weekView.showIcon && extendedProps.icon ? `<div><i class="${extendedProps.icon} fa-fw fc-event-icon"></i></div>` : '';
+                const timeHtml = uiSettings.weekView.showTime ? `<div class="fc-event-time">${timeText}</div>` : '';
+                const titleHtml = uiSettings.weekView.showName ? `<div class="fc-event-title">${event.title}</div>` : '';
+                return { html: `<div class="fc-event-main-inner">${iconHtml}${timeHtml}${titleHtml}</div>` };
             }
 
-            // Use a simple, flexible structure that allows for natural wrapping.
-            return { html: `<div class="fc-event-main-inner">${contentHtml}</div>` };
-        },
-        eventClassNames: function(arg) {
-            const durationMs = arg.event.end - arg.event.start;
-            if (durationMs < (30 * 60 * 1000)) {
-                return ['fc-event-short'];
+            // --- TimeGrid Day View Rendering ---
+            if (view.type === 'timeGridDay') {
+                const iconHtml = uiSettings.dayView.showIcon && extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon mr-1"></i>` : '';
+                const timeHtml = uiSettings.dayView.showTime ? `<span class="fc-event-time">${timeText}</span>` : '';
+                const titleHtml = uiSettings.dayView.showName ? `<span class="fc-event-title ml-1">${event.title}</span>` : '';
+                return { html: `<div class="fc-event-main-inner flex flex-wrap items-center">${iconHtml}${timeHtml}${titleHtml}</div>` };
             }
-            return [];
+
+            // Fallback for any other views
+            return { html: `<div class="fc-event-main-inner">${event.title}</div>` };
         },
         events: (fetchInfo, successCallback, failureCallback) => {
             try {

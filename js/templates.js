@@ -361,6 +361,22 @@ function historyDeleteConfirmationTemplate(historyId, taskId) {
     `;
 }
 
+export function confirmCategoryIconApplyTemplate(categoryId, iconClass) {
+    return `
+        <div id="confirm-category-icon-modal" class="modal active">
+            <div class="modal-content bg-modal">
+                <h3 class="text-xl font-semibold mb-4">Apply Category Icon</h3>
+                <p class="mb-4 text-sm">You've selected the icon <i class="${iconClass}"></i>. How would you like to apply it?</p>
+                <div class="flex flex-col space-y-2">
+                    <button data-action="apply-icon-to-all" data-category-id="${categoryId}" data-icon="${iconClass}" class="btn btn-primary">Apply to All Existing & Future Tasks</button>
+                    <button data-action="apply-icon-to-future" data-category-id="${categoryId}" data-icon="${iconClass}" class="btn btn-secondary">Apply Only to Future Tasks</button>
+                    <button data-action="cancel-apply-icon" class="btn btn-tertiary mt-4">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export function confirmOverrideModalTemplate(occurrenceId) {
     return `
         <div class="modal active" id="confirm-override-modal">

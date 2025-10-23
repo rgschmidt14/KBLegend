@@ -455,39 +455,6 @@ legend {
     word-wrap: break-word;
 }
 
-/* Adaptive layout for short events */
-.fc-event-main-inner.fc-event-short {
-    flex-direction: row; /* Horizontal layout */
-    align-items: center; /* Center items vertically */
-    gap: 5px;
-}
-
-.fc-event-short .fc-event-time-title-group {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 4px;
-    flex-wrap: nowrap; /* Prevent wrapping inside the group */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0; /* Important for flexbox to allow shrinking */
-}
-
-.fc-event-short .fc-event-icon {
-    font-size: 1em;
-    margin-bottom: 0;
-}
-
-.fc-event-short .fc-event-time {
-    flex-shrink: 0; /* Prevent time from shrinking */
-}
-
-.fc-event-short .fc-event-title {
-    white-space: nowrap; /* Prevent title from wrapping */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 1; /* Allow title to shrink */
-    min-width: 0;
-}
 .fc .fc-timegrid-now-indicator-line {
     border-width: 2px;
 }
