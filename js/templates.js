@@ -502,6 +502,17 @@ function dataMigrationModalTemplate() {
     <div class="modal-content bg-modal">
         <h3 class="text-xl font-semibold mb-4">Data Migration & Integrity Tool</h3>
         <button class="close-button">&times;</button>
+
+        <div id="goal-timezone-fix-section" class="hidden mb-4 p-3 border rounded">
+            <h4 class="font-semibold">Weekly Goal Timezone Correction</h4>
+            <p id="goal-fix-summary" class="text-sm my-2"></p>
+            <p class="text-xs mb-3">The following weekly goals appear to have an incorrect timezone offset and will be shifted to the start of the week in your local time.</p>
+            <div id="goal-fix-list-container" class="max-h-60 overflow-y-auto border rounded p-2 space-y-2"></div>
+            <div class="mt-3 flex justify-end">
+                <button id="fix-goals-btn" data-action="fixTimezoneGoals" class="btn btn-confirm btn-sm">Fix All Goals</button>
+            </div>
+        </div>
+
         <div id="orphan-cleanup-section" class="hidden mb-4 p-3 border rounded">
             <h4 class="font-semibold">Orphaned History Cleanup</h4>
             <p id="orphan-summary" class="text-sm my-2"></p>

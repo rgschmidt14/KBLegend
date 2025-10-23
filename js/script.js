@@ -63,6 +63,7 @@ let uiSettings = {
     kpiChartMode: 'single', // 'single' or 'stacked'
     kpiChartDateRange: '8d', // '8d', '30d', etc.
     journalIconCollapseState: {},
+    journalWeekCollapseState: {},
     advancedOptionsCollapseState: {},
     taskManagerCollapseState: {},
     calculationHorizonAmount: 1,
@@ -3266,17 +3267,14 @@ function renderJournal() {
 
     if (sortBy === 'date') {
         const entriesByWeek = {};
-        // Defensively group all entries, putting invalid ones in a special group
+        // Group all entries by their week start date
         appState.journal.forEach(entry => {
             const entryDateSource = entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt;
             let entryDate;
-
-            // Timezone fix: a 'YYYY-MM-DD' string is parsed as UTC midnight, which can be the previous day in some timezones.
-            // By splitting the string, we construct the date in the user's local timezone at midnight.
             if (entry.isWeeklyGoal && typeof entryDateSource === 'string' && entryDateSource.includes('-')) {
                 const parts = entryDateSource.split('-');
                 entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                 entryDate.setHours(0, 0, 0, 0);
+                entryDate.setHours(0, 0, 0, 0);
             } else {
                 entryDate = new Date(entryDateSource);
             }
@@ -3295,7 +3293,7 @@ function renderJournal() {
         });
 
         const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => {
-            if (a === 'undated') return 1; // Always sort undated to the end
+            if (a === 'undated') return 1;
             if (b === 'undated') return -1;
             const dateA = new Date(a);
             const dateB = new Date(b);
@@ -3303,33 +3301,45 @@ function renderJournal() {
         });
 
         sortedWeeks.forEach(weekStartKey => {
+            const entriesForWeek = entriesByWeek[weekStartKey];
+            if (entriesForWeek.length === 0) return;
+
+            let headerText;
             if (weekStartKey === 'undated') {
-                 list.insertAdjacentHTML('beforeend', `<div class="journal-week-header my-4 p-3 rounded-lg"><h3 class="text-lg font-bold">Undated Entries</h3></div>`);
+                headerText = 'Undated Entries';
             } else {
                 const weekStartDate = new Date(weekStartKey);
                 const weekEndDate = new Date(weekStartDate);
                 weekEndDate.setDate(weekEndDate.getDate() + 6);
-                list.insertAdjacentHTML('beforeend', `<div class="journal-week-header my-4 p-3 rounded-lg"><h3 class="text-lg font-bold">Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</h3></div>`);
+                headerText = `Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`;
             }
 
-            const entriesForWeek = entriesByWeek[weekStartKey];
+            // Sort entries within the week
             entriesForWeek.sort((a, b) => {
-                // Implement user's requested sorting logic
-                if (sortDir === 'asc') {
-                    if (a.isWeeklyGoal && !b.isWeeklyGoal) return -1; // a (goal) comes first
-                    if (!a.isWeeklyGoal && b.isWeeklyGoal) return 1;  // b (goal) comes first
-                } else { // desc
-                    if (a.isWeeklyGoal && !b.isWeeklyGoal) return 1;  // a (goal) comes last
-                    if (!a.isWeeklyGoal && b.isWeeklyGoal) return -1; // b (goal) comes last
-                }
+                // Always prioritize weekly goals at the top
+                if (a.isWeeklyGoal && !b.isWeeklyGoal) return -1;
+                if (!a.isWeeklyGoal && b.isWeeklyGoal) return 1;
+
                 const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
                 const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
                 return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
             });
 
-            entriesForWeek.forEach(entry => {
-                list.insertAdjacentHTML('beforeend', renderJournalEntry(entry));
-            });
+            const isCollapsed = uiSettings.journalWeekCollapseState && uiSettings.journalWeekCollapseState[weekStartKey] === true;
+            const entriesHtml = entriesForWeek.map(entry => renderJournalEntry(entry)).join('');
+
+            const weekGroupHtml = `
+                <div class="journal-week-group my-4">
+                    <div class="journal-week-header" data-action="toggleJournalWeekGroup" data-week-group="${weekStartKey}">
+                        <h3 class="text-lg font-bold">${headerText}</h3>
+                        <i class="fa-solid ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'}"></i>
+                    </div>
+                    <div class="journal-entries-container ${isCollapsed ? 'hidden' : ''}" data-week-entries="${weekStartKey}">
+                        ${entriesHtml}
+                    </div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', weekGroupHtml);
         });
 
     } else if (sortBy === 'icon') {
@@ -4788,7 +4798,50 @@ function openDataMigrationModal(tasksData = null) {
 
     dataMigrationModalEl.innerHTML = dataMigrationModalTemplate();
 
-    // Add event listeners for the new modal
+    // --- Weekly Goal Timezone Fix ---
+    const goalFixSection = dataMigrationModalEl.querySelector('#goal-timezone-fix-section');
+    const goalSummary = dataMigrationModalEl.querySelector('#goal-fix-summary');
+    const goalListContainer = dataMigrationModalEl.querySelector('#goal-fix-list-container');
+    const fixGoalsBtn = dataMigrationModalEl.querySelector('#fix-all-goals-btn');
+
+    const affectedGoals = appState.journal.filter(entry => {
+        if (!entry.isWeeklyGoal || !entry.weekStartDate) return false;
+        // Manually parse the date string to avoid timezone issues
+        const parts = entry.weekStartDate.split('-');
+        const entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        return entryDate.getUTCDay() !== 0; // Find goals that don't start on a Sunday in UTC
+    });
+
+    if (affectedGoals.length > 0 && goalFixSection) {
+        goalSummary.textContent = `Found ${affectedGoals.length} weekly goal(s) that appear to be affected by a timezone issue (not starting on Sunday).`;
+        goalListContainer.innerHTML = affectedGoals.map(goal => {
+            const parts = goal.weekStartDate.split('-');
+            const originalDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const correctedDate = startOfWeek(originalDate, { weekStartsOn: 0 });
+            return `
+                <div class="p-2 border-b">
+                    <p class="font-semibold">Goal for week of: ${originalDate.toLocaleDateString()}</p>
+                    <p class="text-sm text-gray-500">This will be corrected to start on: <strong class="text-green-600">${correctedDate.toLocaleDateString()}</strong></p>
+                </div>
+            `;
+        }).join('');
+        fixGoalsBtn.addEventListener('click', () => {
+            affectedGoals.forEach(goal => {
+                const parts = goal.weekStartDate.split('-');
+                const originalDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                const correctedDate = startOfWeek(originalDate, { weekStartsOn: 0 });
+                goal.weekStartDate = correctedDate.toISOString().split('T')[0];
+            });
+            saveData();
+            alert(`${affectedGoals.length} weekly goals have been corrected.`);
+            deactivateModal(dataMigrationModalEl);
+            renderJournal();
+        });
+        goalFixSection.classList.remove('hidden');
+    }
+
+
+    // --- Orphan Cleanup & Other Listeners ---
     const closeButton = dataMigrationModalEl.querySelector('.close-button');
     if (closeButton) {
         closeButton.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
@@ -4801,7 +4854,6 @@ function openDataMigrationModal(tasksData = null) {
     const deleteSelectedBtn = document.getElementById('delete-selected-orphans-btn');
     if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener('click', () => {
-             // Pass the modal element to the action handler
             deleteSelectedOrphansAction(dataMigrationModalEl);
         });
     }
@@ -4820,7 +4872,6 @@ function openDataMigrationModal(tasksData = null) {
         deleteAllHistoryBtn.addEventListener('click', deleteAllHistory);
     }
 
-    // Step 2 buttons
     const cancelBtn = document.getElementById('cancel-migration-btn');
     if(cancelBtn) {
         cancelBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
@@ -4830,7 +4881,6 @@ function openDataMigrationModal(tasksData = null) {
         runBtn.addEventListener('click', () => runMigration(dataMigrationModalEl));
     }
 
-    // Step 3 (Confirm) buttons
     const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
     if (cancelConfirmBtn) {
         cancelConfirmBtn.addEventListener('click', () => deactivateModal(dataMigrationModalEl));
@@ -6506,6 +6556,21 @@ function setupEventListeners() {
                         }
                     }
                     break;
+                case 'toggleJournalWeekGroup':
+                    const weekGroup = target.dataset.weekGroup;
+                    const weekEntriesContainer = journalViewEl.querySelector(`.journal-entries-container[data-week-entries="${weekGroup}"]`);
+                    const weekChevron = target.querySelector('i.fa-solid');
+                    if (weekEntriesContainer && weekChevron) {
+                        const isHidden = weekEntriesContainer.classList.toggle('hidden');
+                        weekChevron.classList.toggle('fa-chevron-right', isHidden);
+                        weekChevron.classList.toggle('fa-chevron-down', !isHidden);
+                        if (!uiSettings.journalWeekCollapseState) {
+                            uiSettings.journalWeekCollapseState = {};
+                        }
+                        uiSettings.journalWeekCollapseState[weekGroup] = isHidden;
+                        saveData();
+                    }
+                    break;
                 case 'toggleJournalIconGroup':
                     const iconGroup = target.dataset.iconGroup;
                     const entriesContainer = journalViewEl.querySelector(`.journal-entries-container[data-icon-entries="${iconGroup}"]`);
@@ -7146,37 +7211,6 @@ const loadPlannerData = () => {
             }
         }
 
-        // --- One-time Data Migration for Weekly Goal Timezones ---
-        const weeklyGoalTimezoneFixNeeded = !localStorage.getItem('weeklyGoalTimezoneFixV1');
-        if (weeklyGoalTimezoneFixNeeded && Array.isArray(appState.journal)) {
-            console.log("Running one-time weekly goal timezone fix migration...");
-            let goalsFixed = 0;
-            appState.journal.forEach(entry => {
-                if (entry.isWeeklyGoal && entry.weekStartDate && typeof entry.weekStartDate === 'string') {
-                    const originalDateString = entry.weekStartDate;
-                    const parts = originalDateString.split('T')[0].split('-');
-                    if (parts.length === 3) {
-                        const localDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                        const startOfWeekDate = startOfWeek(localDate, { weekStartsOn: 0 });
-                        startOfWeekDate.setHours(0, 0, 0, 0); // Ensure midnight
-                        const correctedDateString = startOfWeekDate.toISOString().split('T')[0];
-                        if (correctedDateString !== originalDateString) {
-                            entry.weekStartDate = correctedDateString;
-                            goalsFixed++;
-                        }
-                    }
-                }
-            });
-            localStorage.setItem('weeklyGoalTimezoneFixV1', 'true');
-            if (goalsFixed > 0) {
-                console.log(`Weekly goal timezone fix complete. Corrected ${goalsFixed} goals.`);
-                savePlannerData();
-            } else {
-                console.log("Weekly goal timezone fix complete. No changes needed.");
-            }
-        }
-
-
         // Load archived tasks, ensuring dates are correctly parsed
         if (parsedData.archivedTasks && Array.isArray(parsedData.archivedTasks)) {
             appState.archivedTasks = parsedData.archivedTasks.map(task => {
@@ -7508,9 +7542,19 @@ function initializeCalendar() {
             setTimeout(() => applyTheme(), 0);
         },
         eventClick: (info) => {
-            const eventId = info.event.id;
+            let eventId = info.event.id;
             const isHistorical = info.event.extendedProps.isHistorical;
             const occurrenceDueDate = info.event.extendedProps.occurrenceDueDate ? new Date(info.event.extendedProps.occurrenceDueDate) : null;
+
+            // In month view, the event ID is a composite "segment ID". We need the base part.
+            if (info.view.type === 'dayGridMonth' && eventId.includes('_')) {
+                const parts = eventId.split('_');
+                const potentialDate = parts[parts.length - 1];
+                // Check if the last part is an ISO date string, which indicates a segment ID
+                if (potentialDate.endsWith('Z') && !isNaN(new Date(potentialDate).getTime())) {
+                    eventId = parts.slice(0, -1).join('_');
+                }
+            }
 
             // Use the explicit taskId from extendedProps for active tasks. This is more reliable.
             const idToOpen = isHistorical ? eventId : (info.event.extendedProps.taskId || eventId);
