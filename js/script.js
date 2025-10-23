@@ -2316,7 +2316,6 @@ function renderTaskStats(taskId) {
     const taskStatsContentEl = document.getElementById('task-stats-content');
 
     const isActive = tasks.some(t => t.id === taskId);
-    const isActive = tasks.some(t => t.id === taskId);
     // A task is considered "fully completed" or "deleted" if it has history but is NOT in the active task list.
     const isFullyCompleted = !isActive && appState.historicalTasks.some(h => h.originalTaskId === taskId);
 
