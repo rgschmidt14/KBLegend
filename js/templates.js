@@ -979,6 +979,42 @@ function welcomeModalTemplate() {
     `;
 }
 
+export function categoryIconApplyConfirmModalTemplate(category) {
+    const iconHtml = category.icon ? `<i class="${category.icon} text-2xl mr-2"></i>` : '<span class="text-2xl mr-2">❓</span>';
+    const isDarkMode = !document.body.classList.contains('light-mode');
+    const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
+
+    return `
+<div id="category-icon-confirm-modal" class="modal active" style="z-index: 1060;">
+  <div class="modal-content max-w-lg bg-modal">
+    <div class="modal-header">
+      <h3 class="text-xl font-bold ${textColor}">Apply Category Icon?</h3>
+      <button data-action="cancel" class="close-button">&times;</button>
+    </div>
+    <div class="modal-body ${textColor}">
+      <div class="flex items-center mb-4">
+        ${iconHtml}
+        <p>You've enabled "Apply icon automatically" for the category "<strong>${category.name}</strong>".</p>
+      </div>
+      <p class="mb-4">How would you like to apply this icon?</p>
+      <div class="flex flex-col space-y-2">
+        <button data-action="apply-all" data-category-id="${category.id}" class="btn btn-primary text-left p-3">
+          <strong>Apply to All Existing & Future Tasks</strong>
+          <span class="text-xs block font-normal">Overwrite the icon on all current, historical, and archived tasks in this category.</span>
+        </button>
+        <button data-action="apply-future" data-category-id="${category.id}" class="btn btn-secondary text-left p-3">
+          <strong>Apply to Future Tasks Only</strong>
+          <span class="text-xs block font-normal">Only new tasks created in this category will get this icon automatically.</span>
+        </button>
+        <button data-action="cancel" class="btn btn-tertiary mt-4">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+}
+
+
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,

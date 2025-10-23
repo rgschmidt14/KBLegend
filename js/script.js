@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate, confirmOverrideModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate, confirmOverrideModalTemplate, categoryIconApplyConfirmModalTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -619,6 +619,80 @@ function updateAdaptiveSensitivity() {
         sensitivitySettings.sValue = newS;
         saveData();
     }
+}
+
+function openCategoryIconConfirmModal(categoryId) {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('category-icon-confirm-modal');
+    if (existingModal) existingModal.remove();
+
+    // Create and append modal
+    const modalHtml = categoryIconApplyConfirmModalTemplate(category);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('category-icon-confirm-modal');
+
+    const closeModal = () => {
+        deactivateModal(modalElement);
+        // Use a timeout to allow the fade-out animation to complete before removing the element
+        setTimeout(() => modalElement.remove(), 300);
+        renderCategoryManager(); // Re-render to show the checkbox in its correct (original or updated) state
+    };
+
+    modalElement.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const catId = target.dataset.categoryId;
+        const targetCategory = categories.find(c => c.id === catId);
+
+
+        switch(action) {
+            case 'apply-all':
+                if (!targetCategory) return;
+                targetCategory.applyIconToNewTasks = true;
+                const iconToApply = targetCategory.icon;
+                // Apply to active tasks
+                tasks.forEach(task => {
+                    if (task.categoryId === catId) {
+                        task.icon = iconToApply;
+                    }
+                });
+                // Apply to archived tasks
+                (appState.archivedTasks || []).forEach(task => {
+                    if (task.categoryId === catId) {
+                        task.icon = iconToApply;
+                    }
+                });
+                // Apply to historical tasks
+                appState.historicalTasks.forEach(h => {
+                    if (h.categoryId === catId) {
+                        h.icon = iconToApply;
+                    }
+                });
+                saveData();
+                renderTasks();
+                if (calendar) calendar.refetchEvents();
+                closeModal();
+                break;
+            case 'apply-future':
+                if (!targetCategory) return;
+                targetCategory.applyIconToNewTasks = true;
+                saveData();
+                closeModal(); // This will re-render the manager
+                break;
+            case 'cancel':
+                // The category's state was never changed, so we just close the modal.
+                closeModal();
+                break;
+        }
+
+    });
+
+    activateModal(modalElement);
 }
 
 
@@ -6075,10 +6149,22 @@ function setupEventListeners() {
                     break;
                 case 'toggleApplyIcon':
                     const category = categories.find(c => c.id === categoryId);
-                    if (category) {
-                        category.applyIconToNewTasks = !category.applyIconToNewTasks;
+                    if (!category) break;
+
+                    const isBeingEnabled = event.target.checked;
+
+                    if (isBeingEnabled) {
+                        if (!category.icon) {
+                            alert("Please set an icon for this category before enabling this feature.");
+                            event.target.checked = false; // Revert the checkbox
+                            return;
+                        }
+                        // Don't save the state change here. The modal will handle it.
+                        openCategoryIconConfirmModal(categoryId);
+                    } else {
+                        // If we are disabling it, just update the state and save.
+                        category.applyIconToNewTasks = false;
                         saveData();
-                        renderCategoryManager();
                     }
                     break;
                 case 'openIconPicker':
