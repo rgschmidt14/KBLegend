@@ -7574,7 +7574,11 @@ function initializeCalendar() {
         plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
         initialView: 'timeGridWeek',
         headerToolbar: false,
-        editable: true,
+        editable: false,
+        eventStartEditable: false,
+        eventDrop: function(info) {
+            info.revert();
+        },
         slotEventOverlap: true,
         nowIndicator: true, // Show the current time indicator
         navLinks: true, // Allow clicking on day/week numbers to navigate
