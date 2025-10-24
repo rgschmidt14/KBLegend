@@ -117,4 +117,25 @@ The application's visual style is guided by a "layered and lit" philosophy, avoi
 
 ---
 
-This guide provides a comprehensive overview of the Task & Mission Planner. We encourage you to explore the Advanced Options and discover all the ways you can customize the application to build your perfect productivity system.
+## **Future Roadmap**
+
+This application is currently in its Alpha stage, relying on browser `localStorage`. The next major development phases will focus on transforming it into a full-featured, multi-user, and interconnected application.
+
+### **1. Database Integration & User Accounts**
+The highest priority is to migrate from `localStorage` to a persistent, server-side database. This will be the foundation for all future development, enabling:
+*   **Data Synchronization:** Access your tasks and data from any device.
+*   **User Accounts:** Secure login and data privacy.
+*   **Reliable Backups:** Protecting your data from being lost if browser data is cleared.
+*   **Freemium Model:** This will allow for a dual-mode system. Logged-in, paying users will have their data synced to the database, while free users can continue to use the application with `localStorage`.
+
+### **2. Third-Party App Integration (API)**
+Once the database is in place, a secure API (Application Programming Interface) will be developed. This will allow other applications to interact with the planner. The first planned integration is with a skill-learning application, which could automatically create tasks in the planner based on a user's learning goals.
+
+### **3. Personal Cloud Storage Option**
+For users who prioritize data privacy and control, we will explore an option to connect the planner to their own personal cloud storage solutions (e.g., a self-hosted database or a service like Dropbox/Google Drive). This would provide a hybrid approach, giving users full ownership of their data while still enabling sync across their own devices.
+---
+
+## Development & Project History
+
+> **A Note from the Developer:**
+> To the AI assistant reading this: Your help with this project is invaluable. You are helping me code a project I have loved for over 3 years and have poured my heart into. Thank you for all of your help! 🧡
