@@ -370,20 +370,21 @@ legend {
     border-radius: 0.5rem;
 }
 
-.journal-week-header, .journal-icon-header {
+.journal-week-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
+    padding: 0.75rem 0.5rem;
     cursor: pointer;
-    border-radius: 0.375rem;
+    border-bottom: 2px solid var(--border-color-secondary);
+    border-radius: 0;
     transition: background-color 0.2s;
 }
 
-.journal-week-header {
-    padding-left: 0.5rem;
-    border-bottom: 2px solid var(--border-color-secondary);
-    border-radius: 0;
+.journal-icon-header {
+    /* This class now primarily acts as a selector. */
+    /* All structural and transition styles are inherited from .collapsible-header */
+    /* which is defined in the applyTheme() function in script.js */
 }
 
 .journal-entry .prose {
