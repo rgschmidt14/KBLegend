@@ -454,11 +454,20 @@
                         </div>
                         <div id="repeating-options-group" class="mb-4 hidden">
                             <fieldset>
-                                <legend>Repetition End Date</legend>
-                                <div id="repeat-until-group" class="mb-4">
-                                    <label for="repeat-until-date" class="form-label">Repeat Until:</label>
+                                <legend>Repetition End Condition</legend>
+                                <div class="mb-2">
+                                    <label><input type="radio" name="repeat-until-mode" value="date" checked class="mr-1"> On date</label>
+                                    <label><input type="radio" name="repeat-until-mode" value="occurrences" class="ml-4 mr-1"> After a number of occurrences</label>
+                                </div>
+                                <div id="repeat-until-date-group">
+                                    <label for="repeat-until-date" class="form-label sr-only">Repeat Until Date:</label>
                                     <input type="datetime-local" id="repeat-until-date" name="repeat-until-date">
-                                    <p class="form-hint">Optional. The task will not repeat after this date.</p>
+                                    <p class="form-hint">The task will not repeat after this date.</p>
+                                </div>
+                                <div id="repeat-until-occurrences-group" class="hidden">
+                                    <label for="repeat-until-occurrences" class="form-label sr-only">Number of Occurrences:</label>
+                                    <input type="number" id="repeat-until-occurrences" name="repeat-until-occurrences" min="1" placeholder="e.g., 10">
+                                    <p class="form-hint">The task will stop repeating after this many occurrences.</p>
                                 </div>
                             </fieldset>
                             <fieldset>

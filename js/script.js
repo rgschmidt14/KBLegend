@@ -336,6 +336,8 @@ function sanitizeAndUpgradeTask(task) {
         prepTimeUnit: 'minutes',
         thoughts: '',
         occurrenceOverrides: {},
+        repeatUntilMode: 'date',
+        repeatUntilOccurrences: null,
     };
     const originalTaskJSON = JSON.stringify(task);
     let upgradedTask = { ...defaults };
@@ -1240,6 +1242,15 @@ function stopTaskTimer(taskId) {
         delete taskTimers[taskId];
     }
 }
+
+function startAllTaskTimers() {
+    tasks.forEach(task => {
+        if (task.isTimerRunning) {
+            startTimerInterval(task.id);
+        }
+    });
+}
+
 function renderTasks() {
     stopAllTimers();
     taskListDiv.innerHTML = '';
@@ -1426,6 +1437,7 @@ function renderTasks() {
     }
 
     startAllCountdownTimers();
+    startAllTaskTimers();
 }
 
 function formatTimeRemaining(ms) {
@@ -1613,8 +1625,9 @@ function openModal(taskId = null, options = {}) {
         });
 
         const submitButton = taskForm.querySelector('button[type="submit"]');
-        if (options.title) modalTitle.textContent = options.title;
-        if (options.submitText) submitButton.textContent = options.submitText;
+        // Default texts are set first, then overridden if conditions are met.
+        modalTitle.textContent = 'Add New Task';
+        submitButton.textContent = 'Create Task';
 
 
         const taskToLoad = reinstateTask || (taskId ? tasks.find(t => t.id === taskId) : null);
@@ -1623,7 +1636,8 @@ function openModal(taskId = null, options = {}) {
             const task = taskToLoad; // Use a consistent variable name
             // CRITICAL: For reinstating, we use the original ID. For editing, we use the existing ID.
             taskIdInput.value = task.id;
-            modalTitle.textContent = reinstateTask ? (options.title || 'Reinstate Task') : 'Edit Task';
+            modalTitle.textContent = reinstateTask ? (options.title || 'Reinstate Task') : 'Update Task';
+            submitButton.textContent = reinstateTask ? (options.submitText || 'Confirm Reinstatement') : 'Update Task';
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description || '';
             taskIconInput.value = task.icon || '';
@@ -1702,7 +1716,18 @@ function openModal(taskId = null, options = {}) {
             document.getElementById('is-kpi').checked = task.isKpi || false;
             document.getElementById('prep-time-amount').value = task.prepTimeAmount || '';
             document.getElementById('prep-time-unit').value = task.prepTimeUnit || 'minutes';
-            document.getElementById('repeat-until-date').value = task.repeatUntil ? formatDateForInput(new Date(task.repeatUntil)) : '';
+
+            // New logic for repetition end condition
+            const repeatUntilMode = task.repeatUntilMode || 'date';
+            taskForm.querySelector(`input[name="repeat-until-mode"][value="${repeatUntilMode}"]`).checked = true;
+            if (repeatUntilMode === 'date') {
+                document.getElementById('repeat-until-date').value = task.repeatUntil ? formatDateForInput(new Date(task.repeatUntil)) : '';
+                document.getElementById('repeat-until-occurrences').value = '';
+            } else {
+                document.getElementById('repeat-until-occurrences').value = task.repeatUntilOccurrences || '';
+                document.getElementById('repeat-until-date').value = '';
+            }
+            toggleRepeatUntilFields();
         } else {
             modalTitle.textContent = 'Add New Task';
             taskIdInput.value = '';
@@ -1845,6 +1870,13 @@ function toggleMonthlyOptions(mode) {
     monthlyDayNumberOptions.classList.toggle('hidden', mode !== 'day_number');
     monthlyDayOfWeekOptions.classList.toggle('hidden', mode !== 'day_of_week');
 }
+
+function toggleRepeatUntilFields() {
+    const mode = taskForm.querySelector('input[name="repeat-until-mode"]:checked').value;
+    document.getElementById('repeat-until-date-group').classList.toggle('hidden', mode !== 'date');
+    document.getElementById('repeat-until-occurrences-group').classList.toggle('hidden', mode !== 'occurrences');
+}
+
 function toggleYearlyOptions(mode) {
     yearlyDayNumberOptions.classList.toggle('hidden', mode !== 'day_number');
     yearlyDayOfWeekOptions.classList.toggle('hidden', mode !== 'day_of_week');
@@ -3387,6 +3419,7 @@ function renderJournalEntry(entry) {
 }
 
 function renderJournal() {
+    console.log("renderJournal called");
     const list = document.getElementById('journal-list');
     if (!list) return;
 
@@ -3491,14 +3524,13 @@ function renderJournal() {
         if (sortDir === 'desc') sortedIcons.reverse();
 
         sortedIcons.forEach(icon => {
-            const displayName = icon.replace(/fa-(solid|regular|brands)\s*/, '').replace(/-/g, ' ').trim().replace(/\b\w/g, l => l.toUpperCase());
-            const isCollapsed = uiSettings.journalIconCollapseState[icon] === true;
+            const displayName = icon.split(' ').pop().replace('fa-', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const isOpen = uiSettings.journalIconCollapseState[icon] === false;
 
             const entriesHtml = entriesByIcon[icon]
                 .sort((a, b) => {
                     const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
                     const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
-                    // Inside icon groups, always sort newest to oldest for consistency
                     return dateB - dateA;
                 })
                 .map(entry => renderJournalEntry(entry))
@@ -3506,12 +3538,15 @@ function renderJournal() {
 
             try {
                 list.insertAdjacentHTML('beforeend', `
-                    <div class="journal-icon-group">
-                        <div class="journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
-                            <h3 class="font-bold">${icon === 'No Icon' ? 'No Icon' : `<i class="${icon} mr-2"></i> ${displayName}`}</h3>
-                            <i class="fa-solid ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'}"></i>
+                    <div class="collapsible-section journal-icon-group ${isOpen ? 'open' : ''}" data-section-key="${icon}">
+                        <div class="collapsible-header journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
+                             <div class="flex items-center">
+                                ${icon === 'No Icon' ? '<span class="w-5 mr-2"></span>' : `<i class="${icon} mr-2 w-5 text-center"></i>`}
+                                <span class="font-bold">${displayName}</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down"></i>
                         </div>
-                        <div class="journal-entries-container ${isCollapsed ? 'hidden' : ''}" data-icon-entries="${icon}">
+                        <div class="collapsible-content journal-entries-container" data-icon-entries="${icon}">
                             ${entriesHtml}
                         </div>
                     </div>
@@ -3934,8 +3969,23 @@ function handleFormSubmit(event) {
             isKpi: document.getElementById('is-kpi').checked,
             prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
             prepTimeUnit: document.getElementById('prep-time-unit').value,
-            repeatUntil: document.getElementById('repeat-until-date').value ? new Date(document.getElementById('repeat-until-date').value) : null,
+            repeatUntil: null,
+            repeatUntilMode: taskForm.querySelector('input[name="repeat-until-mode"]:checked').value,
+            repeatUntilOccurrences: null,
         };
+
+        if (taskData.repeatUntilMode === 'date') {
+            const repeatUntilDateValue = document.getElementById('repeat-until-date').value;
+            if (repeatUntilDateValue) {
+                taskData.repeatUntil = new Date(repeatUntilDateValue);
+            }
+        } else {
+            const occurrencesValue = document.getElementById('repeat-until-occurrences').value;
+            if (occurrencesValue) {
+                taskData.repeatUntilOccurrences = parseInt(occurrencesValue, 10);
+            }
+        }
+
 
         if (uiSettings.userInteractions && taskData.prepTimeAmount > 0) {
             uiSettings.userInteractions.usedPrepTime = true;
@@ -4020,6 +4070,18 @@ function handleFormSubmit(event) {
 
         // Adjust due date for vacations after category is determined
         taskData.dueDate = adjustDateForVacation(taskData.dueDate, appState.vacations, taskData.categoryId, categories);
+
+        // New logic to calculate repeatUntil date from occurrences
+        if (taskData.repetitionType !== 'none' && taskData.repeatUntilMode === 'occurrences' && taskData.repeatUntilOccurrences > 0) {
+            // We need to build a temporary task object with all the repetition rules from the form
+            // to accurately calculate the occurrences.
+            const tempTaskForCalc = { ...taskData };
+            const occurrences = getOccurrences(tempTaskForCalc, new Date(), new Date(new Date().setFullYear(new Date().getFullYear() + 5)));
+            if (occurrences.length >= taskData.repeatUntilOccurrences) {
+                taskData.repeatUntil = occurrences[taskData.repeatUntilOccurrences - 1];
+            }
+        }
+
 
         if (taskData.completionType === 'count') {
             taskData.countTarget = countTargetInput.value ? parseInt(countTargetInput.value, 10) : null;
@@ -5922,6 +5984,9 @@ function setupEventListeners() {
         taskFormEl.querySelectorAll('input[name="yearlyOption"]').forEach(radio => {
             radio.addEventListener('change', (e) => toggleYearlyOptions(e.target.value));
         });
+        taskFormEl.querySelectorAll('input[name="repeat-until-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => toggleRepeatUntilFields());
+        });
 
         const dueDateTypeSelectEl = document.getElementById('due-date-type');
         if (dueDateTypeSelectEl) {
@@ -6636,10 +6701,10 @@ function setupEventListeners() {
                     item.view.classList.remove('hidden');
                     item.btn.classList.add('active-view-btn');
                     uiSettings.activeView = item.id;
-                if (item.id === 'calendar-view' && calendar) {
-                    calendar.updateSize();
-                    renderCalendarCategoryFilters();
-                }
+                    if (item.id === 'calendar-view' && calendar) {
+                        calendar.updateSize();
+                        renderCalendarCategoryFilters();
+                    }
                     if (item.id === 'dashboard-view') renderDashboardContent();
                     if (item.id === 'journal-view') renderJournal();
                 } else {
@@ -6672,6 +6737,7 @@ function setupEventListeners() {
     }
     const journalViewEl = document.getElementById('journal-view');
     if (journalViewEl) {
+        // Use a single delegated listener for all actions within the journal view
         journalViewEl.addEventListener('click', (event) => {
             const target = event.target.closest('[data-action]');
             if (!target) return;
@@ -6726,28 +6792,24 @@ function setupEventListeners() {
                     }
                     break;
                 case 'toggleJournalIconGroup':
-                    const iconGroup = target.dataset.iconGroup;
-                    const entriesContainer = journalViewEl.querySelector(`.journal-entries-container[data-icon-entries="${iconGroup}"]`);
-                    const chevron = target.querySelector('i.fa-solid');
-                    if (entriesContainer && chevron) {
-                        const isHidden = entriesContainer.classList.toggle('hidden');
-                        chevron.classList.toggle('fa-chevron-right', isHidden);
-                        chevron.classList.toggle('fa-chevron-down', !isHidden);
-                        uiSettings.journalIconCollapseState[iconGroup] = isHidden;
+                    const iconGroupEl = target.closest('.collapsible-section');
+                    if (iconGroupEl) {
+                        const iconGroupKey = target.dataset.iconGroup;
+                        const isOpen = iconGroupEl.classList.toggle('open');
+                        uiSettings.journalIconCollapseState[iconGroupKey] = !isOpen;
                         saveData();
                     }
                     break;
             }
         });
 
-        const journalSortBy = document.getElementById('journal-sort-by');
-        const journalSortDir = document.getElementById('journal-sort-direction');
-        const journalSortHandler = () => {
-            if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
-            renderJournal();
-        };
-        if(journalSortBy) journalSortBy.addEventListener('change', journalSortHandler);
-        if(journalSortDir) journalSortDir.addEventListener('change', journalSortHandler);
+        // Add a separate listener for 'change' events, also delegated from the main view
+        journalViewEl.addEventListener('change', (event) => {
+            if (event.target.id === 'journal-sort-by' || event.target.id === 'journal-sort-direction') {
+                if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
+                renderJournal();
+            }
+        });
     }
 
     // --- Calendar View Listeners ---
