@@ -135,6 +135,11 @@ Once the database is in place, a secure API (Application Programming Interface) 
 For users who prioritize data privacy and control, we will explore an option to connect the planner to their own personal cloud storage solutions (e.g., a self-hosted database or a service like Dropbox/Google Drive). This would provide a hybrid approach, giving users full ownership of their data while still enabling sync across their own devices.
 ---
 
+## **Future Updates**
+*   **Journal Search:** Implement a more advanced "fuzzy search" or "best match" sorting for the journal to improve search relevance.
+
+---
+
 ## Development & Project History
 
 > **A Note from the Developer:**

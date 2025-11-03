@@ -51,12 +51,27 @@
         <div id="main-content">
             <!-- Journal View -->
             <div id="journal-view" class="hidden">
-                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                    <h2 class="text-2xl font-bold">Journal</h2>
-                    <div class="flex items-center gap-4">
-                         <select id="journal-sort-by">
-                            <option value="date">Sort by Date</option>
-                            <option value="icon">Sort by Icon</option>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <h2 class="text-2xl font-bold">Journal</h2>
+                        <button id="add-journal-entry-btn" data-action="addJournal" class="btn btn-tertiary btn-md">New Entry</button>
+                    </div>
+                    <div class="journal-controls">
+                        <input type="search" id="journal-search-input" placeholder="Search journal entries..." class="w-full mb-2">
+                        <div class="flex items-center gap-4">
+                            <select id="journal-sort-by">
+                                <option value="date">Sort by Date</option>
+                                <option value="icon">Sort by Icon</option>
+                            </select>
+                            <select id="journal-sort-direction">
+                                <option value="desc">Descending</option>
+                                <option value="asc">Ascending</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="journal-list" class="space-y-4 mt-4"></div>
+            </div>
                         </select>
                         <select id="journal-sort-direction">
                             <option value="desc">Descending</option>
@@ -669,6 +684,10 @@
                                 <div class="flex items-center justify-between">
                                     <label for="allow-creation-on-click-toggle" class="form-label mb-0">Allow Task Creation on Calendar Click:</label>
                                     <input type="checkbox" id="allow-creation-on-click-toggle" data-action="toggleCreationOnClick" class="toggle-checkbox">
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label for="smart-form-defaults-toggle" class="form-label mb-0" title="Remembers your most frequently used settings for fields like task type and time units, and sets them as the default for new tasks.">Enable Smart Form Defaults:</label>
+                                    <input type="checkbox" id="smart-form-defaults-toggle" data-action="toggleSmartFormDefaults" class="toggle-checkbox">
                                 </div>
                             </div>
                         </fieldset>
