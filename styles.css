@@ -728,3 +728,23 @@ legend {
     border-radius: 4px;
     font-size: 0.65rem;
 }
+
+.journal-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.journal-controls > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-grow: 1;
+}
+
+.journal-controls select {
+    width: auto;
+}
