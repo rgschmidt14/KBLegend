@@ -97,6 +97,13 @@ let uiSettings = {
     dashboardWeekOffset: 0,
     syncTaskIcons: true,
     useStartDateForSort: false,
+    smartFormHistory: {
+        dateType: [],
+        taskType: [],
+        repetitionUnit: [],
+        estimatedDurationUnit: [],
+        prepTimeUnit: [],
+    },
 };
 let journalSettings = {
     weeklyGoalIcon: 'fa-solid fa-bullseye',
@@ -1737,10 +1744,14 @@ function openModal(taskId = null, options = {}) {
             // Set default values for new tasks
             const now = new Date();
             const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-            taskDueDateInput.value = formatDateForInput(oneHourFromNow);
+            const formattedDefaultDate = formatDateForInput(oneHourFromNow);
+            taskDueDateInput.value = formattedDefaultDate;
+            taskStartDateInput.value = formattedDefaultDate;
 
             if (estimatedDurationAmountInput) estimatedDurationAmountInput.value = 1;
             if (estimatedDurationUnitSelect) estimatedDurationUnitSelect.value = 'hours';
+
+            applySmartDefaults();
         }
 
         toggleSimpleMode(); // Set the view based on the current uiSettings.isSimpleMode
@@ -2120,6 +2131,11 @@ function openAdvancedOptionsModal() {
     const showFiltersToggle = document.getElementById('show-calendar-filters-toggle');
     if (showFiltersToggle) {
         showFiltersToggle.checked = uiSettings.showCalendarFilters;
+    }
+
+    const smartFormDefaultsToggle = document.getElementById('smart-form-defaults-toggle');
+    if (smartFormDefaultsToggle) {
+        smartFormDefaultsToggle.checked = uiSettings.smartFormDefaults ? uiSettings.smartFormDefaults.enabled : false;
     }
 
 
@@ -3425,8 +3441,22 @@ function renderJournal() {
 
     list.innerHTML = '';
 
-    if (!appState.journal || appState.journal.length === 0) {
-        list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
+    const searchInput = document.getElementById('journal-search-input');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+    const filteredJournal = (!appState.journal || appState.journal.length === 0) ? [] : appState.journal.filter(entry => {
+        if (!searchTerm) return true;
+        const titleMatch = entry.title && entry.title.toLowerCase().includes(searchTerm);
+        const contentMatch = entry.content && entry.content.toLowerCase().includes(searchTerm);
+        return titleMatch || contentMatch;
+    });
+
+    if (filteredJournal.length === 0) {
+        if (searchTerm) {
+            list.innerHTML = `<p class="text-gray-500 text-center italic">No journal entries match your search for "${searchTerm}".</p>`;
+        } else {
+            list.innerHTML = '<p class="text-gray-500 text-center italic">No journal entries yet.</p>';
+        }
         return;
     }
 
@@ -3436,7 +3466,7 @@ function renderJournal() {
     if (sortBy === 'date') {
         const entriesByWeek = {};
         // Group all entries by their week start date
-        appState.journal.forEach(entry => {
+        filteredJournal.forEach(entry => {
             const entryDateSource = entry.isWeeklyGoal ? entry.weekStartDate : entry.createdAt;
             let entryDate;
             if (entry.isWeeklyGoal && typeof entryDateSource === 'string' && entryDateSource.includes('-')) {
@@ -3512,7 +3542,7 @@ function renderJournal() {
 
     } else if (sortBy === 'icon') {
         const entriesByIcon = {};
-        appState.journal.forEach(entry => {
+        filteredJournal.forEach(entry => {
             const icon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
             if (!entriesByIcon[icon]) {
                 entriesByIcon[icon] = [];
@@ -3903,6 +3933,93 @@ function handleAddVacation(event) {
 // SECTION 4: User Action Handlers
 // =================================================================================
 
+function getSmartDefault(field, defaultValue) {
+    const history = uiSettings.smartFormHistory[field];
+    if (!history || history.length === 0) {
+        return defaultValue;
+    }
+
+    const counts = history.reduce((acc, value) => {
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+    }, {});
+
+    let maxCount = 0;
+    let mostFrequent = [];
+    for (const value in counts) {
+        if (counts[value] > maxCount) {
+            maxCount = counts[value];
+            mostFrequent = [value];
+        } else if (counts[value] === maxCount) {
+            mostFrequent.push(value);
+        }
+    }
+
+    if (mostFrequent.length === 1) {
+        return mostFrequent[0];
+    } else {
+        // Tie-breaker: return the one that appeared most recently
+        for (let i = history.length - 1; i >= 0; i--) {
+            if (mostFrequent.includes(history[i])) {
+                return history[i];
+            }
+        }
+    }
+    return defaultValue;
+}
+
+function applySmartDefaults() {
+    if (!uiSettings.smartFormDefaults || !uiSettings.smartFormDefaults.enabled) {
+        return;
+    }
+
+    timeInputTypeSelect.value = getSmartDefault('dateType', 'due');
+    completionTypeSelect.value = getSmartDefault('taskType', 'simple');
+    if (repetitionUnitSelect) {
+        repetitionUnitSelect.value = getSmartDefault('repetitionUnit', 'days');
+    }
+    if (estimatedDurationUnitSelect) {
+        estimatedDurationUnitSelect.value = getSmartDefault('estimatedDurationUnit', 'minutes');
+    }
+    const prepTimeUnitSelect = document.getElementById('prep-time-unit');
+    if (prepTimeUnitSelect) {
+        prepTimeUnitSelect.value = getSmartDefault('prepTimeUnit', 'minutes');
+    }
+}
+
+function updateSmartFormHistory(taskData) {
+    if (!uiSettings.smartFormHistory) {
+        uiSettings.smartFormHistory = {
+            dateType: [],
+            taskType: [],
+            repetitionUnit: [],
+            estimatedDurationUnit: [],
+            prepTimeUnit: [],
+        };
+    }
+
+    const history = uiSettings.smartFormHistory;
+    const MAX_HISTORY = 5;
+
+    const updateFieldHistory = (field, value) => {
+        if (value) {
+            history[field].push(value);
+            if (history[field].length > MAX_HISTORY) {
+                history[field].shift();
+            }
+        }
+    };
+
+    updateFieldHistory('dateType', taskData.timeInputType);
+    updateFieldHistory('taskType', taskData.completionType);
+    if (taskData.repetitionType === 'relative') {
+        updateFieldHistory('repetitionUnit', taskData.repetitionUnit);
+    }
+    updateFieldHistory('estimatedDurationUnit', taskData.estimatedDurationUnit);
+    updateFieldHistory('prepTimeUnit', taskData.prepTimeUnit);
+}
+
+
 function startTimerInterval(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task || !task.isTimerRunning || task.completionType !== 'time') return;
@@ -4155,6 +4272,7 @@ function handleFormSubmit(event) {
 
         // After adding or updating, immediately run the pipeline to get the correct status
         // and save before rendering.
+        updateSmartFormHistory(taskData);
         saveData();
         updateAllTaskStatuses(true);
         if (calendar) calendar.refetchEvents();
@@ -5939,8 +6057,18 @@ function setupEventListeners() {
         }
 
         const timeInputTypeSelectEl = document.getElementById('time-input-type');
-        if(timeInputTypeSelectEl) {
+        if (timeInputTypeSelectEl) {
             timeInputTypeSelectEl.addEventListener('change', (e) => {
+                const isSwitchingToStart = e.target.value === 'start';
+                if (isSwitchingToStart) {
+                    if (taskDueDateInput.value) {
+                        taskStartDateInput.value = taskDueDateInput.value;
+                    }
+                } else { // Switching to Due
+                    if (taskStartDateInput.value) {
+                        taskDueDateInput.value = taskStartDateInput.value;
+                    }
+                }
                 updateDateTimeFieldsVisibility();
                 const estDurInput = document.getElementById('estimated-duration-amount');
                 if (estDurInput) {
@@ -6408,6 +6536,11 @@ function setupEventListeners() {
                     uiSettings.earlyOnTimeSettings.onlyAppointments = event.target.checked;
                     saveData();
                     break;
+                case 'toggleSmartFormDefaults':
+                    if (!uiSettings.smartFormDefaults) uiSettings.smartFormDefaults = { enabled: false };
+                    uiSettings.smartFormDefaults.enabled = event.target.checked;
+                    saveData();
+                    break;
             case 'toggleSyncTaskIcons':
                 uiSettings.syncTaskIcons = event.target.checked;
                 saveData();
@@ -6807,6 +6940,12 @@ function setupEventListeners() {
         journalViewEl.addEventListener('change', (event) => {
             if (event.target.id === 'journal-sort-by' || event.target.id === 'journal-sort-direction') {
                 if (uiSettings.userInteractions) uiSettings.userInteractions.sortedJournal = true;
+                renderJournal();
+            }
+        });
+
+        journalViewEl.addEventListener('input', (event) => {
+            if (event.target.id === 'journal-search-input') {
                 renderJournal();
             }
         });
