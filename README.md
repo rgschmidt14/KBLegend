@@ -84,17 +84,42 @@ The task creation modal offers a wealth of powerful features in its "Advanced" s
 *   **Failure Tracking:** For repeating tasks, you can set a "max misses" threshold. The task's urgency will increase as you approach this limit, providing a clear visual indicator when a habit is at risk. If a task hits its max misses, it can be automatically flagged as a KPI for you to focus on.
 
 ### **Customization & Management**
-The **Advanced Options** modal is your hub for tailoring the application to your exact needs.
+The **Advanced Options** modal is your hub for tailoring the application to your exact needs. It is organized into the following sections:
 
-*   **Category Management:** Create color-coded categories for your tasks. You can assign icons, set a category to **Bypass Vacation Mode**, and even **Bulk-Edit** all tasks within a category at once.
-*   **Filters:** Control exactly what you see. You can filter the Task Manager and Calendar by category, and you can toggle the visibility of individual details (like due date, duration, etc.) on the task cards.
-*   **Vacation Schedule:** Schedule time off to automatically pause and reschedule your tasks. Any task due during your vacation will be pushed to the day you get back, unless its category is set to bypass vacation mode.
-*   **Theming Engine:** Choose a single base color and let the application generate a complete, cohesive, and high-contrast theme that is applied everywhere, from buttons to calendar highlights.
-*   **Data & Notifications:**
-    *   **Data Portability:** Export your entire application data (tasks, settings, history) to a JSON file for backup or transfer. You can also import this data, either overwriting or merging with your existing setup.
-    *   **Orphaned History Cleanup:** This tool automatically finds and helps you remove historical records from tasks that have been deleted, keeping your data clean.
-    *   **Hint Management:** Control the application's helpful hints. You can see which hints you've already seen (based on feature interaction), disable the hint banner entirely, or reset all hints to see them again.
-*   **KPI Automation:** Enable this feature to have the app automatically create KPIs for categories. It will track how consistently you complete tasks in a category and score it like a GPA. This helps you see which habits are sticking and where you might need to adjust your goals.
+1.  **General:**
+    *   **Banner Naming:** Customize the main title and subtitle of the application.
+    *   **Time & Date:** Switch between 12-hour and 24-hour time formats.
+
+2.  **Appearance:**
+    *   **Theme & Color:** A powerful theming engine. Enable it to choose a single base color and let the app generate a complete, cohesive, and high-contrast theme. Or, disable it to use the default multi-color scheme.
+    *   **Status Colors:** Customize the names and colors for each of the task statuses (e.g., Green, Yellow, Red).
+    *   **Hint Banners:** Manage the visibility of helpful hints and tips. You can disable the banner entirely, reset all hints, or toggle individual ones.
+
+3.  **Task & GPA Engine:**
+    *   **Core Logic:** Adjust the **Planner Sensitivity** slider to control how early the app warns you about upcoming tasks.
+    *   **Rules & Grading:** Fine-tune the grading system with options like the "15 minutes early is on time" rule and different GPA scales (Standard A-F vs. Extended S-F).
+    *   **Performance:** Set the **Calculation Horizon** to define how far into the future the app projects repeating tasks, allowing you to balance long-term visibility with performance.
+    *   **Automation:** Enable **Smart Form Defaults** to have the app remember your common task settings or turn on **KPI Automation** to automatically flag frequently-missed tasks as KPIs.
+
+4.  **Calendar:**
+    *   **Interaction & Defaults:** Control whether you can create tasks by clicking on the calendar and set default categories and icons for those tasks.
+    *   **View Display Options:** Independently control what information (icon, time, name) is visible for tasks in the Month, Week, and Day views.
+    *   **Visuals:** Choose whether the calendar's decorative gradient border is based on your task status colors or your current theme.
+    *   **Vacation Schedule:** Schedule time off to automatically pause and reschedule your tasks. Any task due during your vacation will be pushed to the day you get back, unless its category is set to bypass this feature.
+
+5.  **Task Manager:**
+    *   **Display & Sorting:** Control which details are visible on task cards (due date, duration, etc.) and set the default sorting behavior.
+    *   **Category Management:** Create, edit, and delete your color-coded task categories.
+    *   **Modal Behavior:** Decide whether the task details pop-up closes automatically after you perform an action.
+
+6.  **Weekly Goals:**
+    *   **Dashboard Label:** Customize the title of the weekly goals section on the main dashboard.
+    *   **Journal Settings:** Configure settings related to the Journal view, including the icon used for weekly goals when sorting by icon.
+
+7.  **Data Management:**
+    *   **Data Actions:** Export your entire application data (tasks, settings, history) to a JSON file for backup or transfer. You can also import this data, either overwriting or merging with your existing setup.
+    *   **Data Migration & Cleanup:** Access tools to clean up orphaned history records from deleted tasks.
+    *   **Danger Zone:** Reset all appearance and view settings to their original defaults.
 
 ### **Historical Overview: The Long-Term View**
 Accessed via the "View All History" button in the Task Manager, this special modal provides a birds-eye view of every task you've ever completed. Each task is represented by a card showing:

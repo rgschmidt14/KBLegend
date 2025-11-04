@@ -658,6 +658,14 @@
                                 <input type="checkbox" id="sync-task-icons-toggle" data-action="toggleSyncTaskIcons" class="toggle-checkbox">
                             </div>
                         </fieldset>
+                        <fieldset>
+                            <legend>Automation</legend>
+                            <div class="flex items-center justify-between" title="Remembers your most frequently used settings for fields like task type and time units, and sets them as the default for new tasks.">
+                                <label for="smart-form-defaults-toggle" class="form-label mb-0">Enable Smart Form Defaults:</label>
+                                <input type="checkbox" id="smart-form-defaults-toggle" data-action="toggleSmartFormDefaults" class="toggle-checkbox">
+                            </div>
+                            <div id="kpi-automation-settings" title="Automatically mark repeating tasks that you frequently miss as Key Performance Indicators (KPIs) to help you focus on them." class="mt-4"></div>
+                        </fieldset>
                     </div>
                 </div>
 
@@ -732,6 +740,10 @@
                                 </div>
                             </div>
                         </fieldset>
+                        <fieldset>
+                            <legend>Vacation Schedule</legend>
+                            <div id="vacation-manager-content" title="Define vacation periods to automatically postpone task due dates that fall within them."></div>
+                        </fieldset>
                     </div>
                 </div>
 
@@ -766,6 +778,13 @@
                             <div id="category-manager-list" class="space-y-2" title="Add, remove, or edit your task categories."></div>
                             <div id="add-category-form-container" class="mt-4"></div>
                         </fieldset>
+                        <fieldset>
+                            <legend>Modal Behavior</legend>
+                            <div class="flex items-center justify-between" title="When enabled, the task detail pop-up will close automatically after you complete, miss, or delete a task from it.">
+                                <label for="close-modal-after-action-toggle" class="form-label mb-0">Close modal after action:</label>
+                                <input type="checkbox" id="close-modal-after-action-toggle" data-action="toggleCloseModalAfterAction" class="toggle-checkbox">
+                            </div>
+                        </fieldset>
                     </div>
                 </div>
 
@@ -787,34 +806,6 @@
                     </div>
                 </div>
 
-                <!-- 7. Feature Controls Section -->
-                <div class="collapsible-section" data-section-key="features">
-                    <h3 class="collapsible-header"><span>Feature Controls</span><i class="fas fa-chevron-down"></i></h3>
-                    <div class="collapsible-content space-y-4">
-                        <fieldset>
-                            <legend>Smart Form</legend>
-                            <div class="flex items-center justify-between" title="Remembers your most frequently used settings for fields like task type and time units, and sets them as the default for new tasks.">
-                                <label for="smart-form-defaults-toggle" class="form-label mb-0">Enable Smart Form Defaults:</label>
-                                <input type="checkbox" id="smart-form-defaults-toggle" data-action="toggleSmartFormDefaults" class="toggle-checkbox">
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>KPI Automation</legend>
-                            <div id="kpi-automation-settings" title="Automatically mark repeating tasks that you frequently miss as Key Performance Indicators (KPIs) to help you focus on them."></div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Vacation Schedule</legend>
-                            <div id="vacation-manager-content" title="Define vacation periods to automatically postpone task due dates that fall within them."></div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>Task Details Modal</legend>
-                            <div class="flex items-center justify-between" title="When enabled, the task detail pop-up will close automatically after you complete, miss, or delete a task from it.">
-                                <label for="close-modal-after-action-toggle" class="form-label mb-0">Close modal after action:</label>
-                                <input type="checkbox" id="close-modal-after-action-toggle" data-action="toggleCloseModalAfterAction" class="toggle-checkbox">
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
 
                 <!-- 8. Data Management Section -->
                 <div class="collapsible-section" data-section-key="data">
