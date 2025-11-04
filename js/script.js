@@ -97,6 +97,9 @@ let uiSettings = {
     dashboardWeekOffset: 0,
     syncTaskIcons: true,
     useStartDateForSort: false,
+    smartFormDefaults: {
+        enabled: true
+    },
     smartFormHistory: {
         dateType: [],
         taskType: [],
@@ -4302,17 +4305,11 @@ function triggerDelete(taskId) {
 }
 function triggerUndoConfirmation(taskId) {
     const task = tasks.find(t => t.id === taskId);
-    if (task && task.status === 'blue' && task.repetitionType !== 'none') {
+    // Undo should work for both repeating and non-repeating tasks in their grace period.
+    if (task && task.status === 'blue') {
         task.confirmationState = 'confirming_undo';
         saveData();
-        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-        if (taskElement) {
-            taskElement.dataset.confirming = 'true';
-            const commonButtonsArea = taskElement.querySelector(`#common-buttons-${taskId}`);
-            if (commonButtonsArea) {
-                commonButtonsArea.innerHTML = commonButtonsTemplate(task);
-            }
-        }
+        // The caller is now responsible for re-rendering to show the confirmation state.
     }
 }
 function confirmDeleteAction(taskId, confirmed) {
@@ -4485,11 +4482,12 @@ function confirmUndoAction(taskId, confirmed) {
     if (confirmed) {
         if (task.status !== 'blue') return; // Only blue (locked) tasks can be undone.
 
-        // Find the most recent 'completed' history item for this task.
+        // Find the most recent completion history item for this task.
+        // A completion is recorded with a status of 'blue' or 'green'.
         let lastCompletedIndex = -1;
         for (let i = appState.historicalTasks.length - 1; i >= 0; i--) {
             const h = appState.historicalTasks[i];
-            if (h.originalTaskId === taskId && h.status === 'completed') {
+            if (h.originalTaskId === taskId && ['blue', 'green'].includes(h.status)) {
                 lastCompletedIndex = i;
                 break;
             }
@@ -6301,7 +6299,10 @@ function setupEventListeners() {
                     case 'handleOverdue': handleOverdueChoice(taskIdForAction, actionTarget.dataset.choice); break;
                     case 'confirmMiss': confirmMissAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
                     case 'confirmDelete': confirmDeleteAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
-                    case 'triggerUndo': triggerUndoConfirmation(taskIdForAction); break;
+                    case 'triggerUndo':
+                        triggerUndoConfirmation(taskIdForAction);
+                        renderTasks(); // Re-render to show confirmation
+                        break;
                     case 'confirmUndo': confirmUndoAction(taskIdForAction, actionTarget.dataset.confirmed === 'true'); break;
                     case 'incrementCount': incrementCount(taskIdForAction); break;
                     case 'decrementCount': decrementCount(taskIdForAction); break;
