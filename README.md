@@ -83,18 +83,17 @@ The task creation modal offers a wealth of powerful features in its "Advanced" s
 *   **Complex Repetition:** Create tasks that repeat on almost any schedule imaginable, from "every 3 days" to "the last Friday of every month."
 *   **Failure Tracking:** For repeating tasks, you can set a "max misses" threshold. The task's urgency will increase as you approach this limit, providing a clear visual indicator when a habit is at risk. If a task hits its max misses, it can be automatically flagged as a KPI for you to focus on.
 
-### **Customization & Management**
-The **Advanced Options** modal is your hub for tailoring the application to your exact needs.
+### **Customization & Management: The Advanced Options Hub**
+The **Advanced Options** modal is your central hub for tailoring the application to your exact needs. It's organized into 8 clear categories:
 
-*   **Category Management:** Create color-coded categories for your tasks. You can assign icons, set a category to **Bypass Vacation Mode**, and even **Bulk-Edit** all tasks within a category at once.
-*   **Filters:** Control exactly what you see. You can filter the Task Manager and Calendar by category, and you can toggle the visibility of individual details (like due date, duration, etc.) on the task cards.
-*   **Vacation Schedule:** Schedule time off to automatically pause and reschedule your tasks. Any task due during your vacation will be pushed to the day you get back, unless its category is set to bypass vacation mode.
-*   **Theming Engine:** Choose a single base color and let the application generate a complete, cohesive, and high-contrast theme that is applied everywhere, from buttons to calendar highlights.
-*   **Data & Notifications:**
-    *   **Data Portability:** Export your entire application data (tasks, settings, history) to a JSON file for backup or transfer. You can also import this data, either overwriting or merging with your existing setup.
-    *   **Orphaned History Cleanup:** This tool automatically finds and helps you remove historical records from tasks that have been deleted, keeping your data clean.
-    *   **Hint Management:** Control the application's helpful hints. You can see which hints you've already seen (based on feature interaction), disable the hint banner entirely, or reset all hints to see them again.
-*   **KPI Automation:** Enable this feature to have the app automatically create KPIs for categories. It will track how consistently you complete tasks in a category and score it like a GPA. This helps you see which habits are sticking and where you might need to adjust your goals.
+1.  **Appearance:** Control the entire look and feel. Manage the theme engine (custom colors, day/night mode), define your status colors, and toggle display options like 24-hour time and what details appear on task cards.
+2.  **Task Behavior:** Adjust the core logic of how tasks behave. Set the "Planner Sensitivity" to control how early you get warnings, choose your preferred GPA grading scale, and decide if changing a task's icon should sync across its entire history.
+3.  **Calendar & Scheduling:** Configure how the calendar looks and functions. Set the calendar's border style, enable/disable creating tasks by clicking on the calendar, manage display options for month/week/day views, and set up your vacation schedule.
+4.  **Content Management:** Manage the text and categories within the app. Add, edit, or delete task categories, and customize the main title, subtitle, and weekly goal labels.
+5.  **Automation & Performance:** Fine-tune the app's "smart" features. Enable "Smart Form Defaults" to have the task form remember your common settings. You can also manage KPI automation and set the "Calculation Horizon" to balance future-planning with performance.
+6.  **Notifications:** (Future Section) This section is reserved for upcoming desktop notification features.
+7.  **Data Management:** Handle all data import, export, and cleanup. Export your data for backup, import it, or use the Data Migration tool to clean up orphaned history records.
+8.  **Feature Flags & Toggles:** A section for miscellaneous features and "danger zone" options. Toggle whether the task modal closes after an action, manage the hint banners, or restore all view-related settings to their original defaults.
 
 ### **Historical Overview: The Long-Term View**
 Accessed via the "View All History" button in the Task Manager, this special modal provides a birds-eye view of every task you've ever completed. Each task is represented by a card showing:

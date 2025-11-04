@@ -2116,7 +2116,10 @@ function openAdvancedOptionsModal() {
     renderNotificationManager();
     renderThemeControls();
     renderStatusManager();
-    renderPlannerSettings();
+    // Use a small timeout to ensure the DOM is ready before rendering settings that depend on it.
+    setTimeout(() => {
+        renderPlannerSettings();
+    }, 0);
     renderTaskDisplaySettings();
     renderAppSettings();
     renderVacationManager();
@@ -4305,11 +4308,17 @@ function triggerDelete(taskId) {
 }
 function triggerUndoConfirmation(taskId) {
     const task = tasks.find(t => t.id === taskId);
-    // Undo should work for both repeating and non-repeating tasks in their grace period.
-    if (task && task.status === 'blue') {
+    if (task && task.status === 'blue' && task.repetitionType !== 'none') {
         task.confirmationState = 'confirming_undo';
         saveData();
-        // The caller is now responsible for re-rendering to show the confirmation state.
+        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            taskElement.dataset.confirming = 'true';
+            const commonButtonsArea = taskElement.querySelector(`#common-buttons-${taskId}`);
+            if (commonButtonsArea) {
+                commonButtonsArea.innerHTML = commonButtonsTemplate(task);
+            }
+        }
     }
 }
 function confirmDeleteAction(taskId, confirmed) {
@@ -4482,12 +4491,11 @@ function confirmUndoAction(taskId, confirmed) {
     if (confirmed) {
         if (task.status !== 'blue') return; // Only blue (locked) tasks can be undone.
 
-        // Find the most recent completion history item for this task.
-        // A completion is recorded with a status of 'blue' or 'green'.
+        // Find the most recent 'completed' (blue or green) history item for this task.
         let lastCompletedIndex = -1;
         for (let i = appState.historicalTasks.length - 1; i >= 0; i--) {
             const h = appState.historicalTasks[i];
-            if (h.originalTaskId === taskId && ['blue', 'green'].includes(h.status)) {
+            if (h.originalTaskId === taskId && (h.status === 'blue' || h.status === 'green')) {
                 lastCompletedIndex = i;
                 break;
             }
