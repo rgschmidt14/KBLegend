@@ -4527,6 +4527,10 @@ function confirmUndoAction(taskId, confirmed) {
     task.confirmationState = null;
     saveData();
     updateAllTaskStatuses(true);
+    renderTasks();
+    if (calendar) {
+        calendar.refetchEvents();
+    }
 }
 function confirmMissAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
