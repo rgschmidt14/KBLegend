@@ -272,10 +272,11 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         let timeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
         timeDemerit = Math.max(0, Math.min(timeDemerit, 3.0));
 
-        // Adjust demerit based on progress for timer and count tasks
+        // Adjust demerit based on progress. A task that is 50% done will have its time-based urgency penalty cut in half.
+        // This makes timed and count-based tasks feel less urgent as they are worked on.
         let progressRatio = 0;
         if (task.completionType === 'time' && task.currentProgress > 0) {
-            const totalDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+            const totalDurationMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
             if (totalDurationMs > 0) {
                 progressRatio = task.currentProgress / totalDurationMs;
             }
@@ -372,16 +373,17 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         let finalTimeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
         finalTimeDemerit = Math.max(0, Math.min(finalTimeDemerit, 3.0));
 
-        // Adjust demerit based on progress for timer and count tasks
+        // Adjust demerit based on progress for timer and count tasks. This is crucial for ensuring that
+        // tasks that are partially complete appear less red/urgent.
         let progressRatio = 0;
-        if (occurrence.taskType === 'timer' && occurrence.currentProgress > 0) {
-            const totalDurationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
+        if (occurrence.completionType === 'time' && occurrence.currentProgress > 0) {
+            const totalDurationMs = getDurationMs(occurrence.timeTargetAmount, occurrence.timeTargetUnit);
             if (totalDurationMs > 0) {
                 progressRatio = occurrence.currentProgress / totalDurationMs;
             }
-        } else if (occurrence.taskType === 'count' && occurrence.currentProgress > 0) {
-            if (occurrence.targetCount > 0) {
-                progressRatio = occurrence.currentProgress / occurrence.targetCount;
+        } else if (occurrence.completionType === 'count' && occurrence.currentProgress > 0) {
+            if (occurrence.countTarget > 0) {
+                progressRatio = occurrence.currentProgress / occurrence.countTarget;
             }
         }
         progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
