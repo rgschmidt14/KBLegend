@@ -1065,7 +1065,7 @@ export function categoryIconApplyConfirmModalTemplate(category) {
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
-    editProgressTemplate, editCategoryTemplate, editStatusName-template, restoreDefaultsConfirmationTemplate,
+    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
@@ -1126,14 +1126,14 @@ function orphanedOverrideModalTemplate(orphans, task, newOccurrences) {
     `;
 
     const orphansHtml = orphans.map(orphan => `
-        <div class="orphaned-item p-3 border rounded-md mb-3" data-orphan-id="${orphan.id}">
+        <div class="orphaned-item p-3 border rounded-md mb-3" data-orphan-id="${orphan.occurrenceId}">
             <p class="text-sm italic"><strong>Original Date:</strong> ${new Date(orphan.originalDate).toLocaleString()}</p>
             <div class="my-2 p-2 bg-main rounded prose prose-sm">${orphan.thoughts}</div>
             <div class="flex flex-wrap items-center justify-end gap-2 text-sm">
-                ${occurrencesDropdown(orphan.id)}
-                <button data-action="relink-override" data-orphan-id="${orphan.id}" class="btn btn-secondary btn-xs" disabled>Re-link</button>
-                <button data-action="journal-override" data-orphan-id="${orphan.id}" class="btn btn-tertiary btn-xs">Journal</button>
-                <button data-action="delete-override" data-orphan-id="${orphan.id}" class="btn btn-deny btn-xs">Delete</button>
+                ${occurrencesDropdown(orphan.occurrenceId)}
+                <button data-action="relink-override" data-orphan-id="${orphan.occurrenceId}" class="btn btn-secondary btn-xs" disabled>Re-link</button>
+                <button data-action="journal-override" data-orphan-id="${orphan.occurrenceId}" class="btn btn-tertiary btn-xs">Journal</button>
+                <button data-action="delete-override" data-orphan-id="${orphan.occurrenceId}" class="btn btn-deny btn-xs">Delete</button>
             </div>
         </div>
     `).join('');

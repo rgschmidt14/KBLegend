@@ -77,14 +77,11 @@ To understand how the planner works, it's crucial to know the three states a tas
 ### **Editing the Future: The Override System**
 This system provides a clean, industry-standard way to handle exceptions for repeating tasks without creating messy, duplicated tasks.
 
-When you edit a repeating task, you're presented with a choice: apply the change to "this and all future occurrences" or "just this one."
+When you edit a future occurrence of a repeating task (e.g., by clicking it on the calendar), you are editing **only that single instance**. This is where the override system comes in. Instead of creating a whole new task or modifying the master task, the application creates a small **override record** containing only what changed (e.g., `{ name: "A different name for this day", dueDate: "2025-11-07T..." }`) and links it to that occurrence's unique ID.
 
-*   **Editing All Future Occurrences:** This modifies the **Master Task**. The scheduling engine will then regenerate all future occurrences based on the new rules.
-*   **Editing a Single Occurrence:** This is where the override system comes in. Instead of creating a whole new task, the application creates a small **override record** containing only what changed (e.g., `{ thoughts: "New note for this specific day" }`) and links it to that occurrence's unique ID.
+When the calendar is drawn, the engine first generates all occurrences from the master task and then applies any override records it finds. This keeps the master task clean while allowing for powerful, flexible exceptions. To edit the underlying rules for all future tasks (e.g., change the repetition schedule), you must edit the task from the main **Task Manager** list.
 
-When the calendar is drawn, the engine first generates all occurrences from the master task and then applies any override records it finds. This keeps the master task clean while allowing for powerful, flexible exceptions.
-
-If you change the master repetition rules so drastically that a future date with an override no longer exists, a modal will appear, allowing you to re-link the note to a new date, save it to your journal, or delete it, ensuring no data is ever silently lost.
+If you change the master repetition rules so drastically that a future date with an override no longer exists, a modal will appear, allowing you to re-link the note or other changes to a new date, save any associated thoughts to your journal, or delete the override, ensuring no data is ever silently lost.
 
 ### **Advanced Task Options**
 The task creation modal offers a wealth of powerful features in its "Advanced" section:

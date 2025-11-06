@@ -2831,9 +2831,9 @@ function openConfirmOverrideModal(task, field, value, occurrenceId) {
     activateModal(modal);
 }
 
-function openOrphanedOverrideModal(orphans, onComplete) {
+function openOrphanedOverrideModal(orphans, task, newOccurrences, onComplete) {
     // 1. Create and inject the modal HTML
-    const modalHtml = orphanedOverrideModalTemplate(orphans);
+    const modalHtml = orphanedOverrideModalTemplate(orphans, task, newOccurrences);
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modalElement = document.getElementById('orphaned-override-modal');
 
@@ -4399,7 +4399,8 @@ function handleFormSubmit(event) {
                 }
 
                 if (orphanedOverrides.length > 0) {
-                    openOrphanedOverrideModal(orphanedOverrides, (remainingOrphanIds) => {
+                    const newOccurrencesForModal = getOccurrences(updatedTask, new Date(), getCalculationHorizonDate()).map(d => ({ id: `${updatedTask.id}_${d.toISOString()}`, occurrenceDueDate: d }));
+                    openOrphanedOverrideModal(orphanedOverrides, updatedTask, newOccurrencesForModal, (remainingOrphanIds) => {
                         // Filter the overrides object to only keep the ones the user didn't resolve
                         const remainingOverrides = {};
                         for (const orphanId of remainingOrphanIds) {
@@ -4528,7 +4529,6 @@ function triggerCompletion(taskId) {
             actionArea.innerHTML = actionAreaTemplate(task);
         }
     }
-}
 function confirmCompletionAction(taskId, confirmed) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
@@ -4842,6 +4842,21 @@ function handleOverdueChoice(taskId, choice) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     if (!task.overdueStartDate) task.overdueStartDate = task.dueDate ? task.dueDate.toISOString() : null;
+    task.pendingCycles = calculatePendingCycles(task, Date.now());
+    if (choice === 'partial') {
+        task.confirmationState = 'confirming_complete';
+    } else {
+        task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
+    }
+    saveData();
+    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+    if (taskElement) {
+        taskElement.dataset.confirming = 'true';
+        const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
+        if (actionArea) {
+            actionArea.innerHTML = actionAreaTemplate(task);
+        }
+    }
 }
 
 function openSimpleEditModal(task, occurrence) {
@@ -4879,29 +4894,13 @@ function openSimpleEditModal(task, occurrence) {
 
         const newName = document.getElementById('simple-edit-task-name').value;
         const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
-        const scopeRadio = form.querySelector('input[name="edit-scope"]:checked');
-        const scope = scopeRadio ? scopeRadio.value : 'single';
 
-        if (scope === 'single') {
-            const updates = {
-                name: newName,
-                dueDate: newDueDate
-            };
-            // Use the centralized function to apply the override
-            updateTaskOccurrence(taskId, occurrenceId, updates);
-        } else { // 'future'
-            // Modify the master task
-            masterTask.name = newName;
-
-            // This is a simplification. A full implementation would need to adjust
-            // the entire repetition schedule based on the new due date, which is complex.
-            // For now, we'll just update the master due date.
-            masterTask.dueDate = newDueDate;
-
-            // Clear any future overrides that might conflict
-            // (A more advanced version would try to intelligently migrate them)
-            masterTask.occurrenceOverrides = {};
-        }
+        const updates = {
+            name: newName,
+            dueDate: newDueDate
+        };
+        // Use the centralized function to apply the override for a single occurrence
+        updateTaskOccurrence(taskId, occurrenceId, updates);
 
         saveDataAndRefreshUI();
         close();
@@ -4910,22 +4909,6 @@ function openSimpleEditModal(task, occurrence) {
 
     // 3. Activate the modal
     activateModal(modalElement);
-}
-    task.pendingCycles = calculatePendingCycles(task, Date.now());
-    if (choice === 'partial') {
-        task.confirmationState = 'confirming_complete';
-    } else {
-        task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
-    }
-    saveData();
-    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-    if (taskElement) {
-        taskElement.dataset.confirming = 'true';
-        const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
-        if (actionArea) {
-            actionArea.innerHTML = actionAreaTemplate(task);
-        }
-    }
 }
 function incrementCount(taskId) {
     const task = tasks.find(t => t.id === taskId);
@@ -7449,6 +7432,7 @@ function loadData() {
     }
     if (storedTasks) {
         try {
+            tasks = [];
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
                 let tempTask = { ...task };
