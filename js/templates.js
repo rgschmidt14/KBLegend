@@ -1065,15 +1065,94 @@ export function categoryIconApplyConfirmModalTemplate(category) {
 export {
     taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
     actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
-    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
+    editProgressTemplate, editCategoryTemplate, editStatusName-template, restoreDefaultsConfirmationTemplate,
     taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
     historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
     calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
-    conflictResolutionModalTemplate, addIconPromptModalTemplate,
-    editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate
+    conflictResolutionModalTemplate, addIconPromptModalTemplate, orphanedOverrideModalTemplate,
+    editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate, simpleEditFormTemplate
 };
+
+function simpleEditFormTemplate(task, occurrence) {
+    const occurrenceId = occurrence ? occurrence.id : task.id;
+    const occurrenceDate = occurrence ? new Date(occurrence.occurrenceDueDate) : new Date(task.dueDate);
+
+    // Helper to format date for datetime-local input
+    const formatDateForInput = (date) => {
+        if (!date || isNaN(date)) return '';
+        const pad = (num) => String(num).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+
+    return `
+        <div id="simple-edit-modal" class="modal active">
+            <div class="modal-content bg-modal">
+                <form id="simple-edit-form">
+                    <button class="close-button" type="button" data-action="close-simple-edit-modal">&times;</button>
+                    <h3 class="text-xl font-semibold mb-4">Edit Occurrence</h3>
+                    <p class="text-sm mb-4 italic">You are editing a single occurrence. To change all future tasks, edit the task from the main Task Manager view.</p>
+                    <input type="hidden" id="simple-edit-task-id" value="${task.id}">
+                    <input type="hidden" id="simple-edit-occurrence-id" value="${occurrenceId}">
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="simple-edit-task-name" class="form-label">Task Name</label>
+                            <input type="text" id="simple-edit-task-name" value="${task.name}" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="simple-edit-due-date" class="form-label">Due Date</label>
+                            <input type="datetime-local" id="simple-edit-due-date" value="${formatDateForInput(occurrenceDate)}" class="w-full" required>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-2 mt-6">
+                        <button type="button" data-action="close-simple-edit-modal" class="btn btn-tertiary">Cancel</button>
+                        <button type="submit" class="btn btn-confirm">Update Occurrence</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+function orphanedOverrideModalTemplate(orphans, task, newOccurrences) {
+    const occurrencesDropdown = (orphanId) => `
+        <select data-action="select-relink-target" data-orphan-id="${orphanId}" class="relink-select">
+            <option value="">-- Select a new date --</option>
+            ${newOccurrences.map(occ => `<option value="${occ.id}">${new Date(occ.occurrenceDueDate).toLocaleString()}</option>`).join('')}
+        </select>
+    `;
+
+    const orphansHtml = orphans.map(orphan => `
+        <div class="orphaned-item p-3 border rounded-md mb-3" data-orphan-id="${orphan.id}">
+            <p class="text-sm italic"><strong>Original Date:</strong> ${new Date(orphan.originalDate).toLocaleString()}</p>
+            <div class="my-2 p-2 bg-main rounded prose prose-sm">${orphan.thoughts}</div>
+            <div class="flex flex-wrap items-center justify-end gap-2 text-sm">
+                ${occurrencesDropdown(orphan.id)}
+                <button data-action="relink-override" data-orphan-id="${orphan.id}" class="btn btn-secondary btn-xs" disabled>Re-link</button>
+                <button data-action="journal-override" data-orphan-id="${orphan.id}" class="btn btn-tertiary btn-xs">Journal</button>
+                <button data-action="delete-override" data-orphan-id="${orphan.id}" class="btn btn-deny btn-xs">Delete</button>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+        <div id="orphaned-override-modal" class="modal active">
+            <div class="modal-content bg-modal">
+                <h3 class="text-xl font-semibold mb-2">Edits Detected on Changed Repetition</h3>
+                <p class="text-sm mb-4">You've changed the repetition rules for "<strong>${task.name}</strong>", and we found notes attached to future dates that no longer exist. Please decide what to do with them.</p>
+                <div class="max-h-80 overflow-y-auto p-1">
+                    ${orphansHtml}
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button data-action="finish-override-handling" class="btn btn-primary btn-md">Done</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 function addIconPromptModalTemplate(taskId) {
     return `

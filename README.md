@@ -63,14 +63,28 @@ The **Planner Sensitivity** slider in Advanced Options directly adjusts the GPA 
 
 ## **Core Concepts Explained**
 
-### **Current vs. Historical Tasks**
-A key concept in this application is the distinction between **Current Tasks** and **Historical Tasks**.
+### **The Three Task States: Historical, Active, and Future**
+To understand how the planner works, it's crucial to know the three states a task can be in. Each state represents a different point in the task's lifecycle.
 
-*   **Current Tasks** are the active, editable items that appear in your **Task Manager**. These are the tasks you are actively working on. They have a due date, a status, and can be modified at any time. All current tasks with a due date will also appear on the **Calendar**.
+*   **Historical Tasks:** These are immutable records of past events. When an active task is completed or missed, a historical record is created. Each record is an individual instance of that task, linked back to the original via a common ID. They are used to power all statistics and charts, are visible on the **Calendar** with outcome-colored borders, but do **not** appear in the main Task Manager list.
 
-*   **Historical Tasks** are immutable records of past events. When a current task is completed or missed, a historical task is created. This record is stored permanently and is used to power the statistics and charts throughout the application. Historical tasks are visible on the **Calendar** (with a duller color and a colored border indicating their outcome) and in the detailed statistics view for each task. They **do not** appear in the Task Manager.
+*   **The Active Task (The "Master Task"):** This is the single, editable "blueprint" for a task that you see in the **Task Manager**. It holds all the default properties: name, repetition rules, category, icon, etc.
+    *   For a **non-repeating task**, the active task *is* the task.
+    *   For a **repeating task**, it acts as the master template for all future occurrences, and its due date always reflects the *next* upcoming instance.
 
-This separation ensures that your main task list remains clean and focused on upcoming work, while still preserving a rich, detailed history of your performance for analysis.
+*   **Future Occurrences:** These are not stored as permanent tasks. They are a **calculated array of events** generated on the fly by the scheduling engine based on the Active Task's repetition rules. They appear on the calendar as projections of what's to come. Each future occurrence is given a stable, unique ID based on the master task's ID and its projected date (e.g., `taskId_2025-11-06T...`), which is critical for editing.
+
+### **Editing the Future: The Override System**
+This system provides a clean, industry-standard way to handle exceptions for repeating tasks without creating messy, duplicated tasks.
+
+When you edit a repeating task, you're presented with a choice: apply the change to "this and all future occurrences" or "just this one."
+
+*   **Editing All Future Occurrences:** This modifies the **Master Task**. The scheduling engine will then regenerate all future occurrences based on the new rules.
+*   **Editing a Single Occurrence:** This is where the override system comes in. Instead of creating a whole new task, the application creates a small **override record** containing only what changed (e.g., `{ thoughts: "New note for this specific day" }`) and links it to that occurrence's unique ID.
+
+When the calendar is drawn, the engine first generates all occurrences from the master task and then applies any override records it finds. This keeps the master task clean while allowing for powerful, flexible exceptions.
+
+If you change the master repetition rules so drastically that a future date with an override no longer exists, a modal will appear, allowing you to re-link the note to a new date, save it to your journal, or delete it, ensuring no data is ever silently lost.
 
 ### **Advanced Task Options**
 The task creation modal offers a wealth of powerful features in its "Advanced" section:

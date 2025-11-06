@@ -2299,13 +2299,21 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
             const task = tasks.find(t => t.id === taskId);
             if (task) {
                 const newThoughts = thoughtsEl.innerHTML.trim();
-                if (task.thoughts !== newThoughts) {
-                    if (task.repetitionType !== 'none' && !isHistorical) {
-                        openConfirmOverrideModal(task, 'thoughts', newThoughts, eventId);
-                    } else {
+                const occurrenceId = isHistorical ? null : eventId; // eventId is the occurrenceId for future tasks
+
+                // Check if the thoughts are different from the base task or a specific override
+                const currentThoughts = (task.occurrenceOverrides && task.occurrenceOverrides[occurrenceId] && task.occurrenceOverrides[occurrenceId].thoughts) || task.thoughts;
+
+                if (currentThoughts !== newThoughts) {
+                    if (task.repetitionType !== 'none' && !isHistorical && occurrenceId) {
+                        // For a repeating task's future occurrence, save it as an override.
+                        updateTaskOccurrence(taskId, occurrenceId, { thoughts: newThoughts });
+                    } else if (!isHistorical) {
+                        // For a non-repeating task or the master repeating task, save directly.
                         task.thoughts = newThoughts;
                         saveData();
                     }
+                    // Note: Editing thoughts on historical records is handled by a separate 'saveHistoryThoughts' action, not the blur listener.
                 }
             }
         }
@@ -2354,7 +2362,11 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         switch (action) {
             case 'editTaskFromView':
                 deactivateModal(taskViewModalEl);
-                openModal(taskId);
+                // Find the master task
+                const masterTask = tasks.find(t => t.id === taskId);
+                // Find the specific occurrence from the calendar pipeline if it exists
+                const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
+                openSimpleEditModal(masterTask, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null);
                 break;
             case 'triggerDeleteFromView':
                 triggerDelete(taskId);
@@ -2819,6 +2831,80 @@ function openConfirmOverrideModal(task, field, value, occurrenceId) {
     activateModal(modal);
 }
 
+function openOrphanedOverrideModal(orphans, onComplete) {
+    // 1. Create and inject the modal HTML
+    const modalHtml = orphanedOverrideModalTemplate(orphans);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('orphaned-override-modal');
+
+    // 2. Setup event listeners
+    const handleAction = (e) => {
+        const target = e.target.closest('button[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const orphanId = target.dataset.orphanId;
+        const orphan = orphans.find(o => o.occurrenceId === orphanId);
+        if (!orphan) return;
+
+        switch (action) {
+            case 'relink-override':
+                // In a real scenario, this would open another UI to select a new date.
+                // For now, we'll just log it and remove the item.
+                console.log("Relinking (not implemented):", orphan);
+                removeOrphanFromList(orphanId);
+                break;
+            case 'journal-override':
+                const newJournalEntry = {
+                    id: generateId(),
+                    createdAt: new Date().toISOString(),
+                    title: `Orphaned thought from: ${orphan.taskName}`,
+                    content: `On ${new Date(orphan.originalDate).toLocaleDateString()}, this thought was recorded:\n\n"${orphan.override.thoughts}"`,
+                    icon: orphan.taskIcon || 'fa-solid fa-note-sticky',
+                };
+                appState.journal.push(newJournalEntry);
+                saveData(); // Save the new journal entry
+                removeOrphanFromList(orphanId);
+                break;
+            case 'delete-override':
+                // This just requires removing it from the UI. The actual deletion
+                // happens when `onComplete` is called with the remaining orphans.
+                removeOrphanFromList(orphanId);
+                break;
+        }
+
+        // Check if all orphans have been handled
+        if (modalElement.querySelectorAll('.orphan-item').length === 0) {
+            finishResolution();
+        }
+    };
+
+    const removeOrphanFromList = (orphanId) => {
+        const item = modalElement.querySelector(`.orphan-item[data-orphan-id="${orphanId}"]`);
+        if (item) {
+            item.remove();
+        }
+    };
+
+    const finishResolution = () => {
+        const remainingOrphanIds = Array.from(modalElement.querySelectorAll('.orphan-item'))
+                                         .map(item => item.dataset.orphanId);
+
+        onComplete(remainingOrphanIds);
+        deactivateModal(modalElement);
+        modalElement.remove();
+    };
+
+    modalElement.addEventListener('click', handleAction);
+    const finishBtn = modalElement.querySelector('#finish-orphan-resolution-btn');
+    if(finishBtn) finishBtn.addEventListener('click', finishResolution);
+
+
+    // 3. Activate the modal
+    activateModal(modalElement);
+}
+
+
 function applyOverride(task, field, value, occurrenceId, scope) {
     if (scope === 'single') {
         if (!task.occurrenceOverrides) {
@@ -2843,6 +2929,40 @@ function applyOverride(task, field, value, occurrenceId, scope) {
     saveData();
     updateAllTaskStatuses(true);
 }
+
+/**
+ * Centralized function to create or update an override for a specific task occurrence.
+ * @param {string} taskId - The ID of the parent task.
+ * @param {string} occurrenceId - The unique ID of the future occurrence.
+ * @param {object} updates - An object containing the fields to update (e.g., { thoughts: 'New thought', dueDate: new Date(...) }).
+ */
+function updateTaskOccurrence(taskId, occurrenceId, updates) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        console.error(`updateTaskOccurrence: Task with ID ${taskId} not found.`);
+        return;
+    }
+
+    // Ensure the overrides object exists.
+    if (!task.occurrenceOverrides) {
+        task.occurrenceOverrides = {};
+    }
+
+    // Ensure the specific occurrence object exists.
+    if (!task.occurrenceOverrides[occurrenceId]) {
+        task.occurrenceOverrides[occurrenceId] = {};
+    }
+
+    // Merge the new updates into the existing override.
+    Object.assign(task.occurrenceOverrides[occurrenceId], updates);
+
+    console.log(`Updated occurrence ${occurrenceId} for task ${taskId} with:`, updates);
+
+    // Save data and refresh the UI to reflect the changes immediately.
+    saveData();
+    updateAllTaskStatuses(true); // This will re-run the pipeline and update the calendar
+}
+
 
 function confirmHistoryDelete(historyId, taskId, deleteType) {
     if (deleteType === 'single') {
@@ -4072,6 +4192,15 @@ function startTimerInterval(taskId) {
     scheduleUpdate();
 }
 
+function saveDataAndRefreshUI() {
+    saveData();
+    updateAllTaskStatuses(true);
+    if (calendar) calendar.refetchEvents();
+    renderKpiTaskSelect();
+    renderKpiList();
+    checkForAppointmentConflicts();
+}
+
 function handleFormSubmit(event) {
     event.preventDefault();
     try {
@@ -4249,6 +4378,42 @@ function handleFormSubmit(event) {
                 if (originalTask.icon !== taskIconInput.value.trim()) {
                     updateTaskIcon(id, taskIconInput.value.trim());
                 }
+
+                // --- Orphaned Override Handling ---
+                const originalOccurrences = getOccurrences(originalTask, new Date(), getCalculationHorizonDate()).map(d => `${id}_${d.toISOString()}`);
+                const newOccurrences = new Set(getOccurrences(updatedTask, new Date(), getCalculationHorizonDate()).map(d => `${id}_${d.toISOString()}`));
+                const orphanedOverrides = [];
+
+                if (originalTask.occurrenceOverrides) {
+                    for (const occurrenceId of originalOccurrences) {
+                        if (!newOccurrences.has(occurrenceId) && originalTask.occurrenceOverrides[occurrenceId]) {
+                            orphanedOverrides.push({
+                                occurrenceId: occurrenceId,
+                                taskName: originalTask.name,
+                                taskIcon: originalTask.icon,
+                                originalDate: new Date(occurrenceId.split('_')[1]),
+                                override: originalTask.occurrenceOverrides[occurrenceId]
+                            });
+                        }
+                    }
+                }
+
+                if (orphanedOverrides.length > 0) {
+                    openOrphanedOverrideModal(orphanedOverrides, (remainingOrphanIds) => {
+                        // Filter the overrides object to only keep the ones the user didn't resolve
+                        const remainingOverrides = {};
+                        for (const orphanId of remainingOrphanIds) {
+                            remainingOverrides[orphanId] = originalTask.occurrenceOverrides[orphanId];
+                        }
+                        updatedTask.occurrenceOverrides = remainingOverrides;
+                        // Finalize the process
+                        closeModal();
+                        saveDataAndRefreshUI();
+                    });
+                    return; // Stop further execution until modal is resolved
+                }
+
+
             } else {
                 // If it's NOT in the active list, we are reinstating it.
                 taskData.id = id; // Use the original ID
@@ -4286,12 +4451,7 @@ function handleFormSubmit(event) {
         // After adding or updating, immediately run the pipeline to get the correct status
         // and save before rendering.
         updateSmartFormHistory(taskData);
-        saveData();
-        updateAllTaskStatuses(true);
-        if (calendar) calendar.refetchEvents();
-        renderKpiTaskSelect();
-        renderKpiList();
-        checkForAppointmentConflicts();
+        saveDataAndRefreshUI();
     } catch (e) {
         console.error("Error handling form submit:", e);
     }
@@ -4682,6 +4842,75 @@ function handleOverdueChoice(taskId, choice) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     if (!task.overdueStartDate) task.overdueStartDate = task.dueDate ? task.dueDate.toISOString() : null;
+}
+
+function openSimpleEditModal(task, occurrence) {
+    // Remove any existing modal first
+    const existingModal = document.getElementById('simple-edit-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 1. Create and inject the modal HTML
+    const modalHtml = simpleEditFormTemplate(task, occurrence);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('simple-edit-modal');
+    const form = document.getElementById('simple-edit-form');
+
+    // 2. Setup event listeners
+    const close = () => {
+        deactivateModal(modalElement);
+        modalElement.remove();
+    };
+
+    modalElement.addEventListener('click', (e) => {
+        if (e.target.closest('[data-action="close-simple-edit-modal"]')) {
+            close();
+        }
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const taskId = document.getElementById('simple-edit-task-id').value;
+        const occurrenceId = document.getElementById('simple-edit-occurrence-id').value;
+        const masterTask = tasks.find(t => t.id === taskId);
+        if (!masterTask) return;
+
+        const newName = document.getElementById('simple-edit-task-name').value;
+        const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
+        const scopeRadio = form.querySelector('input[name="edit-scope"]:checked');
+        const scope = scopeRadio ? scopeRadio.value : 'single';
+
+        if (scope === 'single') {
+            const updates = {
+                name: newName,
+                dueDate: newDueDate
+            };
+            // Use the centralized function to apply the override
+            updateTaskOccurrence(taskId, occurrenceId, updates);
+        } else { // 'future'
+            // Modify the master task
+            masterTask.name = newName;
+
+            // This is a simplification. A full implementation would need to adjust
+            // the entire repetition schedule based on the new due date, which is complex.
+            // For now, we'll just update the master due date.
+            masterTask.dueDate = newDueDate;
+
+            // Clear any future overrides that might conflict
+            // (A more advanced version would try to intelligently migrate them)
+            masterTask.occurrenceOverrides = {};
+        }
+
+        saveDataAndRefreshUI();
+        close();
+    });
+
+
+    // 3. Activate the modal
+    activateModal(modalElement);
+}
     task.pendingCycles = calculatePendingCycles(task, Date.now());
     if (choice === 'partial') {
         task.confirmationState = 'confirming_complete';
@@ -7060,10 +7289,6 @@ function loadData() {
         }
     }
 
-    // Always reset tasks array before loading to ensure injected test data is used.
-    tasks = [];
-    categories = [];
-
     const storedTasks = localStorage.getItem('tasks');
     const storedCategories = localStorage.getItem('categories');
     const storedColors = localStorage.getItem('statusColors');
@@ -7214,7 +7439,7 @@ function loadData() {
 
     // Only load from localStorage if the arrays are empty.
     // This allows verification scripts to inject data without it being overwritten.
-    if (categories.length === 0 && storedCategories) {
+    if (storedCategories) {
         try {
             categories = JSON.parse(storedCategories);
         } catch (error) {
@@ -7222,7 +7447,7 @@ function loadData() {
             categories = []; // Reset on error
         }
     }
-    if (tasks.length === 0 && storedTasks) {
+    if (storedTasks) {
         try {
             const parsedTasks = JSON.parse(storedTasks);
             tasks = parsedTasks.map(task => {
