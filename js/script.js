@@ -294,6 +294,13 @@ function calculatePendingCycles(task, nowMs) {
     return Math.max(cycles, 0);
 }
 function sanitizeAndUpgradeTask(task) {
+    // --- Data Migration ---
+    // Handle the renaming of taskType to completionType for backward compatibility.
+    if (task.hasOwnProperty('taskType') && !task.hasOwnProperty('completionType')) {
+        task.completionType = task.taskType;
+        delete task.taskType;
+    }
+
     const defaults = {
         name: 'Unnamed Task',
         icon: null,
