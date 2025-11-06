@@ -56,9 +56,11 @@
                         <h2 class="text-2xl font-bold">Journal</h2>
                         <button id="add-journal-entry-btn" data-action="addJournal" class="btn btn-tertiary btn-md">New Entry</button>
                     </div>
-                    <div class="journal-controls">
-                        <input type="search" id="journal-search-input" placeholder="Search journal entries..." class="w-full mb-2">
-                        <div class="flex items-center gap-4">
+                    <div class="journal-controls flex justify-between items-center flex-wrap gap-2">
+                        <div class="flex-grow">
+                            <input type="search" id="journal-search-input" placeholder="Search journal entries..." class="w-full max-w-sm">
+                        </div>
+                        <div class="flex items-center gap-2">
                             <select id="journal-sort-by">
                                 <option value="date">Sort by Date</option>
                                 <option value="icon">Sort by Icon</option>
@@ -515,7 +517,7 @@
                 <!-- 1. Appearance Section -->
                 <div class="collapsible-section" data-section-key="appearance">
                     <h3 class="collapsible-header">
-                        <span>1. Appearance</span>
+                        <span>Appearance</span>
                         <i class="fas fa-chevron-down"></i>
                     </h3>
                     <div class="collapsible-content">
@@ -569,7 +571,7 @@
 
                 <!-- 2. Task Behavior Section -->
                 <div class="collapsible-section" data-section-key="behavior">
-                    <h3 class="collapsible-header"><span>2. Task Behavior</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Task Behavior</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content">
                         <fieldset>
                              <legend>Planner Sensitivity</legend>
@@ -607,7 +609,7 @@
 
                 <!-- 3. Calendar & Scheduling Section -->
                 <div class="collapsible-section" data-section-key="scheduling">
-                    <h3 class="collapsible-header"><span>3. Calendar & Scheduling</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Calendar & Scheduling</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content">
                         <fieldset>
                             <legend>General Calendar</legend>
@@ -683,7 +685,7 @@
 
                 <!-- 4. Content Management Section -->
                 <div class="collapsible-section" data-section-key="content">
-                    <h3 class="collapsible-header"><span>4. Content Management</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Content Management</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content">
                         <fieldset>
                             <legend>Category Management</legend>
@@ -718,7 +720,7 @@
 
                 <!-- 5. Automation & Performance -->
                 <div class="collapsible-section" data-section-key="automation">
-                    <h3 class="collapsible-header"><span>5. Automation & Performance</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Automation & Performance</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content">
                         <fieldset>
                              <legend>Task Form Automation</legend>
@@ -748,7 +750,7 @@
 
                 <!-- 6. Notifications Section -->
                 <div class="collapsible-section" data-section-key="notifications">
-                    <h3 class="collapsible-header"><span>6. Notifications</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Notifications</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content">
                         <fieldset>
                             <legend>Desktop Notifications</legend>
@@ -759,7 +761,7 @@
 
                 <!-- 7. Data Management Section -->
                 <div class="collapsible-section" data-section-key="data">
-                    <h3 class="collapsible-header"><span>7. Data Management</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Data Management</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content space-y-4">
                         <fieldset>
                             <legend>Import / Export</legend>
@@ -780,7 +782,7 @@
 
                  <!-- 8. Feature Flags & Toggles -->
                 <div class="collapsible-section" data-section-key="features">
-                    <h3 class="collapsible-header"><span>8. Feature Flags & Toggles</span><i class="fas fa-chevron-down"></i></h3>
+                    <h3 class="collapsible-header"><span>Feature Flags & Toggles</span><i class="fas fa-chevron-down"></i></h3>
                     <div class="collapsible-content space-y-4">
                         <fieldset>
                             <legend>Task View Behavior</legend>

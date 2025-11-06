@@ -599,7 +599,7 @@ function bulkEditFormTemplate(categoryId, settings) {
 function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyCompleted) {
     const chartHtml = hasChartData ? `<div class="mt-4 gradient-bordered-content"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
     const reinstateButtonHtml = isFullyCompleted
-        ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md mt-6">Reinstate Task</button>`
+        ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md">Reinstate Task</button>`
         : '';
 
     const overallGpaHtml = stats.overallGpa
@@ -610,25 +610,59 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
         : '';
 
     return `
-        <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
-        <div class="space-y-2">
-            <div class="flex items-center">
-                <strong>Completion Rate:</strong>
-                <span class="ml-2">${stats.completionRate}% (${stats.completions} / ${stats.total})</span>
-                ${overallGpaHtml}
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center">
+                        <strong>Completion Rate:</strong>
+                        <span class="ml-2">${stats.completionRate}% (${stats.completions} / ${stats.total})</span>
+                        ${overallGpaHtml}
+                    </div>
+                </div>
+            </div>
+            <div class="relative">
+                <button data-action="openHistoryMenu" data-task-id="${task.id}" class="btn btn-clear text-xl p-2" title="Edit Task History">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <div id="history-menu-${task.id}" class="absolute right-0 mt-2 w-48 bg-secondary rounded-md shadow-lg z-10 hidden">
+                    <!-- Menu content will be injected here -->
+                </div>
             </div>
         </div>
+
         <h4 class="text-lg font-semibold mt-6 mb-2">Performance</h4>
         ${chartHtml}
         <h4 class="text-lg font-semibold mt-6 mb-2">Detailed History</h4>
         <div id="detailed-history-list" class="space-y-2 max-h-48 overflow-y-auto border rounded p-2">${historyHtml}</div>
+        <div id="history-delete-confirmation-container" class="mt-4"></div>
         <div class="flex justify-start items-center space-x-4 mt-6">
              <button data-action="backToTaskView" class="btn btn-clear">Back to Details</button>
-             <button data-action="bulkUpdateIcon" data-task-id="${task.id}" class="btn btn-secondary btn-sm">Set Icon for All History</button>
              ${reinstateButtonHtml}
         </div>
     `;
 }
+
+function editHistoryMenuTemplate(taskId) {
+    return `
+        <div class="p-2">
+            <h4 class="font-bold text-sm px-2 pb-1 border-b">Edit Task History</h4>
+            <button data-action="bulkUpdateIcon" data-task-id="${taskId}" class="w-full text-left p-2 text-sm hover:bg-main rounded">Set Icon for All History</button>
+            <button data-action="triggerDeleteAllHistory" data-task-id="${taskId}" class="w-full text-left p-2 text-sm hover:bg-main rounded">Delete All History</button>
+        </div>
+    `;
+}
+
+function deleteAllHistoryConfirmationTemplate(taskId) {
+    return `
+        <div class="p-3 rounded-lg border-2 border-dashed flex justify-center items-center space-x-4">
+            <p class="text-center font-semibold">Delete all history for this task?</p>
+            <button data-action="confirmDeleteAllHistory" data-task-id="${taskId}" class="btn btn-deny btn-sm">Yes, Delete All</button>
+            <button data-action="cancelDeleteAllHistory" data-task-id="${taskId}" class="btn btn-clear">Cancel</button>
+        </div>
+    `;
+}
+
 
 function actionAreaTemplate(task) {
     const cycles = task.pendingCycles || 1;
@@ -1024,7 +1058,8 @@ export {
     taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
     appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
     calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
-    conflictResolutionModalTemplate, addIconPromptModalTemplate
+    conflictResolutionModalTemplate, addIconPromptModalTemplate,
+    editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate
 };
 
 function addIconPromptModalTemplate(taskId) {
