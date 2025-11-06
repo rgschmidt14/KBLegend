@@ -160,7 +160,7 @@ function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
         }
         progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
         if (!task.confirmationState && task.status !== 'blue') {
-            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs" title="Edit Progress" aria-label="Edit progress for ${task.name}">[Edit]</button>`;
+            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs" title="Edit Progress" aria-label="Edit progress for ${task.name}"><i class="fa-solid fa-pencil"></i></button>`;
         }
         progressHtml += `</div>`;
     }
@@ -259,8 +259,8 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
     if (isHistorical) {
         actionsHtml = `
             <div id="task-view-actions-${task.originalTaskId}" class="mt-6 responsive-button-grid">
-                <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm">Delete This Record</button>
-                <button data-action="viewTaskStats" data-task-id="${task.originalTaskId || task.id}" class="btn btn-clear">View Task Stats</button>
+                <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm" title="Delete this specific history record"><i class="fa-solid fa-trash"></i> Delete Record</button>
+                <button data-action="viewTaskStats" data-task-id="${task.originalTaskId || task.id}" class="btn btn-clear" title="View aggregate stats for this task"><i class="fa-solid fa-chart-line"></i> View Stats</button>
             </div>
             <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
         `;
@@ -281,7 +281,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
             }
             progressHtml += `<span class="font-semibold">Progress:</span> <span id="progress-${task.id}">${progressText}</span>`;
             if (!task.confirmationState) {
-                 progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs ml-2">[Edit]</button>`;
+                  progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs ml-2" title="Edit progress"><i class="fa-solid fa-pencil"></i></button>`;
             }
             progressHtml += `</div>`;
         }
@@ -299,7 +299,7 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
                 <div class="flex justify-between w-full items-center mt-4">
                     <div>${missesHtml}</div>
                     <div class="flex items-center space-x-2">
-                        <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear">Stats</button>
+                         <button data-action="viewTaskStats" data-task-id="${task.id}" class="btn btn-clear" title="View task statistics"><i class="fa-solid fa-chart-line"></i></button>
                         ${commonButtonsTemplate(task, { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' })}
                     </div>
                 </div>
@@ -319,8 +319,8 @@ const thoughtsHtml = `
         <h4 class="font-bold">Thoughts</h4>
         ${isHistorical ? `
             <div class="flex space-x-2">
-                <button data-action="editHistoryIcon" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-clear text-xs">[Change Icon]</button>
-                <button data-action="editHistoryThoughts" data-history-event-id="${task.id}" class="btn btn-clear text-xs">[Edit]</button>
+                 <button data-action="editHistoryIcon" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-clear text-xs" title="Change icon for this history entry"><i class="fa-solid fa-image"></i></button>
+                 <button data-action="editHistoryThoughts" data-history-event-id="${task.id}" class="btn btn-clear text-xs" title="Edit thoughts for this history entry"><i class="fa-solid fa-pencil"></i></button>
             </div>
         ` : ''}
     </div>
@@ -664,6 +664,9 @@ function deleteAllHistoryConfirmationTemplate(taskId) {
 }
 
 
+// Renders the primary action area for a task, which changes based on the task's state.
+// This includes completion buttons, timers, count controls, and confirmation dialogs.
+// Uses Font Awesome icons for actions like increment, decrement, and bypass.
 function actionAreaTemplate(task) {
     const cycles = task.pendingCycles || 1;
     const hasProgress = (task.completionType === 'count' || task.completionType === 'time') && task.currentProgress > 0;
@@ -713,25 +716,35 @@ function actionAreaTemplate(task) {
 
     switch (task.completionType) {
         case 'count':
-            return `<div class="flex items-center space-x-1"> <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">-</button> <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-6 h-6">+</button> </div>`;
+            return `<div class="flex items-center space-x-1">
+                        <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-8 h-8 flex items-center justify-center" title="Decrement count"><i class="fa-solid fa-minus"></i></button>
+                        <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-8 h-8 flex items-center justify-center" title="Increment count"><i class="fa-solid fa-plus"></i></button>
+                        <button data-action="bypass" data-task-id="${task.id}" class="btn btn-confirm btn-xs" title="Mark as fully complete"><i class="fa-solid fa-check"></i></button>
+                    </div>`;
         case 'time':
             const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            return `<button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="btn btn-clear">${btnText}</button>`;
+            const timerIcon = task.isTimerRunning ? 'fa-pause' : 'fa-play';
+            return `<div class="flex items-center space-x-2">
+                        <button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="btn btn-clear" title="${btnText} timer"><i class="fa-solid ${timerIcon} mr-1"></i>${btnText}</button>
+                        <button data-action="bypass" data-task-id="${task.id}" class="btn btn-confirm btn-xs" title="Mark as fully complete"><i class="fa-solid fa-check"></i></button>
+                    </div>`;
         default:
             return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-confirm btn-sm">Complete</button>`;
     }
 }
 
+// Renders the common secondary buttons for a task (Edit, Delete).
+// Uses Font Awesome icons for a clean and consistent UI.
 function commonButtonsTemplate(task, options = {}) {
     const { editAction = 'edit', deleteAction = 'triggerDelete' } = options;
     if (task.confirmationState) return '';
     const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
     if (isCompletedNonRepeating) {
-        return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>`;
+        return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task"><i class="fa-solid fa-trash"></i></button>`;
     }
     return `<div class="flex space-x-1">
-            <button data-action="${editAction}" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task">Edit</button>
-            <button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task">Delete</button>
+            <button data-action="${editAction}" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task"><i class="fa-solid fa-pencil"></i></button>
+            <button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task"><i class="fa-solid fa-trash"></i></button>
         </div>`;
 }
 
@@ -810,8 +823,8 @@ function iconPickerTemplate(iconCategories) {
 
 function editProgressTemplate(taskId, currentValue, max) {
     return `<input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
-            <button data-action="saveProgress" data-task-id="${taskId}" class="btn btn-confirm btn-xs ml-1">Save</button>
-            <button data-action="cancelProgress" data-task-id="${taskId}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
+            <button data-action="saveProgress" data-task-id="${taskId}" class="btn btn-confirm btn-xs ml-1" title="Save progress"><i class="fa-solid fa-check"></i></button>
+            <button data-action="cancelProgress" data-task-id="${taskId}" class="btn btn-clear text-xs ml-1" title="Cancel edit"><i class="fa-solid fa-xmark"></i></button>`;
 }
 
 function editCategoryTemplate(categoryId, currentName) {

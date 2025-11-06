@@ -155,7 +155,9 @@ describe('runCalculationPipeline', () => {
             id: 'timer-task',
             name: 'Timer Task',
             dueDate: T(2), // Due in 2 hours, well within warning window
-            taskType: 'timer',
+            completionType: 'time',
+            timeTargetAmount: 4,
+            timeTargetUnit: 'hours',
             estimatedDurationAmount: 4,
             estimatedDurationUnit: 'hours',
             currentProgress: 0, // No progress initially
@@ -180,10 +182,10 @@ describe('runCalculationPipeline', () => {
             id: 'count-task',
             name: 'Count Task',
             dueDate: T(2), // Due in 2 hours
-            taskType: 'count',
+            completionType: 'count',
             estimatedDurationAmount: 4, // Still needs a duration for time-based demerit
             estimatedDurationUnit: 'hours',
-            targetCount: 10,
+            countTarget: 10,
             currentProgress: 0, // No progress initially
             repetitionType: 'none',
         }];

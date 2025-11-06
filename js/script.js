@@ -102,7 +102,7 @@ let uiSettings = {
     },
     smartFormHistory: {
         dateType: [],
-        taskType: [],
+        completionType: [],
         repetitionUnit: [],
         estimatedDurationUnit: [],
         prepTimeUnit: [],
@@ -3980,7 +3980,7 @@ function applySmartDefaults() {
     }
 
     timeInputTypeSelect.value = getSmartDefault('dateType', 'due');
-    completionTypeSelect.value = getSmartDefault('taskType', 'simple');
+    completionTypeSelect.value = getSmartDefault('completionType', 'simple');
     if (repetitionUnitSelect) {
         repetitionUnitSelect.value = getSmartDefault('repetitionUnit', 'days');
     }
@@ -3997,7 +3997,7 @@ function updateSmartFormHistory(taskData) {
     if (!uiSettings.smartFormHistory) {
         uiSettings.smartFormHistory = {
             dateType: [],
-            taskType: [],
+            completionType: [],
             repetitionUnit: [],
             estimatedDurationUnit: [],
             prepTimeUnit: [],
@@ -4017,7 +4017,7 @@ function updateSmartFormHistory(taskData) {
     };
 
     updateFieldHistory('dateType', taskData.timeInputType);
-    updateFieldHistory('taskType', taskData.completionType);
+    updateFieldHistory('completionType', taskData.completionType);
     if (taskData.repetitionType === 'relative') {
         updateFieldHistory('repetitionUnit', taskData.repetitionUnit);
     }
@@ -6318,6 +6318,18 @@ function setupEventListeners() {
                     case 'editProgress': editProgress(taskIdForAction); break;
                     case 'saveProgress': saveProgressEdit(taskIdForAction); break;
                     case 'cancelProgress': cancelProgressEdit(taskIdForAction); break;
+                    case 'bypass':
+                        const taskToBypass = tasks.find(t => t.id === taskIdForAction);
+                        if (taskToBypass) {
+                            if (taskToBypass.completionType === 'count') {
+                                taskToBypass.currentProgress = taskToBypass.countTarget;
+                            } else if (taskToBypass.completionType === 'time') {
+                                const targetMs = getDurationMs(taskToBypass.timeTargetAmount, taskToBypass.timeTargetUnit);
+                                taskToBypass.currentProgress = targetMs;
+                            }
+                            triggerCompletion(taskIdForAction);
+                        }
+                        break;
                 }
             }
         });
