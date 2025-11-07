@@ -16,104 +16,104 @@
 // ============================================================================
 
 function getAbsoluteRepetitionString(task) {
-    if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const occurrences = { '1': 'First', '2': 'Second', '3': 'Third', '4': 'Fourth', 'last': 'Last' };
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const daySuffix = (day) => {
-        if (day === 'last') return 'Last';
-        if (day === 'second_last') return '2nd Last';
-        if (day === 'third_last') return '3rd Last';
-        const n = parseInt(day);
-        if (isNaN(n)) return '?';
-        if (n % 10 === 1 && n !== 11) return `${n}st`;
-        if (n % 10 === 2 && n !== 12) return `${n}nd`;
-        if (n % 10 === 3 && n !== 13) return `${n}rd`;
-        return `${n}th`;
-    };
-    try {
-        switch (task.repetitionAbsoluteFrequency) {
-            case 'weekly':
-                const selectedDaysW = (task.repetitionAbsoluteWeeklyDays || []).sort((a,b) => a-b).map(d => weekdays[d]).join(', ');
-                return `Weekly on ${selectedDaysW || '...'}`;
-            case 'monthly':
-                if (task.repetitionAbsoluteMonthlyMode === 'day_of_week') {
-                    const occArr = (task.repetitionAbsoluteNthWeekdayOccurrence || []);
-                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '...';
-                    const dayArr = (task.repetitionAbsoluteNthWeekdayDays || []);
-                    const dayStrM = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
-                    return `Monthly on the ${occStr} ${dayStrM}`;
-                } else {
-                    const dayArr = (task.repetitionAbsoluteDaysOfMonth || []);
-                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
-                    return `Monthly on day(s) ${dayStr}`;
-                }
-            case 'yearly':
-                const monthArr = (task.repetitionAbsoluteYearlyMonths || []);
-                const monthStr = monthArr.length > 0 ? monthArr.sort((a,b)=>a-b).map(m => months[m] || '?').join(', ') : '...';
-                if (task.repetitionAbsoluteYearlyMode === 'day_of_week') {
-                    const occArr = (task.repetitionAbsoluteYearlyNthWeekdayOccurrence || []);
-                    const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '?';
-                    const dayArr = (task.repetitionAbsoluteYearlyNthWeekdayDays || []);
-                    const dayStrY = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
-                    return `Yearly on the ${occStr} ${dayStrY} of ${monthStr}`;
-                } else {
-                    const dayArr = (task.repetitionAbsoluteYearlyDaysOfMonth || []);
-                    const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
-                    return `Yearly on ${monthStr} ${dayStr}`;
-                }
-            default: return `Repeats: ${task.repetitionAbsoluteFrequency}`;
-        }
-    } catch (e) {
-        console.error("Error generating absolute repetition string:", task.id, e);
-        return "Absolute Schedule (Error)";
+  if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const occurrences = { '1': 'First', '2': 'Second', '3': 'Third', '4': 'Fourth', 'last': 'Last' };
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const daySuffix = (day) => {
+    if (day === 'last') return 'Last';
+    if (day === 'second_last') return '2nd Last';
+    if (day === 'third_last') return '3rd Last';
+    const n = parseInt(day);
+    if (isNaN(n)) return '?';
+    if (n % 10 === 1 && n !== 11) return `${n}st`;
+    if (n % 10 === 2 && n !== 12) return `${n}nd`;
+    if (n % 10 === 3 && n !== 13) return `${n}rd`;
+    return `${n}th`;
+  };
+  try {
+    switch (task.repetitionAbsoluteFrequency) {
+    case 'weekly':
+      const selectedDaysW = (task.repetitionAbsoluteWeeklyDays || []).sort((a,b) => a-b).map(d => weekdays[d]).join(', ');
+      return `Weekly on ${selectedDaysW || '...'}`;
+    case 'monthly':
+      if (task.repetitionAbsoluteMonthlyMode === 'day_of_week') {
+        const occArr = (task.repetitionAbsoluteNthWeekdayOccurrence || []);
+        const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '...';
+        const dayArr = (task.repetitionAbsoluteNthWeekdayDays || []);
+        const dayStrM = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
+        return `Monthly on the ${occStr} ${dayStrM}`;
+      } else {
+        const dayArr = (task.repetitionAbsoluteDaysOfMonth || []);
+        const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
+        return `Monthly on day(s) ${dayStr}`;
+      }
+    case 'yearly':
+      const monthArr = (task.repetitionAbsoluteYearlyMonths || []);
+      const monthStr = monthArr.length > 0 ? monthArr.sort((a,b)=>a-b).map(m => months[m] || '?').join(', ') : '...';
+      if (task.repetitionAbsoluteYearlyMode === 'day_of_week') {
+        const occArr = (task.repetitionAbsoluteYearlyNthWeekdayOccurrence || []);
+        const occStr = occArr.length > 0 ? occArr.map(o => occurrences[o] || '?').join(', ') : '?';
+        const dayArr = (task.repetitionAbsoluteYearlyNthWeekdayDays || []);
+        const dayStrY = dayArr.length > 0 ? dayArr.sort((a,b)=>a-b).map(d => weekdays[d]).join(', ') : '...';
+        return `Yearly on the ${occStr} ${dayStrY} of ${monthStr}`;
+      } else {
+        const dayArr = (task.repetitionAbsoluteYearlyDaysOfMonth || []);
+        const dayStr = dayArr.length > 0 ? dayArr.map(d => daySuffix(d)).join(', ') : '?';
+        return `Yearly on ${monthStr} ${dayStr}`;
+      }
+    default: return `Repeats: ${task.repetitionAbsoluteFrequency}`;
     }
+  } catch (e) {
+    console.error('Error generating absolute repetition string:', task.id, e);
+    return 'Absolute Schedule (Error)';
+  }
 }
 
 function formatDateTime(date, use24HourFormat) {
-    if (!date || isNaN(date)) return 'N/A';
-    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
-    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !use24HourFormat };
-    return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
+  if (!date || isNaN(date)) return 'N/A';
+  const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
+  const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: !use24HourFormat };
+  return `${date.toLocaleDateString('en-US', dateOptions)} ${date.toLocaleTimeString('en-US', timeOptions)}`;
 }
 
 function formatDuration(amount, unit) {
-    if (!amount || !unit || amount <= 0) return 'N/A';
-    return `${amount} ${unit}`;
+  if (!amount || !unit || amount <= 0) return 'N/A';
+  return `${amount} ${unit}`;
 }
 
 function formatMsToTime(ms) {
-    if (isNaN(ms) || ms < 0) ms = 0;
-    const totalSeconds = Math.floor(ms / 1000);
-    const seconds = totalSeconds % 60;
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const minutes = totalMinutes % 60;
-    const hours = Math.floor(totalMinutes / 60);
-    const pad = (num) => String(num).padStart(2, '0');
-    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  if (isNaN(ms) || ms < 0) ms = 0;
+  const totalSeconds = Math.floor(ms / 1000);
+  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minutes = totalMinutes % 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function getDurationMs(amount, unit) {
-    if (!amount || !unit || amount <= 0) return 0;
-    amount = parseInt(amount, 10);
-    let ms = 0;
-    switch (unit) {
-        case 'minutes': ms = amount * 60000; break;
-        case 'hours': ms = amount * 3600000; break;
-        case 'days': ms = amount * 86400000; break;
-        case 'weeks': ms = amount * 7 * 86400000; break;
-        case 'months': ms = amount * 30 * 86400000; break; // Approximation
-        default: ms = 0;
-    }
-    return ms;
+  if (!amount || !unit || amount <= 0) return 0;
+  amount = parseInt(amount, 10);
+  let ms = 0;
+  switch (unit) {
+  case 'minutes': ms = amount * 60000; break;
+  case 'hours': ms = amount * 3600000; break;
+  case 'days': ms = amount * 86400000; break;
+  case 'weeks': ms = amount * 7 * 86400000; break;
+  case 'months': ms = amount * 30 * 86400000; break; // Approximation
+  default: ms = 0;
+  }
+  return ms;
 }
 
 function formatProgressNumber(num) {
-    if (num === null || num === undefined) return 0;
-    if (num % 1 !== 0) {
-        return +num.toFixed(2);
-    }
-    return num;
+  if (num === null || num === undefined) return 0;
+  if (num % 1 !== 0) {
+    return +num.toFixed(2);
+  }
+  return num;
 }
 
 
@@ -122,59 +122,59 @@ function formatProgressNumber(num) {
 // ============================================================================
 
 function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
-    const category = categories.find(c => c.id === task.categoryId);
-    const categoryName = category ? category.name : 'Uncategorized';
+  const category = categories.find(c => c.id === task.categoryId);
+  const categoryName = category ? category.name : 'Uncategorized';
 
-    let categoryHtml = '';
-    if (taskDisplaySettings.showCategory) {
-        const categoryColor = category ? category.color : '#808080';
-        categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor};">${categoryName}</span>`;
+  let categoryHtml = '';
+  if (taskDisplaySettings.showCategory) {
+    const categoryColor = category ? category.color : '#808080';
+    categoryHtml = `<span class="text-xs font-medium px-2 py-1 rounded-full" style="background-color: ${categoryColor};">${categoryName}</span>`;
+  }
+
+  const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
+  const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
+
+  let repetitionStr = '';
+  if (task.repetitionType === 'relative') {
+    repetitionStr = `Repeats: Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
+  } else if (task.repetitionType === 'absolute') {
+    repetitionStr = `Repeats: ${getAbsoluteRepetitionString(task)}`;
+  }
+  const repetitionHtml = taskDisplaySettings.showRepetition && repetitionStr ? `<p class="text-sm opacity-70">${repetitionStr}</p>` : '';
+
+  const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
+  const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationStr}</p>` : '';
+
+  const countdownHtml = taskDisplaySettings.showCountdown ? `<p id="countdown-${task.id}" class="countdown-timer"></p>` : '';
+
+  let progressHtml = '';
+  const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+  if (taskDisplaySettings.showProgress && task.status !== 'blue' && !isCompletedNonRepeating && (task.completionType === 'count' || task.completionType === 'time')) {
+    progressHtml = `<div id="progress-container-${task.id}" class="mt-1 h-5">`;
+    let progressText = '';
+    if (task.completionType === 'count' && task.countTarget) {
+      progressText = `${formatProgressNumber(task.currentProgress) || 0} / ${task.countTarget}`;
+    } else if (task.completionType === 'time' && task.timeTargetAmount) {
+      const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+      progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
     }
-
-    const dueDateStr = (task.dueDate && !isNaN(task.dueDate)) ? formatDateTime(task.dueDate, appSettings.use24HourFormat) : 'No due date';
-    const dueDateHtml = taskDisplaySettings.showDueDate ? `<p class="text-sm opacity-80">Due: ${dueDateStr}</p>` : '';
-
-    let repetitionStr = '';
-    if (task.repetitionType === 'relative') {
-        repetitionStr = `Repeats: Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
-    } else if (task.repetitionType === 'absolute') {
-        repetitionStr = `Repeats: ${getAbsoluteRepetitionString(task)}`;
+    progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
+    if (!task.confirmationState && task.status !== 'blue') {
+      progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs" title="Edit Progress" aria-label="Edit progress for ${task.name}"><i class="fa-solid fa-pencil"></i></button>`;
     }
-    const repetitionHtml = taskDisplaySettings.showRepetition && repetitionStr ? `<p class="text-sm opacity-70">${repetitionStr}</p>` : '';
+    progressHtml += '</div>';
+  }
 
-    const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
-    const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationStr}</p>` : '';
+  const missesHtml = (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses)
+    ? `<p class="misses-display mt-1">Misses: ${task.misses}/${task.maxMisses}</p>`
+    : '';
 
-    const countdownHtml = taskDisplaySettings.showCountdown ? `<p id="countdown-${task.id}" class="countdown-timer"></p>` : '';
+  const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
+  const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="flex space-x-2 mt-2"></div>`;
+  const iconToUse = task.icon || (category ? category.icon : null);
+  const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
 
-    let progressHtml = '';
-    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-    if (taskDisplaySettings.showProgress && task.status !== 'blue' && !isCompletedNonRepeating && (task.completionType === 'count' || task.completionType === 'time')) {
-        progressHtml = `<div id="progress-container-${task.id}" class="mt-1 h-5">`;
-        let progressText = '';
-        if (task.completionType === 'count' && task.countTarget) {
-            progressText = `${formatProgressNumber(task.currentProgress) || 0} / ${task.countTarget}`;
-        } else if (task.completionType === 'time' && task.timeTargetAmount) {
-            const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-            progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
-        }
-        progressHtml += `<span id="progress-${task.id}" class="progress-display">${progressText}</span>`;
-        if (!task.confirmationState && task.status !== 'blue') {
-            progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs" title="Edit Progress" aria-label="Edit progress for ${task.name}"><i class="fa-solid fa-pencil"></i></button>`;
-        }
-        progressHtml += `</div>`;
-    }
-
-    const missesHtml = (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses)
-        ? `<p class="misses-display mt-1">Misses: ${task.misses}/${task.maxMisses}</p>`
-        : '';
-
-    const actionAreaContainer = `<div id="action-area-${task.id}" class="flex flex-col space-y-1 items-end flex-shrink-0 min-h-[50px]"></div>`;
-    const commonButtonsContainer = `<div id="common-buttons-${task.id}" class="flex space-x-2 mt-2"></div>`;
-    const iconToUse = task.icon || (category ? category.icon : null);
-    const iconHtml = iconToUse ? `<i class="${iconToUse} mr-2"></i>` : '';
-
-    return `<div class="flex-grow pr-4">
+  return `<div class="flex-grow pr-4">
                 <div class="task-card-header">
                     <h3 class="text-lg font-semibold">${iconHtml}${task.name || 'Unnamed Task'}</h3>
                     ${categoryHtml}
@@ -193,11 +193,11 @@ function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
 }
 
 function categoryManagerTemplate(categories) {
-    let content = '';
-    if (categories.length === 0) {
-        content += '<p class="italic">No categories created yet.</p>';
-    } else {
-        content += categories.map(cat => `
+  let content = '';
+  if (categories.length === 0) {
+    content += '<p class="italic">No categories created yet.</p>';
+  } else {
+    content += categories.map(cat => `
             <div class="p-2 border-b" id="category-item-${cat.id}">
                 <div class="flex items-center justify-between">
                     <div id="category-display-${cat.id}" class="flex-grow flex items-center" data-action="triggerCategoryEdit" data-category-id="${cat.id}">
@@ -222,9 +222,9 @@ function categoryManagerTemplate(categories) {
                 <div id="bulk-edit-container-${cat.id}" class="hidden mt-2"></div>
             </div>
         `).join('');
-    }
+  }
 
-    content += `
+  content += `
         <div class="mt-4">
             <button class="btn btn-secondary btn-md w-full" data-action="renderCategoryAdd">
                 Add New Category
@@ -233,64 +233,64 @@ function categoryManagerTemplate(categories) {
         </div>
     `;
 
-    return content;
+  return content;
 }
 
 function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
-    const category = categories.find(c => c.id === task.categoryId);
-    const categoryName = category ? category.name : 'Uncategorized';
-    const dueDate = isHistorical ? new Date(task.completionDate) : (task.dueDate ? new Date(task.dueDate) : null);
-    const dueDateStr = (dueDate && !isNaN(dueDate)) ? formatDateTime(dueDate, appSettings.use24HourFormat) : 'No due date';
-    const durationStr = formatDuration(task.durationAmount || task.estimatedDurationAmount, task.durationUnit || task.estimatedDurationUnit);
+  const category = categories.find(c => c.id === task.categoryId);
+  const categoryName = category ? category.name : 'Uncategorized';
+  const dueDate = isHistorical ? new Date(task.completionDate) : (task.dueDate ? new Date(task.dueDate) : null);
+  const dueDateStr = (dueDate && !isNaN(dueDate)) ? formatDateTime(dueDate, appSettings.use24HourFormat) : 'No due date';
+  const durationStr = formatDuration(task.durationAmount || task.estimatedDurationAmount, task.durationUnit || task.estimatedDurationUnit);
 
-    let repetitionStr = 'Non-Repeating';
-    if (!isHistorical && task.repetitionType) {
-        if (task.repetitionType === 'relative') {
-            repetitionStr = `Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
-        } else if (task.repetitionType === 'absolute') {
-            repetitionStr = getAbsoluteRepetitionString(task);
-        }
+  let repetitionStr = 'Non-Repeating';
+  if (!isHistorical && task.repetitionType) {
+    if (task.repetitionType === 'relative') {
+      repetitionStr = `Every ${task.repetitionAmount || '?'} ${task.repetitionUnit || '?'}`;
+    } else if (task.repetitionType === 'absolute') {
+      repetitionStr = getAbsoluteRepetitionString(task);
     }
+  }
 
-    let actionsHtml;
-    let progressHtml = '';
-    let missesHtml = '';
+  let actionsHtml;
+  let progressHtml = '';
+  let missesHtml = '';
 
-    if (isHistorical) {
-        actionsHtml = `
+  if (isHistorical) {
+    actionsHtml = `
             <div id="task-view-actions-${task.originalTaskId}" class="mt-6 responsive-button-grid">
                 <button data-action="triggerDeleteHistoryRecordFromView" data-history-event-id="${task.id}" data-task-id="${task.originalTaskId}" class="btn btn-deny btn-sm" title="Delete this specific history record"><i class="fa-solid fa-trash"></i> Delete Record</button>
                 <button data-action="viewTaskStats" data-task-id="${task.originalTaskId || task.id}" class="btn btn-clear" title="View aggregate stats for this task"><i class="fa-solid fa-chart-line"></i> View Stats</button>
             </div>
             <div id="task-view-confirmation-${task.id}" class="mt-4"></div>
         `;
-    } else {
-        // Replicate the structure from the main task list for consistency
-        const actionAreaContent = actionAreaTemplate(task);
-        const modalButtonOptions = { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' };
-        const commonButtonsContent = commonButtonsTemplate(task, modalButtonOptions);
+  } else {
+    // Replicate the structure from the main task list for consistency
+    const actionAreaContent = actionAreaTemplate(task);
+    const modalButtonOptions = { editAction: 'editTaskFromView', deleteAction: 'triggerDeleteFromView' };
+    const commonButtonsContent = commonButtonsTemplate(task, modalButtonOptions);
 
-        if (task.status !== 'blue' && (task.completionType === 'count' || task.completionType === 'time')) {
-             progressHtml = `<div id="progress-container-${task.id}" class="mt-2 text-sm">`;
-            let progressText = '';
-            if (task.completionType === 'count' && task.countTarget) {
-                progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
-            } else if (task.completionType === 'time' && task.timeTargetAmount) {
-                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-                progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
-            }
-            progressHtml += `<span class="font-semibold">Progress:</span> <span id="progress-${task.id}">${progressText}</span>`;
-            if (!task.confirmationState) {
-                  progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs ml-2" title="Edit progress"><i class="fa-solid fa-pencil"></i></button>`;
-            }
-            progressHtml += `</div>`;
-        }
+    if (task.status !== 'blue' && (task.completionType === 'count' || task.completionType === 'time')) {
+      progressHtml = `<div id="progress-container-${task.id}" class="mt-2 text-sm">`;
+      let progressText = '';
+      if (task.completionType === 'count' && task.countTarget) {
+        progressText = `${task.currentProgress || 0} / ${task.countTarget}`;
+      } else if (task.completionType === 'time' && task.timeTargetAmount) {
+        const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+        progressText = `${formatMsToTime(task.currentProgress || 0)} / ${formatMsToTime(targetMs)}`;
+      }
+      progressHtml += `<span class="font-semibold">Progress:</span> <span id="progress-${task.id}">${progressText}</span>`;
+      if (!task.confirmationState) {
+        progressHtml += `<button data-action="editProgress" data-task-id="${task.id}" class="btn btn-clear text-xs ml-2" title="Edit progress"><i class="fa-solid fa-pencil"></i></button>`;
+      }
+      progressHtml += '</div>';
+    }
 
-        if (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses) {
-            missesHtml = `<p class="text-sm">Misses: ${task.misses}/${task.maxMisses}</p>`;
-        }
+    if (task.repetitionType !== 'none' && task.maxMisses && task.trackMisses) {
+      missesHtml = `<p class="text-sm">Misses: ${task.misses}/${task.maxMisses}</p>`;
+    }
 
-        actionsHtml = `
+    actionsHtml = `
             <div class="mt-6 flex flex-col items-end">
                 <div id="task-view-action-area-${task.id}" class="w-full flex justify-end">
                     ${actionAreaContent}
@@ -305,15 +305,15 @@ function taskViewTemplate(task, { categories, appSettings, isHistorical }) {
                 </div>
             </div>
         `;
-    }
-    const descriptionHtml = task.description ? `
+  }
+  const descriptionHtml = task.description ? `
     <div class="mt-4">
         <h4 class="font-bold">Description</h4>
         <p class="text-sm whitespace-pre-wrap">${task.description}</p>
     </div>
 ` : '';
 
-const thoughtsHtml = `
+  const thoughtsHtml = `
 <div id="task-thoughts-section-${task.id}" class="mt-4">
     <div class="flex justify-between items-center">
         <h4 class="font-bold">Thoughts</h4>
@@ -332,7 +332,7 @@ const thoughtsHtml = `
 </div>
 `;
 
-    return `
+  return `
         <h3 class="text-2xl font-bold mb-4">${task.icon ? `<i class="${task.icon} mr-2"></i>` : ''}${task.name}</h3>
         <div class="space-y-3">
             <p><strong>Status:</strong> <span class="font-semibold">${task.status.charAt(0).toUpperCase() + task.status.slice(1)}</span></p>
@@ -351,7 +351,7 @@ const thoughtsHtml = `
 }
 
 function historyDeleteConfirmationTemplate(historyId, taskId) {
-    return `
+  return `
         <div class="history-delete-confirmation flex justify-end items-center space-x-2 w-full">
             <span class="text-sm font-semibold">Delete?</span>
             <button data-action="confirmHistoryDelete" data-history-id="${historyId}" data-task-id="${taskId}" data-delete-type="single" class="btn btn-deny btn-xs">This Entry</button>
@@ -362,7 +362,7 @@ function historyDeleteConfirmationTemplate(historyId, taskId) {
 }
 
 export function confirmCategoryIconApplyTemplate(categoryId, iconClass) {
-    return `
+  return `
         <div id="confirm-category-icon-modal" class="modal active">
             <div class="modal-content bg-modal">
                 <h3 class="text-xl font-semibold mb-4">Apply Category Icon</h3>
@@ -378,7 +378,7 @@ export function confirmCategoryIconApplyTemplate(categoryId, iconClass) {
 }
 
 export function confirmOverrideModalTemplate(occurrenceId) {
-    return `
+  return `
         <div class="modal active" id="confirm-override-modal">
             <div class="modal-content">
                 <h2 class="text-xl font-bold mb-4">Apply Changes</h2>
@@ -394,13 +394,13 @@ export function confirmOverrideModalTemplate(occurrenceId) {
 }
 
 function vacationChangeConfirmationModalTemplate(changedTasks) {
-    const taskListHtml = changedTasks.map(t => `
+  const taskListHtml = changedTasks.map(t => `
         <li class="text-sm p-1 rounded">
             <strong>${t.name}</strong>: <span class="line-through">${new Date(t.oldDueDate).toLocaleString()}</span> -> <span class="font-semibold">${new Date(t.newDueDate).toLocaleString()}</span>
         </li>
     `).join('');
 
-    return `
+  return `
         <div id="vacation-change-confirm-modal" class="modal">
             <div class="modal-content bg-modal">
                  <button class="close-button" id="vacation-change-close-btn">&times;</button>
@@ -441,7 +441,7 @@ const appointmentConflictModalTemplate = (conflictedTasks) => `
 `;
 
 function vacationManagerTemplate(vacations, categories) {
-    const vacationListHtml = vacations.length > 0 ? vacations.map(v => `
+  const vacationListHtml = vacations.length > 0 ? vacations.map(v => `
         <div class="flex items-center justify-between p-2 border-b">
             <div>
                 <p class="font-medium">${v.name}</p>
@@ -453,14 +453,14 @@ function vacationManagerTemplate(vacations, categories) {
         </div>
     `).join('') : '<p class="text-sm italic">No vacations scheduled.</p>';
 
-    const categoryBypassHtml = categories.map(cat => `
+  const categoryBypassHtml = categories.map(cat => `
         <label class="flex items-center space-x-2">
             <input type="checkbox" data-action="toggleVacationBypass" data-category-id="${cat.id}" class="category-vacation-bypass-checkbox" ${cat.bypassVacation ? 'checked' : ''}>
             <span>${cat.name}</span>
         </label>
     `).join('');
 
-    return `
+  return `
         <div>
             <h4 class="font-semibold mb-2">Scheduled Vacations</h4>
             <div id="vacation-list" class="space-y-2 mb-4">${vacationListHtml}</div>
@@ -490,7 +490,7 @@ function vacationManagerTemplate(vacations, categories) {
 }
 
 function taskViewDeleteConfirmationTemplate(taskId) {
-    return `
+  return `
         <div class="p-3 rounded-lg border-2 border-dashed">
             <p class="text-center font-semibold">Are you sure?</p>
             <div class="flex justify-center space-x-4 mt-3">
@@ -502,7 +502,7 @@ function taskViewDeleteConfirmationTemplate(taskId) {
 }
 
 function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskId) {
-    return `
+  return `
         <div class="p-3 rounded-lg border-2 border-dashed">
             <p class="text-center font-semibold">Delete this record?</p>
             <div class="flex justify-center space-x-4 mt-3">
@@ -514,7 +514,7 @@ function taskViewHistoryDeleteConfirmationTemplate(historyEventId, originalTaskI
 }
 
 function dataMigrationModalTemplate() {
-    return `
+  return `
     <div class="modal-content bg-modal">
         <h3 class="text-xl font-semibold mb-4">Data Migration & Integrity Tool</h3>
         <button class="close-button">&times;</button>
@@ -549,7 +549,7 @@ function dataMigrationModalTemplate() {
 }
 
 function journalSettingsTemplate(settings) {
-    return `
+  return `
         <div>
             <label for="weekly-goal-icon-input" class="form-label">Weekly Goal Icon:</label>
             <div class="flex items-center space-x-2">
@@ -561,8 +561,8 @@ function journalSettingsTemplate(settings) {
 }
 
 function bulkEditFormTemplate(categoryId, settings) {
-    const { durationAmount = '', durationUnit = 'minutes', completionType = '' } = settings;
-    return `
+  const { durationAmount = '', durationUnit = 'minutes', completionType = '' } = settings;
+  return `
         <div class="p-4 rounded-md bg-secondary">
             <h4 class="font-bold mb-3">Bulk Edit Tasks</h4>
             <form id="bulk-edit-form-${categoryId}" class="space-y-4">
@@ -597,19 +597,19 @@ function bulkEditFormTemplate(categoryId, settings) {
 }
 
 function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyCompleted) {
-    const chartHtml = hasChartData ? `<div class="mt-4 gradient-bordered-content"><canvas id="task-history-chart"></canvas></div>` : '<p class="italic mt-4">Not enough history for a chart.</p>';
-    const reinstateButtonHtml = isFullyCompleted
-        ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md">Reinstate Task</button>`
-        : '';
+  const chartHtml = hasChartData ? '<div class="mt-4 gradient-bordered-content"><canvas id="task-history-chart"></canvas></div>' : '<p class="italic mt-4">Not enough history for a chart.</p>';
+  const reinstateButtonHtml = isFullyCompleted
+    ? `<button data-action="reinstateTask" data-task-id="${task.id}" class="btn btn-secondary btn-md">Reinstate Task</button>`
+    : '';
 
-    const overallGpaHtml = stats.overallGpa
-        ? `<span class="font-bold inline-block text-center w-10 rounded py-1 ml-2"
+  const overallGpaHtml = stats.overallGpa
+    ? `<span class="font-bold inline-block text-center w-10 rounded py-1 ml-2"
                  style="background-color: ${stats.overallGpa.color}; color: ${stats.overallGpa.textColor}; text-shadow: ${stats.overallGpa.textShadow};">
               ${stats.overallGpa.grade}
            </span>`
-        : '';
+    : '';
 
-    return `
+  return `
         <div class="flex justify-between items-start">
             <div>
                 <h3 class="text-xl font-semibold mb-4">Stats for: ${task.name}</h3>
@@ -644,7 +644,7 @@ function taskStatsTemplate(task, stats, historyHtml, hasChartData, isFullyComple
 }
 
 function editHistoryMenuTemplate(taskId) {
-    return `
+  return `
         <div class="p-2">
             <h4 class="font-bold text-sm px-2 pb-1 border-b">Edit Task History</h4>
             <button data-action="bulkUpdateIcon" data-task-id="${taskId}" class="w-full text-left p-2 text-sm hover:bg-main rounded">Set Icon for All History</button>
@@ -654,7 +654,7 @@ function editHistoryMenuTemplate(taskId) {
 }
 
 function deleteAllHistoryConfirmationTemplate(taskId) {
-    return `
+  return `
         <div class="p-3 rounded-lg border-2 border-dashed flex justify-center items-center space-x-4">
             <p class="text-center font-semibold">Delete all history for this task?</p>
             <button data-action="confirmDeleteAllHistory" data-task-id="${taskId}" class="btn btn-deny btn-sm">Yes, Delete All</button>
@@ -668,93 +668,93 @@ function deleteAllHistoryConfirmationTemplate(taskId) {
 // This includes completion buttons, timers, count controls, and confirmation dialogs.
 // Uses Font Awesome icons for actions like increment, decrement, and bypass.
 function actionAreaTemplate(task) {
-    const cycles = task.pendingCycles || 1;
-    const hasProgress = (task.completionType === 'count' || task.completionType === 'time') && task.currentProgress > 0;
+  const cycles = task.pendingCycles || 1;
+  const hasProgress = (task.completionType === 'count' || task.completionType === 'time') && task.currentProgress > 0;
 
-    switch (task.confirmationState) {
-        case 'confirming_complete':
-            let isFull = true;
-            if (task.completionType === 'count' && task.countTarget) {
-                if ((task.currentProgress || 0) < task.countTarget) isFull = false;
-            } else if (task.completionType === 'time' && task.timeTargetAmount) {
-                const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
-                if ((task.currentProgress || 0) < targetMs) isFull = false;
-            }
+  switch (task.confirmationState) {
+  case 'confirming_complete':
+    let isFull = true;
+    if (task.completionType === 'count' && task.countTarget) {
+      if ((task.currentProgress || 0) < task.countTarget) isFull = false;
+    } else if (task.completionType === 'time' && task.timeTargetAmount) {
+      const targetMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
+      if ((task.currentProgress || 0) < targetMs) isFull = false;
+    }
 
-            const text = (isFull || !hasProgress)
-                ? (cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?')
-                : 'Confirm Partial Completion?';
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
-        case 'awaiting_overdue_input':
-            let buttons = `<button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button>`;
-            if (hasProgress) {
-                buttons += ` <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="partial" class="btn btn-secondary btn-sm">Partial</button>`;
-            }
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> ${buttons}</div>`;
-        case 'confirming_miss':
-            if (hasProgress) {
-                return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Partial Miss?</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
-            }
-            const promptText = cycles > 1 ? 'Confirm Misses:' : 'Confirm Miss?';
-            const inputControl = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}` : '';
-            return `<div class="confirm-miss-area">
+    const text = (isFull || !hasProgress)
+      ? (cycles > 1 ? `Confirm Completion (${cycles} cycles)?` : 'Confirm Completion?')
+      : 'Confirm Partial Completion?';
+    return `<div class="flex items-center space-x-1"><span class="action-area-text">${text}</span> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmCompletion" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
+  case 'awaiting_overdue_input':
+    let buttons = `<button data-action="handleOverdue" data-task-id="${task.id}" data-choice="completed" class="btn btn-confirm btn-sm">Done</button> <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="missed" class="btn btn-deny btn-sm">Missed</button>`;
+    if (hasProgress) {
+      buttons += ` <button data-action="handleOverdue" data-task-id="${task.id}" data-choice="partial" class="btn btn-secondary btn-sm">Partial</button>`;
+    }
+    return `<div class="flex items-center space-x-1"><span class="action-area-text">Past Due:</span> ${buttons}</div>`;
+  case 'confirming_miss':
+    if (hasProgress) {
+      return `<div class="flex items-center space-x-1"><span class="action-area-text">Confirm Partial Miss?</span> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">No</button></div>`;
+    }
+    const promptText = cycles > 1 ? 'Confirm Misses:' : 'Confirm Miss?';
+    const inputControl = cycles > 1 ? `<input type="number" id="miss-count-input-${task.id}" value="${cycles}" min="0" max="${cycles}" class="miss-input"> of ${cycles}` : '';
+    return `<div class="confirm-miss-area">
                         <span class="action-area-text">${promptText} ${inputControl}</span>
                         <div class="button-group">
                             <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-xs">Yes</button>
                             <button data-action="confirmMiss" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-xs">No</button>
                         </div>
                     </div>`;
-        case 'confirming_delete':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
-        case 'confirming_undo':
-            return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
-    }
+  case 'confirming_delete':
+    return `<div class="flex items-center space-x-1"><span class="action-area-text">Delete Task?</span> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmDelete" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
+  case 'confirming_undo':
+    return `<div class="flex items-center space-x-1"><span class="action-area-text">Undo Completion?</span> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="true" class="btn btn-confirm btn-sm">Yes</button> <button data-action="confirmUndo" data-task-id="${task.id}" data-confirmed="false" class="btn btn-deny btn-sm">Cancel</button></div>`;
+  }
 
-    if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
-    if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
+  if (task.status === 'blue') return `<button data-action="triggerUndo" data-task-id="${task.id}" class="btn btn-clear" title="Undo Completion">Undo</button>`;
+  if (task.repetitionType === 'none' && task.completed) return '<span class="text-xs italic">Done</span>';
 
 
-    switch (task.completionType) {
-        case 'count':
-            return `<div class="flex items-center space-x-1">
+  switch (task.completionType) {
+  case 'count':
+    return `<div class="flex items-center space-x-1">
                         <button data-action="decrementCount" data-task-id="${task.id}" class="btn btn-clear w-8 h-8 flex items-center justify-center" title="Decrement count"><i class="fa-solid fa-minus"></i></button>
                         <button data-action="incrementCount" data-task-id="${task.id}" class="btn btn-clear w-8 h-8 flex items-center justify-center" title="Increment count"><i class="fa-solid fa-plus"></i></button>
                         <button data-action="bypass" data-task-id="${task.id}" class="btn btn-confirm btn-xs" title="Mark as fully complete"><i class="fa-solid fa-check"></i></button>
                     </div>`;
-        case 'time':
-            const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
-            const timerIcon = task.isTimerRunning ? 'fa-pause' : 'fa-play';
-            return `<div class="flex items-center space-x-2">
+  case 'time':
+    const btnText = task.isTimerRunning ? 'Pause' : (task.currentProgress > 0 ? 'Resume' : 'Start');
+    const timerIcon = task.isTimerRunning ? 'fa-pause' : 'fa-play';
+    return `<div class="flex items-center space-x-2">
                         <button data-action="toggleTimer" data-task-id="${task.id}" id="timer-btn-${task.id}" class="btn btn-clear" title="${btnText} timer"><i class="fa-solid ${timerIcon} mr-1"></i>${btnText}</button>
                         <button data-action="bypass" data-task-id="${task.id}" class="btn btn-confirm btn-xs" title="Mark as fully complete"><i class="fa-solid fa-check"></i></button>
                     </div>`;
-        default:
-            return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-confirm btn-sm">Complete</button>`;
-    }
+  default:
+    return `<button data-action="triggerCompletion" data-task-id="${task.id}" class="btn btn-confirm btn-sm">Complete</button>`;
+  }
 }
 
 // Renders the common secondary buttons for a task (Edit, Delete).
 // Uses Font Awesome icons for a clean and consistent UI.
 function commonButtonsTemplate(task, options = {}) {
-    const { editAction = 'edit', deleteAction = 'triggerDelete' } = options;
-    if (task.confirmationState) return '';
-    const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
-    if (isCompletedNonRepeating) {
-        return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task"><i class="fa-solid fa-trash"></i></button>`;
-    }
-    return `<div class="flex space-x-1">
+  const { editAction = 'edit', deleteAction = 'triggerDelete' } = options;
+  if (task.confirmationState) return '';
+  const isCompletedNonRepeating = task.repetitionType === 'none' && task.completed;
+  if (isCompletedNonRepeating) {
+    return `<button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task"><i class="fa-solid fa-trash"></i></button>`;
+  }
+  return `<div class="flex space-x-1">
             <button data-action="${editAction}" data-task-id="${task.id}" class="btn btn-clear" title="Edit Task"><i class="fa-solid fa-pencil"></i></button>
             <button data-action="${deleteAction}" data-task-id="${task.id}" class="btn btn-clear" title="Delete Task"><i class="fa-solid fa-trash"></i></button>
         </div>`;
 }
 
 function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, theming) {
-    const isThemeEnabled = theming.enabled;
-    const isUsingThemeForStatus = theming.useThemeForStatus;
+  const isThemeEnabled = theming.enabled;
+  const isUsingThemeForStatus = theming.useThemeForStatus;
 
-    const statusOrder = ['blue', 'green', 'yellow', 'red', 'black'];
+  const statusOrder = ['blue', 'green', 'yellow', 'red', 'black'];
 
-    const statusRows = statusOrder.map(key => `
+  const statusRows = statusOrder.map(key => `
         <div id="status-display-${key}" class="flex items-center justify-between py-2">
             <span class="font-semibold">${statusNames[key]}</span>
             <div class="flex items-center space-x-3">
@@ -771,7 +771,7 @@ function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, th
         </div>
     `).join('');
 
-    return `
+  return `
         <div class="space-y-4">
             <p class="text-sm text-gray-400">Customize the names and colors for task statuses. These colors are used in the task list. When theming is on, you can choose to derive status colors from the theme.</p>
 
@@ -795,52 +795,52 @@ function statusManagerTemplate(statusNames, statusColors, defaultStatusNames, th
 }
 
 function categoryFilterTemplate(categories, categoryFilter) {
-    if (categories.length === 0) return '<p class="italic">No categories to filter.</p>';
-    const allLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}> Show All</label>`;
-    const uncategorizedLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}> Uncategorized</label>`;
-    const categoryLabels = categories.map(cat => `<label><input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}> ${cat.name}</label>`).join('');
-    return allLabel + uncategorizedLabel + categoryLabels;
+  if (categories.length === 0) return '<p class="italic">No categories to filter.</p>';
+  const allLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="all" ${categoryFilter.length === 0 ? 'checked' : ''}> Show All</label>`;
+  const uncategorizedLabel = `<label><input type="checkbox" class="category-filter-checkbox" value="null" ${categoryFilter.includes(null) ? 'checked' : ''}> Uncategorized</label>`;
+  const categoryLabels = categories.map(cat => `<label><input type="checkbox" class="category-filter-checkbox" value="${cat.id}" ${categoryFilter.includes(cat.id) ? 'checked' : ''}> ${cat.name}</label>`).join('');
+  return allLabel + uncategorizedLabel + categoryLabels;
 }
 
 function iconPickerTemplate(iconCategories) {
-    const categoriesHtml = Object.entries(iconCategories).map(([category, icons]) => `
+  const categoriesHtml = Object.entries(iconCategories).map(([category, icons]) => `
         <div class="icon-picker-category">
             <div class="icon-picker-category-header p-2 font-bold rounded cursor-pointer flex justify-between items-center">
                 ${category} <span class="transform transition-transform duration-200">▼</span>
             </div>
             <div class="icon-grid hidden p-2 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                 ${icons.map(iconClass => {
-                    const isBrand = iconClass.startsWith('fa-brands');
-                    const finalIconClass = isBrand ? iconClass : `fa-solid ${iconClass}`;
-                    return `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${finalIconClass}"><i class="${finalIconClass} fa-2x"></i></div>`;
-                }).join('')}
+    const isBrand = iconClass.startsWith('fa-brands');
+    const finalIconClass = isBrand ? iconClass : `fa-solid ${iconClass}`;
+    return `<div class="p-2 flex justify-center items-center rounded-md hover:bg-gray-300 cursor-pointer" data-icon="${finalIconClass}"><i class="${finalIconClass} fa-2x"></i></div>`;
+  }).join('')}
             </div>
         </div>
     `).join('');
 
-    return `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
+  return `<div id="icon-picker-list-container">${categoriesHtml}</div>`;
 }
 
 function editProgressTemplate(taskId, currentValue, max) {
-    return `<input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
+  return `<input type="number" id="edit-progress-input-${taskId}" value="${currentValue}" min="0" ${max !== Infinity ? `max="${max}"` : ''} class="progress-input">
             <button data-action="saveProgress" data-task-id="${taskId}" class="btn btn-confirm btn-xs ml-1" title="Save progress"><i class="fa-solid fa-check"></i></button>
             <button data-action="cancelProgress" data-task-id="${taskId}" class="btn btn-clear text-xs ml-1" title="Cancel edit"><i class="fa-solid fa-xmark"></i></button>`;
 }
 
 function editCategoryTemplate(categoryId, currentName) {
-    return `<input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
+  return `<input type="text" id="edit-category-input-${categoryId}" value="${currentName}" class="progress-input flex-grow">
             <button data-action="saveCategoryEdit" data-category-id="${categoryId}" class="btn btn-confirm btn-xs ml-1">Save</button>
             <button data-action="cancelCategoryEdit" data-category-id="${categoryId}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
 }
 
 function editStatusNameTemplate(statusKey, currentName) {
-    return `<input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
+  return `<input type="text" id="edit-status-input-${statusKey}" value="${currentName}" class="progress-input flex-grow">
             <button data-action="saveStatusNameEdit" data-status-key="${statusKey}" class="btn btn-confirm btn-xs ml-1">Save</button>
             <button data-action="cancelStatusNameEdit" data-status-key="${statusKey}" class="btn btn-clear text-xs ml-1">Cancel</button>`;
 }
 
 function restoreDefaultsConfirmationTemplate() {
-    return `<div class="flex flex-col items-center gap-2 text-center">
+  return `<div class="flex flex-col items-center gap-2 text-center">
                 <p class="text-sm">Reset all view and theme settings to their original defaults?</p>
                 <div class="flex gap-2 mt-2">
                     <button data-action="confirmRestoreDefaults" data-confirmed="true" class="btn btn-deny btn-md">Yes, Reset</button>
@@ -850,12 +850,12 @@ function restoreDefaultsConfirmationTemplate() {
 }
 
 function taskGroupHeaderTemplate(groupName, groupColor, textStyle, isCollapsed = false) {
-    // Sanitize groupName to create a valid ID
-    const groupId = `task-group-header-${groupName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-    const collapsedClass = isCollapsed ? 'collapsed' : '';
-    const iconStyle = isCollapsed ? 'transform: rotate(-90deg);' : '';
+  // Sanitize groupName to create a valid ID
+  const groupId = `task-group-header-${groupName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+  const collapsedClass = isCollapsed ? 'collapsed' : '';
+  const iconStyle = isCollapsed ? 'transform: rotate(-90deg);' : '';
 
-    return `<div id="${groupId}"
+  return `<div id="${groupId}"
                  class="collapsible-header p-2 rounded-md cursor-pointer flex justify-between items-center mt-4 ${collapsedClass}"
                  data-group="${groupName}"
                  style="background-color: ${groupColor}; color: ${textStyle.color}; text-shadow: ${textStyle.textShadow};">
@@ -865,9 +865,9 @@ function taskGroupHeaderTemplate(groupName, groupColor, textStyle, isCollapsed =
 }
 
 function sensitivityControlsTemplate(settings) {
-    const { sValue, isAdaptive } = settings;
-    const sliderDisabled = isAdaptive ? 'disabled' : '';
-    return `<div class="flex items-center justify-between">
+  const { sValue, isAdaptive } = settings;
+  const sliderDisabled = isAdaptive ? 'disabled' : '';
+  return `<div class="flex items-center justify-between">
                 <label for="adaptive-sensitivity-toggle" class="form-label mb-0">Adaptive Sensitivity:</label>
                 <input type="checkbox" id="adaptive-sensitivity-toggle" data-action="toggleAdaptiveSensitivity" class="toggle-checkbox" ${isAdaptive ? 'checked' : ''}>
             </div>
@@ -882,12 +882,12 @@ function sensitivityControlsTemplate(settings) {
 }
 
 function notificationManagerTemplate(notificationSettings, categories) {
-    const categoryItems = categories.map(cat => `
+  const categoryItems = categories.map(cat => `
         <div class="flex items-center justify-between p-2 border rounded-md">
             <span class="font-medium">${cat.name}</span>
             <input type="checkbox" data-action="toggleCategoryNotification" data-category-id="${cat.id}" class="toggle-checkbox" ${notificationSettings.categories[cat.id] !== false ? 'checked' : ''}>
         </div>`).join('');
-    return `<div class="flex items-center justify-between">
+  return `<div class="flex items-center justify-between">
                 <label for="master-notification-toggle" class="form-label mb-0">Enable All Notifications:</label>
                 <input type="checkbox" id="master-notification-toggle" data-action="toggleAllNotifications" class="toggle-checkbox" ${notificationSettings.enabled ? 'checked' : ''}>
             </div>
@@ -911,8 +911,8 @@ function notificationManagerTemplate(notificationSettings, categories) {
 }
 
 function kpiAutomationSettingsTemplate(settings) {
-    const { autoKpiEnabled, autoKpiRemovable } = settings;
-    return `<p class="form-hint">Automatically create KPIs for categories based on a GPA-like model.</p>
+  const { autoKpiEnabled, autoKpiRemovable } = settings;
+  return `<p class="form-hint">Automatically create KPIs for categories based on a GPA-like model.</p>
             <div class="flex items-center justify-between">
                 <label for="auto-kpi-enabled-toggle" class="form-label mb-0" title="Auto-flag a task as a KPI when it reaches max misses.">Enable Auto-KPI:</label>
                 <input type="checkbox" id="auto-kpi-enabled-toggle" data-action="toggleAutoKpi" class="toggle-checkbox" ${autoKpiEnabled ? 'checked' : ''}>
@@ -924,11 +924,11 @@ function kpiAutomationSettingsTemplate(settings) {
 }
 
 function historicalTaskCardTemplate(task) {
-    const categoryColor = task.categoryColor || '#374151'; // Default to a neutral gray
-    const gpaColor = task.gpaColor || '#4A5568';
-    const lastCompleted = task.lastCompleted ? new Date(task.lastCompleted).toLocaleDateString() : 'N/A';
+  const categoryColor = task.categoryColor || '#374151'; // Default to a neutral gray
+  const gpaColor = task.gpaColor || '#4A5568';
+  const lastCompleted = task.lastCompleted ? new Date(task.lastCompleted).toLocaleDateString() : 'N/A';
 
-    return `
+  return `
         <div class="historical-task-card p-3 rounded-lg cursor-pointer"
              data-task-id="${task.id}"
              style="background-color: ${categoryColor}; border: 3px solid ${gpaColor};">
@@ -939,17 +939,17 @@ function historicalTaskCardTemplate(task) {
 }
 
 function hintManagerTemplate(hints, uiSettings) {
-    const hintItemsHtml = hints.map(hint => {
-        const isCompleted = uiSettings.userInteractions[hint.interaction];
-        return `
+  const hintItemsHtml = hints.map(hint => {
+    const isCompleted = uiSettings.userInteractions[hint.interaction];
+    return `
             <label class="flex items-center justify-between p-2 border rounded-md text-sm">
                 <span>${hint.text.replace('💡', '').trim()}</span>
                 <input type="checkbox" data-interaction="${hint.interaction}" class="h-4 w-4 rounded hint-seen-checkbox" ${isCompleted ? 'checked' : ''}>
             </label>
         `;
-    }).join('');
+  }).join('');
 
-    return `
+  return `
         <div class="flex items-center justify-between">
             <label for="disable-hints-toggle" class="form-label mb-0">Disable All Hint Banners:</label>
             <input type="checkbox" id="disable-hints-toggle" data-action="toggleAllHints" class="toggle-checkbox" ${uiSettings.hintsDisabled ? 'checked' : ''}>
@@ -965,10 +965,10 @@ function hintManagerTemplate(hints, uiSettings) {
 }
 
 function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterTargetView = 'all') {
-    const renderRow = (id, name, isItalic = false) => {
-        const settings = filterSettings[id] || { show: true, schedule: true };
-        const nameClass = isItalic ? 'italic' : 'font-semibold';
-        return `
+  const renderRow = (id, name, isItalic = false) => {
+    const settings = filterSettings[id] || { show: true, schedule: true };
+    const nameClass = isItalic ? 'italic' : 'font-semibold';
+    return `
             <div class="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
                 <span class="${nameClass}">${name}</span>
                 <div class="flex items-center space-x-4">
@@ -983,12 +983,12 @@ function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterT
                 </div>
             </div>
         `;
-    };
+  };
 
-    const categoryRows = categories.map(cat => renderRow(cat.id, cat.name)).join('');
-    const uncategorizedRow = renderRow('null', 'Uncategorized', true);
+  const categoryRows = categories.map(cat => renderRow(cat.id, cat.name)).join('');
+  const uncategorizedRow = renderRow('null', 'Uncategorized', true);
 
-    return `
+  return `
         <div class="space-y-1 p-2 bg-main rounded-lg mt-4">
             <div class="flex justify-between items-center mb-2">
                  <h4 class="font-bold">Calendar Category Filters</h4>
@@ -1009,7 +1009,7 @@ function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterT
 }
 
 function welcomeModalTemplate() {
-    return `
+  return `
         <div id="welcome-modal" class="modal">
             <div class="modal-content bg-modal">
                 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
@@ -1027,11 +1027,11 @@ function welcomeModalTemplate() {
 }
 
 export function categoryIconApplyConfirmModalTemplate(category) {
-    const iconHtml = category.icon ? `<i class="${category.icon} text-2xl mr-2"></i>` : '<span class="text-2xl mr-2">❓</span>';
-    const isDarkMode = !document.body.classList.contains('light-mode');
-    const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
+  const iconHtml = category.icon ? `<i class="${category.icon} text-2xl mr-2"></i>` : '<span class="text-2xl mr-2">❓</span>';
+  const isDarkMode = !document.body.classList.contains('light-mode');
+  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
 
-    return `
+  return `
 <div id="category-icon-confirm-modal" class="modal active" style="z-index: 1060;">
   <div class="modal-content max-w-lg bg-modal">
     <div class="modal-header">
@@ -1063,30 +1063,30 @@ export function categoryIconApplyConfirmModalTemplate(category) {
 
 
 export {
-    taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
-    actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
-    editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
-    taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
-    historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
-    taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
-    appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
-    calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
-    conflictResolutionModalTemplate, addIconPromptModalTemplate, orphanedOverrideModalTemplate,
-    editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate, simpleEditFormTemplate
+  taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate,
+  actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate,
+  editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate,
+  taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, sensitivityControlsTemplate,
+  historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate,
+  taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate,
+  appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
+  calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
+  conflictResolutionModalTemplate, addIconPromptModalTemplate, orphanedOverrideModalTemplate,
+  editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate, simpleEditFormTemplate
 };
 
 function simpleEditFormTemplate(task, occurrence) {
-    const occurrenceId = occurrence ? occurrence.id : task.id;
-    const occurrenceDate = occurrence ? new Date(occurrence.occurrenceDueDate) : new Date(task.dueDate);
+  const occurrenceId = occurrence ? occurrence.id : task.id;
+  const occurrenceDate = occurrence ? new Date(occurrence.occurrenceDueDate) : new Date(task.dueDate);
 
-    // Helper to format date for datetime-local input
-    const formatDateForInput = (date) => {
-        if (!date || isNaN(date)) return '';
-        const pad = (num) => String(num).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    };
+  // Helper to format date for datetime-local input
+  const formatDateForInput = (date) => {
+    if (!date || isNaN(date)) return '';
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
 
-    return `
+  return `
         <div id="simple-edit-modal" class="modal active">
             <div class="modal-content bg-modal">
                 <form id="simple-edit-form">
@@ -1118,14 +1118,14 @@ function simpleEditFormTemplate(task, occurrence) {
 }
 
 function orphanedOverrideModalTemplate(orphans, task, newOccurrences) {
-    const occurrencesDropdown = (orphanId) => `
+  const occurrencesDropdown = (orphanId) => `
         <select data-action="select-relink-target" data-orphan-id="${orphanId}" class="relink-select">
             <option value="">-- Select a new date --</option>
             ${newOccurrences.map(occ => `<option value="${occ.id}">${new Date(occ.occurrenceDueDate).toLocaleString()}</option>`).join('')}
         </select>
     `;
 
-    const orphansHtml = orphans.map(orphan => `
+  const orphansHtml = orphans.map(orphan => `
         <div class="orphaned-item p-3 border rounded-md mb-3" data-orphan-id="${orphan.occurrenceId}">
             <p class="text-sm italic"><strong>Original Date:</strong> ${new Date(orphan.originalDate).toLocaleString()}</p>
             <div class="my-2 p-2 bg-main rounded prose prose-sm">${orphan.thoughts}</div>
@@ -1138,7 +1138,7 @@ function orphanedOverrideModalTemplate(orphans, task, newOccurrences) {
         </div>
     `).join('');
 
-    return `
+  return `
         <div id="orphaned-override-modal" class="modal active">
             <div class="modal-content bg-modal">
                 <h3 class="text-xl font-semibold mb-2">Edits Detected on Changed Repetition</h3>
@@ -1155,7 +1155,7 @@ function orphanedOverrideModalTemplate(orphans, task, newOccurrences) {
 }
 
 function addIconPromptModalTemplate(taskId) {
-    return `
+  return `
         <div id="add-icon-prompt-modal" class="modal active">
             <div class="modal-content bg-modal">
                 <h3 class="text-xl font-semibold mb-4">Assign an Icon?</h3>
@@ -1170,7 +1170,7 @@ function addIconPromptModalTemplate(taskId) {
 }
 
 function conflictResolutionModalTemplate(conflicts) {
-    const conflictItemsHtml = conflicts.map((conflict, index) => `
+  const conflictItemsHtml = conflicts.map((conflict, index) => `
         <div class="conflict-item p-4 border rounded-lg mb-4">
             <h4 class="font-bold text-lg mb-2">Conflict ${index + 1}: ${conflict.type} - "${conflict.id}"</h4>
             <div class="grid grid-cols-2 gap-4">
@@ -1188,7 +1188,7 @@ function conflictResolutionModalTemplate(conflicts) {
         </div>
     `).join('');
 
-    return `
+  return `
         <div id="conflict-resolution-modal" class="modal">
             <div class="modal-content bg-modal">
                 <h3 class="text-xl font-semibold mb-2">Resolve Import Conflicts</h3>
@@ -1203,7 +1203,7 @@ function conflictResolutionModalTemplate(conflicts) {
 }
 
 function importModalTemplate() {
-    return `
+  return `
         <div id="import-modal" class="modal">
             <div class="modal-content bg-modal">
                 <button class="close-button" id="import-modal-close-btn">&times;</button>

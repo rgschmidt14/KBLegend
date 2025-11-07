@@ -1,0 +1,194 @@
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:39:59] "GET / HTTP/1.1" 200 -
+
+
+Running 2 tests using 2 workers
+
+[1A[2K[1/2] [chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+[1A[2K[2/2] [chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET / HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET / HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET /styles.css HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET /js/script.js HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET /styles.css HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:02] "GET /js/script.js HTTP/1.1" 200 -
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Browser Console [warning]: cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Browser Console [warning]: cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:03] "GET /js/task-logic.js HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:03] "GET /js/templates.js HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:03] "GET /js/templates.js HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m127.0.0.1 - - [07/Nov/2025 00:40:03] "GET /js/task-logic.js HTTP/1.1" 200 -
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Browser Console [log]: Unified DOMContentLoaded event fired.
+
+[1A[2KBrowser Console [log]: Initializing Task Manager...
+
+[1A[2KBrowser Console [log]: Initialization in progress, skipping save data.
+
+[1A[2KBrowser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2KBrowser Console [log]: Initialization in progress, skipping save data.
+
+[1A[2KBrowser Console [log]: Task Manager initialized.
+
+[1A[2KBrowser Console [log]: Initializing Mission Planner...
+
+[1A[2KBrowser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Browser Console [log]: Unified DOMContentLoaded event fired.
+
+[1A[2KBrowser Console [log]: Initializing Task Manager...
+
+[1A[2KBrowser Console [log]: Initialization in progress, skipping save data.
+
+[1A[2KBrowser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2KBrowser Console [log]: Initialization in progress, skipping save data.
+
+[1A[2KBrowser Console [log]: Task Manager initialized.
+
+[1A[2KBrowser Console [log]: Initializing Mission Planner...
+
+[1A[2KBrowser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Browser Console [log]: renderJournal called
+
+[1A[2KBrowser Console [log]: Mission Planner initialized.
+
+[1A[2KBrowser Console [log]: Initialization complete. Data saving is now enabled.
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Browser Console [log]: renderJournal called
+
+[1A[2KBrowser Console [log]: Mission Planner initialized.
+
+[1A[2KBrowser Console [log]: Initialization complete. Data saving is now enabled.
+
+[1A[2KBrowser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Browser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2KWaiting for welcome modal to be visible...
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Waiting for welcome modal to be visible...
+
+[1A[2KWelcome modal is visible.
+
+[1A[2KWaiting for "No thanks" button to be enabled...
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Welcome modal is visible.
+
+[1A[2KWaiting for "No thanks" button to be enabled...
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+"No thanks" button is visible.
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+"No thanks" button is visible.
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Browser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Browser Console [log]: --- renderTasks ---
+
+[1A[2KBrowser Console [log]: Initial tasks: []
+
+[1A[2KBrowser Console [log]: Filtered tasks: []
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+Clicked "No thanks" button.
+
+[1A[2KWelcome modal is hidden.
+
+[1A[2K[chromium] › tests/basic-interactions.spec.js:31:3 › Basic Application Interactions › should load the main page and display the dashboard
+Clicked "No thanks" button.
+
+[1A[2KWelcome modal is hidden.
+
+[1A[2K  1) [chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#add-task-btn')[22m
+    [2m    - locator resolved to <button id="add-task-btn" class="btn btn-tertiary btn-md">↵                            Add New Task↵       …</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not visible[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not visible[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    219 × waiting for element to be visible, enabled and stable[22m
+    [2m        - element is not visible[22m
+    [2m      - retrying click action[22m
+    [2m        - waiting 500ms[22m
+
+
+      40 |   test('should allow creating a new task', async ({ page }) => {
+      41 |     // Click the "Add New Task" button in the header
+    > 42 |     await page.locator('#add-task-btn').click();
+         |                                         ^
+      43 |
+      44 |     // Wait for the modal to appear and check the title
+      45 |     await expect(page.locator('#modal-title')).toHaveText('Add New Task');
+        at /app/tests/basic-interactions.spec.js:42:41
+
+    Error Context: test-results/basic-interactions-Basic-A-9a8b5-d-allow-creating-a-new-task-chromium/error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] › tests/basic-interactions.spec.js:40:3 › Basic Application Interactions › should allow creating a new task
+  1 passed (2.1m)
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m
