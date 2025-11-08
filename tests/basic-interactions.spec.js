@@ -27,11 +27,7 @@ test.describe('Basic Application Interactions', () => {
     await expect(page.locator('#show-dashboard-btn')).toHaveClass(/active-view-btn/);
   });
 
-  // NOTE: This test is skipped because it is consistently timing out in the
-  // automated test environment for reasons that could not be determined.
-  // The application functions correctly when tested manually, and the test
-  // logic is sound. This should be revisited in the future.
-  test.skip('should allow creating a new task', async ({ page }) => {
+  test('should allow creating a new task', async ({ page }) => {
     // 1. Navigate to the Task Manager view.
     await page.locator('#show-task-manager-btn').click();
 
@@ -46,17 +42,20 @@ test.describe('Basic Application Interactions', () => {
     await expect(modalTitle).toBeVisible();
     await expect(modalTitle).toHaveText('Add New Task');
 
+    // Switch to advanced mode to ensure all fields are visible.
+    await page.locator('#simple-mode-toggle').click();
+
     // 5. Fill in the task name.
     const taskName = 'My First Test Task';
     await page.locator('#task-name').fill(taskName);
 
-    // 6. Click the "Save Task" button. The original test had the wrong selector.
+    // 6. Click the "Save Task" button.
     await page.locator('form#task-form button[type="submit"]').click();
 
     // 7. Expect the modal to be hidden after creation.
     await expect(page.locator('#task-modal')).toBeHidden();
 
     // 8. The task should now be visible in the task list.
-    await expect(page.locator('.task-item .task-name')).toHaveText(taskName);
+    await expect(page.locator('.task-card-header h3')).toContainText(taskName);
   });
 });
