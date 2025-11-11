@@ -1,5 +1,5 @@
 import { getDurationMs, runCalculationPipeline, getOccurrences, adjustDateForVacation } from './task-logic.js';
-import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate, confirmOverrideModalTemplate, categoryIconApplyConfirmModalTemplate } from './templates.js';
+import { taskTemplate, categoryManagerTemplate, taskViewTemplate, notificationManagerTemplate, taskStatsTemplate, actionAreaTemplate, commonButtonsTemplate, statusManagerTemplate, categoryFilterTemplate, iconPickerTemplate, editProgressTemplate, editCategoryTemplate, editStatusNameTemplate, restoreDefaultsConfirmationTemplate, taskGroupHeaderTemplate, bulkEditFormTemplate, dataMigrationModalTemplate, historyDeleteConfirmationTemplate, taskViewDeleteConfirmationTemplate, vacationManagerTemplate, taskViewHistoryDeleteConfirmationTemplate, journalSettingsTemplate, vacationChangeConfirmationModalTemplate, appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate, calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate, conflictResolutionModalTemplate, addIconPromptModalTemplate, confirmOverrideModalTemplate, categoryIconApplyConfirmModalTemplate, simpleEditFormTemplate } from './templates.js';
 import { Calendar } from 'https://esm.sh/@fullcalendar/core@6.1.19';
 import dayGridPlugin from 'https://esm.sh/@fullcalendar/daygrid@6.1.19';
 import timeGridPlugin from 'https://esm.sh/@fullcalendar/timegrid@6.1.19';
@@ -733,6 +733,43 @@ function getSensitivityParameters() {
     missRatio
   };
 }
+
+function parseIconString(input) {
+    if (!input || typeof input !== 'string') {
+        return { icon: null, name: 'No Icon', isTextIcon: false };
+    }
+
+    const trimmedInput = input.trim();
+    const faRegex = /^(fa-[a-z]+)\s+(fa-[a-z0-9-]+)/;
+    const faMatch = trimmedInput.match(faRegex);
+
+    // Case 1: Font Awesome icon with optional custom name
+    if (faMatch) {
+        const iconClass = `${faMatch[1]} ${faMatch[2]}`;
+        let name = trimmedInput.substring(iconClass.length).trim();
+        if (!name) {
+            name = faMatch[2].replace('fa-', '').replace(/-/g, ' ');
+            name = name.charAt(0).toUpperCase() + name.slice(1);
+        }
+        return { icon: iconClass, name: name.substring(0, 50), isTextIcon: false };
+    }
+
+    // Regex to detect emojis
+    const emojiRegex = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu;
+    const emojis = [...trimmedInput.matchAll(emojiRegex)].map(m => m[0]);
+
+    // Case 2: Emoji(s) with optional text
+    if (emojis.length > 0) {
+        const icon = emojis.slice(0, 2).join('');
+        // The name is the full string, which could be just emojis or emojis and text
+        return { icon: icon, name: trimmedInput.substring(0, 50), isTextIcon: true };
+    }
+
+    // Case 3: Plain text
+    const icon = trimmedInput.substring(0, 2);
+    return { icon: icon, name: trimmedInput.substring(0, 50), isTextIcon: true };
+}
+
 
 function gpaToLetterGrade(gpa) {
   if (appSettings.gpaSystem === 'extended') {
@@ -2361,13 +2398,13 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
 
     switch (action) {
     case 'editTaskFromView':
-      deactivateModal(taskViewModalEl);
-      // Find the master task
-      const masterTask = tasks.find(t => t.id === taskId);
-      // Find the specific occurrence from the calendar pipeline if it exists
-      const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
-      openSimpleEditModal(masterTask, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null);
-      break;
+        deactivateModal(taskViewModalEl);
+        const taskToEdit = tasks.find(t => t.id === taskId);
+        if (taskToEdit) {
+            const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
+            openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null);
+        }
+        break;
     case 'triggerDeleteFromView':
       triggerDelete(taskId);
       openTaskView(eventId, isHistorical, occurrenceDate);
@@ -2476,10 +2513,6 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
           }
         }
       }
-      break;
-    case 'editTaskFromView':
-      afterAction(false);
-      openModal(taskId, { occurrenceDate });
       break;
     case 'triggerDeleteHistoryRecordFromView':
       const confirmationDiv = newContentView.querySelector(`#task-view-confirmation-${taskOrHistoryItem.id}`);
@@ -3531,6 +3564,19 @@ function renderJournalEntry(entry) {
   const title = entry.isWeeklyGoal ? `Week of ${goalDate.toLocaleDateString()}` : entry.title;
   const timestamp = entry.isWeeklyGoal ? goalDate : new Date(entry.createdAt);
 
+  const rawIcon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || null);
+  const parsedIcon = parseIconString(rawIcon);
+
+  let iconHtml;
+  if (!parsedIcon.icon) {
+      iconHtml = '';
+  } else if (parsedIcon.isTextIcon) {
+      iconHtml = `<span class="mr-2">${parsedIcon.icon}</span>`;
+  } else {
+      iconHtml = `<i class="${parsedIcon.icon} mr-2"></i>`;
+  }
+
+
   const buttonsHtml = `
         <div class="flex justify-end space-x-2 mt-2">
             <button data-action="editJournal" data-id="${entry.id}" class="btn btn-clear text-xs">Edit</button>
@@ -3556,7 +3602,7 @@ function renderJournalEntry(entry) {
   return `
         <div class="journal-entry p-4 rounded-lg shadow ${entry.isWeeklyGoal ? 'bg-secondary' : ''}" data-id="${entry.id}" data-full-content="${encodeURIComponent(entry.content)}">
             <div class="flex justify-between items-start">
-                <h3 class="text-xl font-semibold">${entry.icon ? `<i class="${entry.icon} mr-2"></i>` : ''}${title}</h3>
+                <h3 class="text-xl font-semibold">${iconHtml}${title}</h3>
                 <span class="text-xs text-gray-400">${timestamp.toLocaleString()}</span>
             </div>
             ${contentHtml}
@@ -3676,49 +3722,75 @@ function renderJournal() {
   } else if (sortBy === 'icon') {
     const entriesByIcon = {};
     filteredJournal.forEach(entry => {
-      const icon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
-      if (!entriesByIcon[icon]) {
-        entriesByIcon[icon] = [];
-      }
-      entriesByIcon[icon].push(entry);
+        const rawIcon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
+        // Use the new parser here
+        const parsed = parseIconString(rawIcon);
+        const groupKey = parsed.name; // Group by the parsed name
+
+        if (!entriesByIcon[groupKey]) {
+            entriesByIcon[groupKey] = {
+                icon: parsed.icon,
+                isTextIcon: parsed.isTextIcon,
+                originalStrings: new Set([rawIcon]), // Store the original strings that map to this group
+                entries: []
+            };
+        }
+        entriesByIcon[groupKey].entries.push(entry);
+        entriesByIcon[groupKey].originalStrings.add(rawIcon);
     });
 
-    const sortedIcons = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
-    if (sortDir === 'desc') sortedIcons.reverse();
+    const sortedGroupKeys = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
+    if (sortDir === 'desc') sortedGroupKeys.reverse();
 
-    sortedIcons.forEach(icon => {
-      const displayName = icon.split(' ').pop().replace('fa-', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const isOpen = uiSettings.journalIconCollapseState[icon] === false;
+    sortedGroupKeys.forEach(groupKey => {
+        const group = entriesByIcon[groupKey];
+        const { icon, isTextIcon, entries, originalStrings } = group;
+        // Use the groupKey (the parsed name) as the display name
+        const displayName = groupKey;
+        // The unique key for collapse state should be stable, the display name is good.
+        const collapseKey = displayName;
+        const isOpen = uiSettings.journalIconCollapseState[collapseKey] === false;
 
-      const entriesHtml = entriesByIcon[icon]
-        .sort((a, b) => {
-          const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
-          const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
-          return dateB - dateA;
-        })
-        .map(entry => renderJournalEntry(entry))
-        .join('');
+        const entriesHtml = entries
+            .sort((a, b) => {
+                const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
+                const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
+                return dateB - dateA; // Always newest first within a group
+            })
+            .map(entry => renderJournalEntry(entry))
+            .join('');
 
-      try {
-        list.insertAdjacentHTML('beforeend', `
-                    <div class="collapsible-section journal-icon-group ${isOpen ? 'open' : ''}" data-section-key="${icon}">
-                        <div class="collapsible-header journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${icon}">
-                             <div class="flex items-center">
-                                ${icon === 'No Icon' ? '<span class="w-5 mr-2"></span>' : `<i class="${icon} mr-2 w-5 text-center"></i>`}
-                                <span class="font-bold">${displayName}</span>
-                            </div>
-                            <i class="fa-solid fa-chevron-down"></i>
+        let iconHtml;
+        if (!icon || icon === 'No Icon') {
+            iconHtml = '<span class="w-5 mr-2"></span>';
+        } else if (isTextIcon) {
+            // Render text-based icons (emojis, letters) directly as text
+            iconHtml = `<span class="mr-2 w-5 text-center font-bold">${icon}</span>`;
+        } else {
+            // Render Font Awesome icons using <i> tag
+            iconHtml = `<i class="${icon} mr-2 w-5 text-center"></i>`;
+        }
+
+        try {
+            list.insertAdjacentHTML('beforeend', `
+                <div class="collapsible-section journal-icon-group ${isOpen ? 'open' : ''}" data-section-key="${collapseKey}">
+                    <div class="collapsible-header journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${collapseKey}">
+                         <div class="flex items-center">
+                            ${iconHtml}
+                            <span class="font-bold">${displayName}</span>
                         </div>
-                        <div class="collapsible-content journal-entries-container" data-icon-entries="${icon}">
-                            ${entriesHtml}
-                        </div>
+                        <i class="fa-solid fa-chevron-down"></i>
                     </div>
-                `);
-      } catch (e) {
-        console.error('Error rendering icon group:', icon, e);
-      }
+                    <div class="collapsible-content journal-entries-container" data-icon-entries="${collapseKey}">
+                        ${entriesHtml}
+                    </div>
+                </div>
+            `);
+        } catch (e) {
+            console.error('Error rendering icon group:', displayName, e);
+        }
     });
-  }
+}
 }
 
 function openAddIconPromptModal(taskId) {
@@ -4531,6 +4603,78 @@ function triggerCompletion(taskId) {
   }
 }
 
+function handleOverdueChoice(taskId, choice) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  if (!task.overdueStartDate) task.overdueStartDate = task.dueDate ? task.dueDate.toISOString() : null;
+  task.pendingCycles = calculatePendingCycles(task, Date.now());
+  if (choice === 'partial') {
+    task.confirmationState = 'confirming_complete';
+  } else {
+    task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
+  }
+  saveData();
+  const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+  if (taskElement) {
+    taskElement.dataset.confirming = 'true';
+    const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
+    if (actionArea) {
+      actionArea.innerHTML = actionAreaTemplate(task);
+    }
+  }
+}
+
+function openSimpleEditModal(task, occurrence) {
+  // Remove any existing modal first
+  const existingModal = document.getElementById('simple-edit-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  // 1. Create and inject the modal HTML
+  const modalHtml = simpleEditFormTemplate(task, occurrence);
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  const modalElement = document.getElementById('simple-edit-modal');
+  const form = document.getElementById('simple-edit-form');
+
+  // 2. Setup event listeners
+  const close = () => {
+    deactivateModal(modalElement);
+    modalElement.remove();
+  };
+
+  modalElement.addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="close-simple-edit-modal"]')) {
+      close();
+    }
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const taskId = document.getElementById('simple-edit-task-id').value;
+    const occurrenceId = document.getElementById('simple-edit-occurrence-id').value;
+    const masterTask = tasks.find(t => t.id === taskId);
+    if (!masterTask) return;
+
+    const newName = document.getElementById('simple-edit-task-name').value;
+    const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
+
+    const updates = {
+      name: newName,
+      dueDate: newDueDate
+    };
+    // Use the centralized function to apply the override for a single occurrence
+    updateTaskOccurrence(taskId, occurrenceId, updates);
+
+    saveDataAndRefreshUI();
+    close();
+  });
+
+
+  // 3. Activate the modal
+  activateModal(modalElement);
+}
 function confirmCompletionAction(taskId, confirmed) {
   const taskIndex = tasks.findIndex(t => t.id === taskId);
   if (taskIndex === -1) return;
@@ -8312,6 +8456,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // All initialization is complete. It's now safe to save data.
+  updateAllTaskStatuses(true); // Manually trigger a full update and render on load
   isInitializing = false;
   console.log('Initialization complete. Data saving is now enabled.');
 
