@@ -193,48 +193,6 @@ const appState = {
 };
 
 
-// =================================================================================
-// S-1.2: DOM Element References
-// =================================================================================
-// DOM Element References (Task Manager)
-let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskThoughtsInput, taskIconInput,
-  iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
-  journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
-  timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
-  dueDateTypeSelect, relativeDueDateGroup,
-  relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
-  repetitionAmountInput, repetitionUnitSelect, repeatingOptionsGroup,
-  maxMissesGroup, maxMissesInput, trackMissesInput,
-  completionTypeSelect, estimatedDurationGroup,
-  estimatedDurationAmountInput, estimatedDurationUnitSelect,
-  completionCountGroup, countTargetInput,
-  completionTimeGroup, timeTargetAmountInput, timeTargetUnitSelect,
-  repetitionAbsoluteGroup, absoluteFrequencySelect,
-  absoluteWeeklyOptions, absoluteMonthlyOptions, absoluteYearlyOptions,
-  monthlyDayNumberOptions, monthlyDayOfWeekOptions, yearlyDayNumberOptions, yearlyDayOfWeekOptions,
-  weekdayCheckboxes, monthlyOccurrenceCheckboxes, yearlyOccurrenceCheckboxes, yearlyMonthCheckboxes,
-  monthlyWeekdayCheckboxes, yearlyWeekdayCheckboxes, monthlyDayCheckboxes, yearlyDayCheckboxes,
-  requiresFullAttentionInput, isAppointmentInput,
-  taskCategorySelect, newCategoryGroup, newCategoryNameInput,
-  advancedOptionsModal,
-  sortBySelect, sortDirectionSelect, categoryFilterList,
-  plannerDefaultCategorySelect, dayNightToggle;
-
-// DOM Element References (Planner)
-let app, weeklyGoalsEl,
-  addNewKpiBtn, setKpiBtn, kpiTaskSelect,
-  calendarEl, // New element for FullCalendar
-  progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
-  cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
-  weekStatusEl, weekDateRangeEl,
-  showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView,
-  taskViewModal, taskViewContent, taskStatsContent;
-
-// =================================================================================
-// S-1.3: Planner & Calendar State
-// =================================================================================
-// FullCalendar instance
-let calendar;
 
 // Planner State is defined in S-1.1
 
