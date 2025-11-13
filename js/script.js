@@ -4603,26 +4603,6 @@ function triggerCompletion(taskId) {
   }
 }
 
-function handleOverdueChoice(taskId, choice) {
-  const task = tasks.find(t => t.id === taskId);
-  if (!task) return;
-  if (!task.overdueStartDate) task.overdueStartDate = task.dueDate ? task.dueDate.toISOString() : null;
-  task.pendingCycles = calculatePendingCycles(task, Date.now());
-  if (choice === 'partial') {
-    task.confirmationState = 'confirming_complete';
-  } else {
-    task.confirmationState = (choice === 'completed') ? 'confirming_complete' : 'confirming_miss';
-  }
-  saveData();
-  const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-  if (taskElement) {
-    taskElement.dataset.confirming = 'true';
-    const actionArea = taskElement.querySelector(`#action-area-${taskId}`);
-    if (actionArea) {
-      actionArea.innerHTML = actionAreaTemplate(task);
-    }
-  }
-}
 
 function openSimpleEditModal(task, occurrence) {
   // Remove any existing modal first
