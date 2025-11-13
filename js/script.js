@@ -4604,57 +4604,6 @@ function triggerCompletion(taskId) {
 }
 
 
-function openSimpleEditModal(task, occurrence) {
-  // Remove any existing modal first
-  const existingModal = document.getElementById('simple-edit-modal');
-  if (existingModal) {
-    existingModal.remove();
-  }
-
-  // 1. Create and inject the modal HTML
-  const modalHtml = simpleEditFormTemplate(task, occurrence);
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  const modalElement = document.getElementById('simple-edit-modal');
-  const form = document.getElementById('simple-edit-form');
-
-  // 2. Setup event listeners
-  const close = () => {
-    deactivateModal(modalElement);
-    modalElement.remove();
-  };
-
-  modalElement.addEventListener('click', (e) => {
-    if (e.target.closest('[data-action="close-simple-edit-modal"]')) {
-      close();
-    }
-  });
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const taskId = document.getElementById('simple-edit-task-id').value;
-    const occurrenceId = document.getElementById('simple-edit-occurrence-id').value;
-    const masterTask = tasks.find(t => t.id === taskId);
-    if (!masterTask) return;
-
-    const newName = document.getElementById('simple-edit-task-name').value;
-    const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
-
-    const updates = {
-      name: newName,
-      dueDate: newDueDate
-    };
-    // Use the centralized function to apply the override for a single occurrence
-    updateTaskOccurrence(taskId, occurrenceId, updates);
-
-    saveDataAndRefreshUI();
-    close();
-  });
-
-
-  // 3. Activate the modal
-  activateModal(modalElement);
-}
 function confirmCompletionAction(taskId, confirmed) {
   const taskIndex = tasks.findIndex(t => t.id === taskId);
   if (taskIndex === -1) return;
