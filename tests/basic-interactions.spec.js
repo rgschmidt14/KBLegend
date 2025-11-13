@@ -3,18 +3,23 @@ import { test, expect } from '@playwright/test';
 test.describe('Basic Application Interactions', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Go to the page and wait for it to load completely.
+    // Go to the page before manipulating localStorage
     await page.goto('/');
 
-    // Set up the local storage to bypass the welcome screen.
+    // Set uiSettings in localStorage to bypass the welcome screen and set advanced mode as default
     await page.evaluate(() => {
-      localStorage.setItem('uiSettings', JSON.stringify({
-        welcomeScreenShown: true,
-      }));
+        const uiSettings = {
+            welcomeScreenShown: true,
+            isSimpleMode: false // Default to advanced mode for tests
+        };
+        localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
     });
 
     // Reload the page for the settings to take effect.
     await page.reload();
+
+    // Wait for the main content to be visible to ensure the app has loaded
+    await expect(page.locator('#dashboard-view')).toBeVisible();
   });
 
   test('should load the main page and display the dashboard', async ({ page }) => {
@@ -41,9 +46,6 @@ test.describe('Basic Application Interactions', () => {
     const modalTitle = page.locator('#modal-title');
     await expect(modalTitle).toBeVisible();
     await expect(modalTitle).toHaveText('Add New Task');
-
-    // Switch to advanced mode to ensure all fields are visible.
-    await page.locator('#simple-mode-toggle').click();
 
     // 5. Fill in the task name.
     const taskName = 'My First Test Task';

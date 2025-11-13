@@ -2402,7 +2402,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
         const taskToEdit = tasks.find(t => t.id === taskId);
         if (taskToEdit) {
             const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
-            openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null);
+            openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
         }
         break;
     case 'triggerDeleteFromView':
@@ -4674,7 +4674,7 @@ function confirmCompletionAction(taskId, confirmed) {
         nextDueDate = futureOccurrences[0];
       }
       task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
-      task.cycleEndDate = new Date(dueDate);
+      task.cycleEndDate = new Date(lastDueDate);
 
     } else {
       task.completed = true;
@@ -4905,8 +4905,8 @@ function openSimpleEditModal(task, occurrence) {
     existingModal.remove();
   }
 
-  // 1. Create and inject the modal HTML
-  const modalHtml = simpleEditFormTemplate(task, occurrence);
+  // 1. Create and inject the modal HTML, passing categories to the template
+  const modalHtml = simpleEditFormTemplate(task, occurrence, categories);
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   const modalElement = document.getElementById('simple-edit-modal');
   const form = document.getElementById('simple-edit-form');
@@ -4918,8 +4918,22 @@ function openSimpleEditModal(task, occurrence) {
   };
 
   modalElement.addEventListener('click', (e) => {
-    if (e.target.closest('[data-action="close-simple-edit-modal"]')) {
+    const actionTarget = e.target.closest('[data-action]');
+    if (!actionTarget) return;
+
+    switch (actionTarget.dataset.action) {
+    case 'close-simple-edit-modal':
       close();
+      break;
+    case 'edit-base-task':
+      close();
+      openModal(task.id);
+      break;
+    case 'open-icon-picker-simple':
+      // We need a way to link the icon picker back to this form's input
+      editingTaskId = task.id; // Use the main task ID for context
+      openIconPicker('simple-edit'); // A new context
+      break;
     }
   });
 
@@ -4931,13 +4945,23 @@ function openSimpleEditModal(task, occurrence) {
     const masterTask = tasks.find(t => t.id === taskId);
     if (!masterTask) return;
 
+    // Gather all new values from the form
     const newName = document.getElementById('simple-edit-task-name').value;
     const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
+    const newIcon = document.getElementById('simple-edit-icon').value;
+    const newCategoryId = document.getElementById('simple-edit-category').value;
+    const newDurationAmount = document.getElementById('simple-edit-duration-amount').value;
+    const newDurationUnit = document.getElementById('simple-edit-duration-unit').value;
 
     const updates = {
       name: newName,
-      dueDate: newDueDate
+      dueDate: newDueDate,
+      icon: newIcon,
+      categoryId: newCategoryId,
+      estimatedDurationAmount: newDurationAmount ? parseInt(newDurationAmount, 10) : null,
+      estimatedDurationUnit: newDurationUnit,
     };
+
     // Use the centralized function to apply the override for a single occurrence
     updateTaskOccurrence(taskId, occurrenceId, updates);
 
@@ -6431,6 +6455,12 @@ function setupEventListeners() {
           const taskIconInputEl = document.getElementById('task-icon');
 
           switch (context) {
+          case 'simple-edit':
+            const simpleEditIconInput = document.getElementById('simple-edit-icon');
+            if (simpleEditIconInput) {
+              simpleEditIconInput.value = iconClass;
+            }
+            break;
           case 'journal':
             if (journalIconInput) journalIconInput.value = iconClass;
             break;
