@@ -28,7 +28,8 @@
     "@playwright/test": "^1.56.1",
     "babel-jest": "^30.2.0",
     "eslint": "^9.39.1",
-    "jest": "^30.2.0"
+    "jest": "^30.2.0",
+    "serve": "^14.2.5"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",

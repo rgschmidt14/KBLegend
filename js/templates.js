@@ -1092,9 +1092,17 @@ function transferChangesConfirmationModalTemplate() {
   `;
 }
 
-function simpleEditFormTemplate(task, occurrence) {
+function simpleEditFormTemplate(task, occurrence, categories) {
   const occurrenceId = occurrence ? occurrence.id : task.id;
-  const occurrenceDate = occurrence ? new Date(occurrence.occurrenceDueDate) : new Date(task.dueDate);
+  // If editing an override, use its date. Otherwise, use the occurrence date or the task's base due date.
+  const override = task.occurrenceOverrides && task.occurrenceOverrides[occurrenceId];
+  const dateToEdit = (override && override.dueDate) ? new Date(override.dueDate) : (occurrence ? new Date(occurrence.occurrenceDueDate) : new Date(task.dueDate));
+  const nameToEdit = (override && override.name) ? override.name : task.name;
+  const iconToEdit = (override && override.icon) ? override.icon : task.icon;
+  const categoryToEdit = (override && override.categoryId) ? override.categoryId : task.categoryId;
+  const durationAmountToEdit = (override && override.estimatedDurationAmount) ? override.estimatedDurationAmount : task.estimatedDurationAmount;
+  const durationUnitToEdit = (override && override.estimatedDurationUnit) ? override.estimatedDurationUnit : task.estimatedDurationUnit;
+
 
   // Helper to format date for datetime-local input
   const formatDateForInput = (date) => {
@@ -1102,6 +1110,11 @@ function simpleEditFormTemplate(task, occurrence) {
     const pad = (num) => String(num).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
+
+  const categoryOptions = categories.map(cat =>
+    `<option value="${cat.id}" ${categoryToEdit === cat.id ? 'selected' : ''}>${cat.name}</option>`
+  ).join('');
+
 
   return `
         <div id="simple-edit-modal" class="modal active">
@@ -1119,11 +1132,45 @@ function simpleEditFormTemplate(task, occurrence) {
                     <div class="space-y-4">
                         <div>
                             <label for="simple-edit-task-name" class="form-label">Task Name</label>
-                            <input type="text" id="simple-edit-task-name" value="${task.name}" class="w-full" required>
+                            <input type="text" id="simple-edit-task-name" value="${nameToEdit}" class="w-full" required>
                         </div>
+
                         <div>
-                            <label for="simple-edit-due-date" class="form-label">Due Date</label>
-                            <input type="datetime-local" id="simple-edit-due-date" value="${formatDateForInput(occurrenceDate)}" class="w-full" required>
+                            <label class="form-label">Time</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="simple-edit-time-input-type" class="form-input">
+                                    <option value="due" ${task.timeInputType !== 'start' ? 'selected' : ''}>Due Time</option>
+                                    <option value="start" ${task.timeInputType === 'start' ? 'selected' : ''}>Start Time</option>
+                                </select>
+                                <input type="datetime-local" id="simple-edit-due-date" value="${formatDateForInput(dateToEdit)}" class="w-full" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="simple-edit-category" class="form-label">Category</label>
+                            <select id="simple-edit-category" name="categoryId" class="form-input">
+                                <option value="">-- No Category --</option>
+                                ${categoryOptions}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="simple-edit-icon" class="form-label">Icon</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="simple-edit-icon" value="${iconToEdit || ''}" class="w-full">
+                                <button type="button" data-action="open-icon-picker-simple" class="btn btn-secondary">Choose</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Estimated Duration</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="simple-edit-duration-amount" value="${durationAmountToEdit || ''}" min="1" class="duration-input">
+                                <select id="simple-edit-duration-unit" class="flex-grow">
+                                    <option value="minutes" ${durationUnitToEdit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                                    <option value="hours" ${durationUnitToEdit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
