@@ -5,10 +5,8 @@
   "main": "script.js",
   "scripts": {
     "test": "jest",
-    "test:e2e": "playwright test",
     "lint": "eslint js/",
-    "lint:fix": "eslint js/ --fix",
-    "test:all": "npm run lint && npm run test:e2e"
+    "lint:fix": "eslint js/ --fix"
   },
   "repository": {
     "type": "git",
@@ -25,7 +23,6 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
-    "@playwright/test": "^1.56.1",
     "babel-jest": "^30.2.0",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",

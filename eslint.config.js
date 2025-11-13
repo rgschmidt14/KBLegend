@@ -3,9 +3,6 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["tests/*.js", "playwright.config.js"],
-  },
-  {
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
