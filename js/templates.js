@@ -1072,8 +1072,25 @@ export {
   appointmentConflictModalTemplate, kpiAutomationSettingsTemplate, historicalTaskCardTemplate, hintManagerTemplate,
   calendarCategoryFilterTemplate, welcomeModalTemplate, importModalTemplate,
   conflictResolutionModalTemplate, addIconPromptModalTemplate, orphanedOverrideModalTemplate,
-  editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate, simpleEditFormTemplate
+  editHistoryMenuTemplate, deleteAllHistoryConfirmationTemplate, simpleEditFormTemplate,
+  transferChangesConfirmationModalTemplate
 };
+
+function transferChangesConfirmationModalTemplate() {
+  return `
+    <div id="transfer-changes-modal" class="modal active" style="z-index: 1060;">
+      <div class="modal-content bg-modal">
+        <h3 class="text-xl font-semibold mb-4">Unsaved Changes Detected</h3>
+        <p class="mb-6 text-sm">You have unsaved changes. Would you like to apply them to the main task before editing it?</p>
+        <div class="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 justify-end">
+          <button data-action="cancel-transfer" class="btn btn-tertiary">Cancel</button>
+          <button data-action="discard-changes" class="btn btn-secondary">Discard Changes & Edit</button>
+          <button data-action="transfer-changes" class="btn btn-primary">Transfer Changes & Edit</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function simpleEditFormTemplate(task, occurrence) {
   const occurrenceId = occurrence ? occurrence.id : task.id;
@@ -1092,7 +1109,10 @@ function simpleEditFormTemplate(task, occurrence) {
                 <form id="simple-edit-form">
                     <button class="close-button" type="button" data-action="close-simple-edit-modal">&times;</button>
                     <h3 class="text-xl font-semibold mb-4">Edit Occurrence</h3>
-                    <p class="text-sm mb-4 italic">You are editing a single occurrence. To change all future tasks, edit the task from the main Task Manager view.</p>
+                     <button type="button" class="btn btn-clear text-xs -mt-2 mb-4" data-action="edit-base-task" data-task-id="${task.id}">
+                        <i class="fa-solid fa-pencil"></i> Edit the main task instead
+                    </button>
+                    <p class="text-sm mb-4 italic">You are editing a single occurrence of a repeating task.</p>
                     <input type="hidden" id="simple-edit-task-id" value="${task.id}">
                     <input type="hidden" id="simple-edit-occurrence-id" value="${occurrenceId}">
 
