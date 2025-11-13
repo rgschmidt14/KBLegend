@@ -1,3 +1,7 @@
+// =================================================================================
+// TL-1.0: CORE UTILITIES
+// =================================================================================
+
 const MS_PER_MINUTE = 60000;
 const MS_PER_HOUR = 3600000;
 const MS_PER_DAY = 86400000;
@@ -17,7 +21,9 @@ function getDurationMs(amount, unit) {
   return ms;
 }
 
-// --- Start of Date Generation Helpers ---
+// =================================================================================
+// TL-2.0: OCCURRENCE & DATE GENERATION
+// =================================================================================
 
 function checkDayOfMonthMatch(date, daysOfMonth) {
   if (!daysOfMonth || daysOfMonth.length === 0) return false;
@@ -195,6 +201,10 @@ function adjustDateForVacation(date, vacations, taskCategoryId, allCategories) {
   }
   return currentDate;
 }
+
+// =================================================================================
+// TL-3.0: CALCULATION PIPELINE
+// =================================================================================
 
 /**
  * The new V11 GPA-based calculation pipeline. This is the single source of truth for task status and scheduling.

@@ -1,19 +1,6 @@
-/**
- * js/templates.js
- * ============================================================================
- * THIS FILE CONTAINS ALL HTML TEMPLATE FUNCTIONS.
- *
- * All old styling classes have been replaced with the new, semantic,
- * theme-agnostic classes (e.g., .btn, .btn-primary, .bg-secondary).
- * The actual colors for these classes will be injected by the new
- * theme engine in script.js.
- * ============================================================================
- */
-
-
-// ============================================================================
-// UTILITY FUNCTIONS (Copied from script.js for standalone use if needed)
-// ============================================================================
+// =================================================================================
+// T-1.0: UTILITY FUNCTIONS
+// =================================================================================
 
 function getAbsoluteRepetitionString(task) {
   if (!task.repetitionAbsoluteFrequency) return 'Absolute Schedule (Error)';
@@ -117,9 +104,9 @@ function formatProgressNumber(num) {
 }
 
 
-// ============================================================================
-// TEMPLATE FUNCTIONS
-// ============================================================================
+// =================================================================================
+// T-2.0: TASK & CATEGORY TEMPLATES
+// =================================================================================
 
 function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
   const category = categories.find(c => c.id === task.categoryId);
@@ -963,6 +950,10 @@ function hintManagerTemplate(hints, uiSettings) {
         </fieldset>
     `;
 }
+
+// =================================================================================
+// T-3.0: MODAL & OVERLAY TEMPLATES
+// =================================================================================
 
 function calendarCategoryFilterTemplate(categories, filterSettings = {}, filterTargetView = 'all') {
   const renderRow = (id, name, isItalic = false) => {
