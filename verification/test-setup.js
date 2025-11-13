@@ -35,5 +35,25 @@ export async function standardSetup(page) {
   await bypassWelcomeModal(page);
 
   // Add other common setup steps here in the future.
-  // For example, selecting a default view or ensuring a specific mode is active.
+}
+
+/**
+ * Sets the initial view of the application by modifying localStorage.
+ * This is more reliable than simulating clicks, especially on initial load.
+ * @param {object} page - The browser page object from the verification tool.
+ * @param {string} viewId - The ID of the view to activate (e.g., 'task-manager-view').
+ */
+export async function setInitialView(page, viewId) {
+  await page.evaluate((id) => {
+    // Retrieve existing settings to avoid overwriting them
+    let uiSettings = JSON.parse(localStorage.getItem('uiSettings')) || {};
+    uiSettings.activeView = id;
+    localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
+  }, viewId);
+
+  // Reload for the setting to take effect
+  await page.reload();
+
+  // Wait for the DOM to be fully interactive after the reload
+  await page.waitForLoadState('domcontentloaded');
 }

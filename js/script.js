@@ -7,13 +7,13 @@ import interactionPlugin from 'https://esm.sh/@fullcalendar/interaction@6.1.19';
 import { Chart, registerables } from 'https://esm.sh/chart.js@4.4.3';
 import { startOfWeek, format } from 'https://esm.sh/date-fns@3.6.0';
 // =================================================================================
-// SCRIPT.JS - COMBINED AND CLEANED
+// S-1.0: GLOBAL STATE & CONFIGURATION
 // =================================================================================
 
 Chart.register(...registerables);
 
 // =================================================================================
-// SECTION 1: Global State, Constants, & DOM References
+// S-1.1: Core Application State
 // =================================================================================
 let isInitializing = true; // Flag to prevent premature saves
 let tasks = [];
@@ -194,7 +194,52 @@ const appState = {
 
 
 // =================================================================================
-// SECTION 2: Logic & Utility Functions
+// S-1.2: DOM Element References
+// =================================================================================
+// DOM Element References (Task Manager)
+let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskThoughtsInput, taskIconInput,
+  iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
+  journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
+  timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
+  dueDateTypeSelect, relativeDueDateGroup,
+  relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
+  repetitionAmountInput, repetitionUnitSelect, repeatingOptionsGroup,
+  maxMissesGroup, maxMissesInput, trackMissesInput,
+  completionTypeSelect, estimatedDurationGroup,
+  estimatedDurationAmountInput, estimatedDurationUnitSelect,
+  completionCountGroup, countTargetInput,
+  completionTimeGroup, timeTargetAmountInput, timeTargetUnitSelect,
+  repetitionAbsoluteGroup, absoluteFrequencySelect,
+  absoluteWeeklyOptions, absoluteMonthlyOptions, absoluteYearlyOptions,
+  monthlyDayNumberOptions, monthlyDayOfWeekOptions, yearlyDayNumberOptions, yearlyDayOfWeekOptions,
+  weekdayCheckboxes, monthlyOccurrenceCheckboxes, yearlyOccurrenceCheckboxes, yearlyMonthCheckboxes,
+  monthlyWeekdayCheckboxes, yearlyWeekdayCheckboxes, monthlyDayCheckboxes, yearlyDayCheckboxes,
+  requiresFullAttentionInput, isAppointmentInput,
+  taskCategorySelect, newCategoryGroup, newCategoryNameInput,
+  advancedOptionsModal,
+  sortBySelect, sortDirectionSelect, categoryFilterList,
+  plannerDefaultCategorySelect, dayNightToggle;
+
+// DOM Element References (Planner)
+let app, weeklyGoalsEl,
+  addNewKpiBtn, setKpiBtn, kpiTaskSelect,
+  calendarEl, // New element for FullCalendar
+  progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
+  cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
+  weekStatusEl, weekDateRangeEl,
+  showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView,
+  taskViewModal, taskViewContent, taskStatsContent;
+
+// =================================================================================
+// S-1.3: Planner & Calendar State
+// =================================================================================
+// FullCalendar instance
+let calendar;
+
+// Planner State is defined in S-1.1
+
+// =================================================================================
+// S-2.0: CORE UTILITY FUNCTIONS
 // =================================================================================
 function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
 const pad = (num, length = 2) => String(num).padStart(length, '0');
@@ -1274,7 +1319,7 @@ function applyTheme() {
 
 
 // =================================================================================
-// SECTION 3: UI Rendering Functions
+// S-3.0: UI RENDERING FUNCTIONS
 // =================================================================================
 function stopAllTimers() {
   stopAllCountdownTimers();
@@ -4135,7 +4180,7 @@ function handleAddVacation(event) {
 
 
 // =================================================================================
-// SECTION 4: User Action Handlers
+// S-4.0: USER ACTION HANDLERS
 // =================================================================================
 
 function getSmartDefault(field, defaultValue) {
@@ -4622,7 +4667,11 @@ function confirmCompletionAction(taskId, confirmed) {
     progressRatio = Math.min(1, Math.max(0, progressRatio));
 
     const baseDate = task.overdueStartDate ? new Date(task.overdueStartDate) : (task.dueDate || now);
-    const allPastDueDates = getOccurrences(task, baseDate, now).slice(0, totalCycles);
+    // For non-repeating tasks, ensure there's a date to loop over to create the historical record.
+    const allPastDueDates = (task.repetitionType === 'none')
+      ? [baseDate]
+      : getOccurrences(task, baseDate, now).slice(0, totalCycles);
+
 
     allPastDueDates.forEach((dueDate, index) => {
       const isFinalRecord = index === allPastDueDates.length - 1;
@@ -4676,8 +4725,19 @@ function confirmCompletionAction(taskId, confirmed) {
       task.dueDate = adjustDateForVacation(nextDueDate, appState.vacations, task.categoryId, categories);
       task.cycleEndDate = new Date(lastDueDate);
 
+      // Check if the completion was early, and if so, lock the task by setting status to 'blue'.
+      const actionDateMs = now.getTime();
+      const originalDueDateMs = new Date(lastDueDate).getTime();
+      if (actionDateMs < originalDueDateMs) {
+        task.status = 'blue';
+      } else {
+        // If completed on time or late, it should just reset to green for the next cycle.
+        task.status = 'green';
+      }
+
     } else {
       task.completed = true;
+      task.status = 'blue';
       task.cycleEndDate = new Date(now.getTime() + 5000); // 5-second grace period for undo
     }
   }
@@ -4719,6 +4779,25 @@ function confirmUndoAction(taskId, confirmed) {
         if (targetMs > 0) {
           task.currentProgress = Math.round(savedProgressRatio * targetMs);
         }
+      }
+
+      // Restore all override details from the historical record.
+      if (historyItem.occurrenceId && task.repetitionType !== 'none') {
+        if (!task.occurrenceOverrides) task.occurrenceOverrides = {};
+        if (!task.occurrenceOverrides[historyItem.occurrenceId]) task.occurrenceOverrides[historyItem.occurrenceId] = {};
+
+        // Restore all relevant fields that might have been overridden.
+        const override = task.occurrenceOverrides[historyItem.occurrenceId];
+        if (typeof historyItem.thoughts === 'string') override.thoughts = historyItem.thoughts;
+        if (historyItem.name && historyItem.name !== task.name) override.name = historyItem.name;
+        if (historyItem.icon && historyItem.icon !== task.icon) override.icon = historyItem.icon;
+        if (historyItem.categoryId && historyItem.categoryId !== task.categoryId) override.categoryId = historyItem.categoryId;
+        if (historyItem.durationAmount && historyItem.durationAmount !== task.estimatedDurationAmount) override.estimatedDurationAmount = historyItem.durationAmount;
+        if (historyItem.durationUnit && historyItem.durationUnit !== task.estimatedDurationUnit) override.estimatedDurationUnit = historyItem.durationUnit;
+
+      } else {
+        // For non-repeating tasks or if the override was on the master, restore to the main task.
+        if (typeof historyItem.thoughts === 'string') task.thoughts = historyItem.thoughts;
       }
 
       // Remove the historical record
@@ -6059,7 +6138,7 @@ function updateNotificationRateLimit() {
 
 
 // =================================================================================
-// SECTION 5: Initialization & Notification Engine
+// S-5.0: DATA MANAGEMENT & PERSISTENCE
 // =================================================================================
 
 // --- Notification Engine ---
@@ -8376,7 +8455,7 @@ function initializeCalendar() {
 }
 
 // =================================================================================
-// --- UNIFIED INITIALIZATION ---
+// S-6.0: INITIALIZATION
 // =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Unified DOMContentLoaded event fired.');

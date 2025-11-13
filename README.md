@@ -122,8 +122,8 @@ The application's visual style is guided by a "layered and lit" philosophy, avoi
 
 *   **Layered Backgrounds:** The UI is built with layers. The main application background is a subtle, desaturated version of the current theme color. Content sections, modals, and headers sit on top with slightly more saturated colors, creating a clear visual hierarchy.
 *   **Gradients & Shadows:** Instead of hard borders, the design uses gradients and `box-shadow` to separate elements. The main calendar view features a prominent gradient border that can be switched between a "Status Spectrum" (reflecting the urgency of your tasks) and a "Theme Spectrum" (matching your chosen theme). These gradients also dynamically reverse direction for day and night modes to simulate a consistent light source.
-*   **Semantic & Theme-Agnostic CSS:** The `styles.css` file defines the *structure* and *layout* of elements using theme-agnostic classes (e.g., `.btn`, `.btn-primary`, `.bg-secondary`). It does **not** contain hard-coded color values.
-*   **Dynamic Style Injection:** All color information is handled by the `applyTheme()` function in `js/script.js`. This function calculates all necessary color palettes (for buttons, text, backgrounds, etc.) based on the user's chosen theme color and mode. It then generates a complete CSS stylesheet with these values and injects it into a `<style>` tag in the document's `<head>`. This approach ensures that all colors are calculated with proper contrast ratios automatically, solving accessibility issues at their source and allowing for total, consistent theming from a single point of control.
+*   **Semantic & Theme-Agnostic CSS:** The `styles.css` file defines the *structure* and *layout* of elements using theme-agnostic classes (e.g., `.btn` (C-3.0), `.bg-secondary` (C-2.0)). It does **not** contain hard-coded color values.
+*   **Dynamic Style Injection:** All color information is handled by the `applyTheme()` function (`S-2.4.3`) in `js/script.js`. This function calculates all necessary color palettes (for buttons, text, backgrounds, etc.) based on the user's chosen theme color and mode. It then generates a complete CSS stylesheet with these values and injects it into a `<style>` tag in the document's `<head>`. This approach ensures that all colors are calculated with proper contrast ratios automatically, solving accessibility issues at their source and allowing for total, consistent theming from a single point of control.
 
 ---
 
@@ -147,6 +147,28 @@ For users who prioritize data privacy and control, we will explore an option to 
 
 ## **Future Updates**
 *   **Journal Search:** Implement a more advanced "fuzzy search" or "best match" sorting for the journal to improve search relevance.
+
+---
+
+## **Development Process**
+
+This project has recently undergone a significant shift in its development and testing methodology to prioritize speed, reliability, and clarity.
+
+### **The Move Away from End-to-End Testing**
+Previously, this project used a comprehensive end-to-end (E2E) test suite built with Playwright. While thorough, this suite became a major bottleneck, slowing down the development cycle from minutes per update to multiple hours. The tests were often brittle, failing on minor, unrelated changes, which led to significant maintenance overhead.
+
+In pursuit of a faster, more agile workflow, **all `npm`, `node`, and Playwright dependencies have been completely removed**. The project has returned to its roots as a pure HTML, CSS, and vanilla JavaScript (ESM) application. It can be served locally with a simple Python web server.
+
+### **The Numbered Commenting System**
+To maintain clarity and make collaboration easier without a rigid test suite, we have introduced a **numbered commenting system**. This system acts as a "living table of contents" directly within the code.
+
+Each major section in the JavaScript and CSS files is marked with a comment that includes a unique, hierarchical ID number (e.g., `S-1.0`, `TL-2.1.3`, `C-4.0`). The prefixes correspond to the file:
+*   **S:** `script.js` (Main application logic)
+*   **TL:** `task-logic.js` (Core scheduling and calculation engine)
+*   **T:** `templates.js` (UI component templates)
+*   **C:** `styles.css` (All visual styles)
+
+This system allows us to refer to specific blocks of code by their section number (e.g., "the logic in `S-4.1.2`") instead of by line numbers, which are constantly changing. It provides a stable, predictable way to navigate the codebase and discuss features, making the development process both faster and more precise.
 
 ---
 
