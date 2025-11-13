@@ -735,39 +735,39 @@ function getSensitivityParameters() {
 }
 
 function parseIconString(input) {
-    if (!input || typeof input !== 'string') {
-        return { icon: null, name: 'No Icon', isTextIcon: false };
+  if (!input || typeof input !== 'string') {
+    return { icon: null, name: 'No Icon', isTextIcon: false };
+  }
+
+  const trimmedInput = input.trim();
+  const faRegex = /^(fa-[a-z]+)\s+(fa-[a-z0-9-]+)/;
+  const faMatch = trimmedInput.match(faRegex);
+
+  // Case 1: Font Awesome icon with optional custom name
+  if (faMatch) {
+    const iconClass = `${faMatch[1]} ${faMatch[2]}`;
+    let name = trimmedInput.substring(iconClass.length).trim();
+    if (!name) {
+      name = faMatch[2].replace('fa-', '').replace(/-/g, ' ');
+      name = name.charAt(0).toUpperCase() + name.slice(1);
     }
+    return { icon: iconClass, name: name.substring(0, 50), isTextIcon: false };
+  }
 
-    const trimmedInput = input.trim();
-    const faRegex = /^(fa-[a-z]+)\s+(fa-[a-z0-9-]+)/;
-    const faMatch = trimmedInput.match(faRegex);
+  // Regex to detect emojis
+  const emojiRegex = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu;
+  const emojis = [...trimmedInput.matchAll(emojiRegex)].map(m => m[0]);
 
-    // Case 1: Font Awesome icon with optional custom name
-    if (faMatch) {
-        const iconClass = `${faMatch[1]} ${faMatch[2]}`;
-        let name = trimmedInput.substring(iconClass.length).trim();
-        if (!name) {
-            name = faMatch[2].replace('fa-', '').replace(/-/g, ' ');
-            name = name.charAt(0).toUpperCase() + name.slice(1);
-        }
-        return { icon: iconClass, name: name.substring(0, 50), isTextIcon: false };
-    }
-
-    // Regex to detect emojis
-    const emojiRegex = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu;
-    const emojis = [...trimmedInput.matchAll(emojiRegex)].map(m => m[0]);
-
-    // Case 2: Emoji(s) with optional text
-    if (emojis.length > 0) {
-        const icon = emojis.slice(0, 2).join('');
-        // The name is the full string, which could be just emojis or emojis and text
-        return { icon: icon, name: trimmedInput.substring(0, 50), isTextIcon: true };
-    }
-
-    // Case 3: Plain text
-    const icon = trimmedInput.substring(0, 2);
+  // Case 2: Emoji(s) with optional text
+  if (emojis.length > 0) {
+    const icon = emojis.slice(0, 2).join('');
+    // The name is the full string, which could be just emojis or emojis and text
     return { icon: icon, name: trimmedInput.substring(0, 50), isTextIcon: true };
+  }
+
+  // Case 3: Plain text
+  const icon = trimmedInput.substring(0, 2);
+  return { icon: icon, name: trimmedInput.substring(0, 50), isTextIcon: true };
 }
 
 
@@ -2398,13 +2398,13 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
 
     switch (action) {
     case 'editTaskFromView':
-        deactivateModal(taskViewModalEl);
-        const taskToEdit = tasks.find(t => t.id === taskId);
-        if (taskToEdit) {
-            const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
-            openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
-        }
-        break;
+      deactivateModal(taskViewModalEl);
+      const taskToEdit = tasks.find(t => t.id === taskId);
+      if (taskToEdit) {
+        const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
+        openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
+      }
+      break;
     case 'triggerDeleteFromView':
       triggerDelete(taskId);
       openTaskView(eventId, isHistorical, occurrenceDate);
@@ -3569,11 +3569,11 @@ function renderJournalEntry(entry) {
 
   let iconHtml;
   if (!parsedIcon.icon) {
-      iconHtml = '';
+    iconHtml = '';
   } else if (parsedIcon.isTextIcon) {
-      iconHtml = `<span class="mr-2">${parsedIcon.icon}</span>`;
+    iconHtml = `<span class="mr-2">${parsedIcon.icon}</span>`;
   } else {
-      iconHtml = `<i class="${parsedIcon.icon} mr-2"></i>`;
+    iconHtml = `<i class="${parsedIcon.icon} mr-2"></i>`;
   }
 
 
@@ -3722,57 +3722,57 @@ function renderJournal() {
   } else if (sortBy === 'icon') {
     const entriesByIcon = {};
     filteredJournal.forEach(entry => {
-        const rawIcon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
-        // Use the new parser here
-        const parsed = parseIconString(rawIcon);
-        const groupKey = parsed.name; // Group by the parsed name
+      const rawIcon = entry.isWeeklyGoal ? (journalSettings.weeklyGoalIcon || 'fa-solid fa-bullseye') : (entry.icon || 'No Icon');
+      // Use the new parser here
+      const parsed = parseIconString(rawIcon);
+      const groupKey = parsed.name; // Group by the parsed name
 
-        if (!entriesByIcon[groupKey]) {
-            entriesByIcon[groupKey] = {
-                icon: parsed.icon,
-                isTextIcon: parsed.isTextIcon,
-                originalStrings: new Set([rawIcon]), // Store the original strings that map to this group
-                entries: []
-            };
-        }
-        entriesByIcon[groupKey].entries.push(entry);
-        entriesByIcon[groupKey].originalStrings.add(rawIcon);
+      if (!entriesByIcon[groupKey]) {
+        entriesByIcon[groupKey] = {
+          icon: parsed.icon,
+          isTextIcon: parsed.isTextIcon,
+          originalStrings: new Set([rawIcon]), // Store the original strings that map to this group
+          entries: []
+        };
+      }
+      entriesByIcon[groupKey].entries.push(entry);
+      entriesByIcon[groupKey].originalStrings.add(rawIcon);
     });
 
     const sortedGroupKeys = Object.keys(entriesByIcon).sort((a, b) => a.localeCompare(b));
     if (sortDir === 'desc') sortedGroupKeys.reverse();
 
     sortedGroupKeys.forEach(groupKey => {
-        const group = entriesByIcon[groupKey];
-        const { icon, isTextIcon, entries, originalStrings } = group;
-        // Use the groupKey (the parsed name) as the display name
-        const displayName = groupKey;
-        // The unique key for collapse state should be stable, the display name is good.
-        const collapseKey = displayName;
-        const isOpen = uiSettings.journalIconCollapseState[collapseKey] === false;
+      const group = entriesByIcon[groupKey];
+      const { icon, isTextIcon, entries, originalStrings } = group;
+      // Use the groupKey (the parsed name) as the display name
+      const displayName = groupKey;
+      // The unique key for collapse state should be stable, the display name is good.
+      const collapseKey = displayName;
+      const isOpen = uiSettings.journalIconCollapseState[collapseKey] === false;
 
-        const entriesHtml = entries
-            .sort((a, b) => {
-                const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
-                const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
-                return dateB - dateA; // Always newest first within a group
-            })
-            .map(entry => renderJournalEntry(entry))
-            .join('');
+      const entriesHtml = entries
+        .sort((a, b) => {
+          const dateA = new Date(a.isWeeklyGoal ? a.weekStartDate : a.createdAt);
+          const dateB = new Date(b.isWeeklyGoal ? b.weekStartDate : b.createdAt);
+          return dateB - dateA; // Always newest first within a group
+        })
+        .map(entry => renderJournalEntry(entry))
+        .join('');
 
-        let iconHtml;
-        if (!icon || icon === 'No Icon') {
-            iconHtml = '<span class="w-5 mr-2"></span>';
-        } else if (isTextIcon) {
-            // Render text-based icons (emojis, letters) directly as text
-            iconHtml = `<span class="mr-2 w-5 text-center font-bold">${icon}</span>`;
-        } else {
-            // Render Font Awesome icons using <i> tag
-            iconHtml = `<i class="${icon} mr-2 w-5 text-center"></i>`;
-        }
+      let iconHtml;
+      if (!icon || icon === 'No Icon') {
+        iconHtml = '<span class="w-5 mr-2"></span>';
+      } else if (isTextIcon) {
+        // Render text-based icons (emojis, letters) directly as text
+        iconHtml = `<span class="mr-2 w-5 text-center font-bold">${icon}</span>`;
+      } else {
+        // Render Font Awesome icons using <i> tag
+        iconHtml = `<i class="${icon} mr-2 w-5 text-center"></i>`;
+      }
 
-        try {
-            list.insertAdjacentHTML('beforeend', `
+      try {
+        list.insertAdjacentHTML('beforeend', `
                 <div class="collapsible-section journal-icon-group ${isOpen ? 'open' : ''}" data-section-key="${collapseKey}">
                     <div class="collapsible-header journal-icon-header" data-action="toggleJournalIconGroup" data-icon-group="${collapseKey}">
                          <div class="flex items-center">
@@ -3786,11 +3786,11 @@ function renderJournal() {
                     </div>
                 </div>
             `);
-        } catch (e) {
-            console.error('Error rendering icon group:', displayName, e);
-        }
+      } catch (e) {
+        console.error('Error rendering icon group:', displayName, e);
+      }
     });
-}
+  }
 }
 
 function openAddIconPromptModal(taskId) {
