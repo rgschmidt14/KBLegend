@@ -1,0 +1,92 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "Task & Mission Planner" [level=1] [ref=e4]
+      - paragraph [ref=e5]: Organize your tasks, plan your week, and track your progress.
+    - generic [ref=e7]: 💡 You can turn on 'Tap to Create' for the calendar in Advanced Options under 'Planner Integration' to quickly create events.
+    - generic [ref=e8]:
+      - button " Dashboard" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: 
+        - text: Dashboard
+      - button " Calendar" [ref=e11] [cursor=pointer]:
+        - generic [ref=e12]: 
+        - text: Calendar
+      - button " Task Manager" [ref=e13] [cursor=pointer]:
+        - generic [ref=e14]: 
+        - text: Task Manager
+      - button " Journal" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: 
+        - text: Journal
+      - button "Advanced Options" [ref=e17] [cursor=pointer]
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - button "Add New Task" [ref=e22] [cursor=pointer]
+          - button "View All History" [ref=e23] [cursor=pointer]
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: "Sort By:"
+            - combobox "Sort By:" [ref=e27]:
+              - option "Sort by Status" [selected]
+              - option "Sort by Category"
+              - option "Sort by Due Date"
+          - generic [ref=e28]:
+            - generic [ref=e29]: "Sort Direction:"
+            - combobox "Sort Direction:" [ref=e30]:
+              - option "Ascending" [selected]
+              - option "Descending"
+      - generic [ref=e31]:
+        - generic [ref=e32] [cursor=pointer]:
+          - heading "Ready" [level=4] [ref=e33]
+          - generic [ref=e34]: ▼
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - heading "Comprehensive Flow Test Task" [level=3] [ref=e38]
+              - generic [ref=e39]: Uncategorized
+            - paragraph [ref=e40]: "Due: 11/19/2025 9:26 PM"
+            - paragraph [ref=e41]: "Est. Duration: N/A"
+            - paragraph [ref=e42]: 1 day 23 hrs
+          - generic [ref=e43]:
+            - button "Complete" [ref=e45] [cursor=pointer]
+            - generic [ref=e47]:
+              - button "" [ref=e48] [cursor=pointer]:
+                - generic [ref=e49]: 
+              - button "" [ref=e50] [cursor=pointer]:
+                - generic [ref=e51]: 
+  - text:        
+  - generic [ref=e54]:
+    - button "Close Task View" [ref=e55] [cursor=pointer]: ×
+    - generic [ref=e56]:
+      - heading "Comprehensive Flow Test Task" [level=3] [ref=e57]
+      - generic [ref=e58]:
+        - paragraph [ref=e59]:
+          - strong [ref=e60]: "Status:"
+          - text: Green
+        - paragraph [ref=e61]:
+          - strong [ref=e62]: "Category:"
+          - text: Uncategorized
+        - paragraph [ref=e63]:
+          - strong [ref=e64]: "Due Date:"
+          - text: 11/19/2025 9:26 PM
+        - paragraph [ref=e65]:
+          - strong [ref=e66]: "Estimated Duration:"
+          - text: N/A
+        - paragraph [ref=e67]:
+          - strong [ref=e68]: "Repetition:"
+          - text: Non-Repeating
+      - heading "Thoughts" [level=4] [ref=e71]
+      - generic [ref=e74]:
+        - button "Complete" [ref=e76] [cursor=pointer]
+        - generic [ref=e78]:
+          - button "" [ref=e79] [cursor=pointer]:
+            - generic [ref=e80]: 
+          - generic [ref=e81]:
+            - button "" [ref=e82] [cursor=pointer]:
+              - generic [ref=e83]: 
+            - button "" [ref=e84] [cursor=pointer]:
+              - generic [ref=e85]: 
+```

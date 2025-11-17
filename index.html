@@ -188,12 +188,52 @@
             </div>
              <form id="task-form" class="space-y-4">
                 <input type="hidden" id="task-id">
-                <div id="simple-task-fields">
-                    <div class="mb-4">
-                        <label for="task-name" class="form-label">Task Name:</label>
-                        <input type="text" id="task-name" name="task-name" required>
-                    </div>
+                <div class="mb-4">
+                    <label for="task-name" class="form-label">Task Name:</label>
+                    <input type="text" id="task-name" name="task-name" required>
                 </div>
+
+                <!-- Fields for Simple Mode -->
+                <fieldset>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                           <label for="task-category" class="form-label">Category:</label>
+                           <select id="task-category" name="task-category">
+                               <option value="">None</option>
+                               <option value="new_category">-- Add New Category --</option>
+                           </select>
+                       </div>
+                       <div id="new-category-group" class="hidden">
+                           <label for="new-category-name" class="form-label">New Category Name:</label>
+                           <input type="text" id="new-category-name" name="new-category-name">
+                       </div>
+                        <div>
+                            <label for="task-icon" class="form-label">Icon:</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow">
+                                <button type="button" id="open-icon-picker" class="btn btn-clear">Choose</button>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                     <div id="due-date-group" class="mb-4">
+                        <label for="task-due-date" class="form-label">Due Date & Time:</label>
+                        <input type="datetime-local" id="task-due-date" name="task-due-date">
+                    </div>
+                     <div id="estimated-duration-group" class="mb-4">
+                         <label class="form-label">Estimated Duration:</label>
+                         <div class="flex space-x-2 items-center">
+                             <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                             <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
+                                <option value="minutes">Minute(s)</option>
+                                <option value="hours">Hour(s)</option>
+                             </select>
+                         </div>
+                     </div>
+                </fieldset>
+
+                <!-- Advanced Fields -->
                 <div id="advanced-task-fields" class="hidden space-y-4">
                     <fieldset>
                         <legend class="form-legend">General</legend>
@@ -234,28 +274,6 @@
                        </div>
                     </fieldset>
                     <fieldset>
-                        <legend class="form-legend">Categorization</legend>
-                        <div class="mb-4">
-                           <label for="task-category" class="form-label">Category:</label>
-                           <select id="task-category" name="task-category">
-                               <option value="">None</option>
-                               <option value="new_category">-- Add New Category --</option>
-                           </select>
-                       </div>
-                       <div id="new-category-group" class="mb-4 hidden">
-                           <label for="new-category-name" class="form-label">New Category Name:</label>
-                           <input type="text" id="new-category-name" name="new-category-name">
-                       </div>
-                        <div class="mb-4">
-                            <label for="task-icon" class="form-label">Task Icon:</label>
-                            <div class="flex items-center space-x-2">
-                                <input type="text" id="task-icon" name="task-icon" placeholder="e.g., fa-solid fa-plane" class="flex-grow">
-                                <button type="button" id="open-icon-picker" class="btn btn-clear">Choose Icon</button>
-                            </div>
-                            <p class="form-hint">Find icons on fontawesome.com or use the picker. Example: "fa-solid fa-star".</p>
-                        </div>
-                    </fieldset>
-                    <fieldset>
                         <legend class="form-legend">Time and Scheduling</legend>
                          <div class="mb-4">
                             <label class="form-label">Due Date Type:</label>
@@ -270,10 +288,6 @@
                                 <option value="due">Due Time</option>
                                 <option value="start">Start Time</option>
                             </select>
-                        </div>
-                        <div id="due-date-group" class="mb-4">
-                            <label for="task-due-date" class="form-label">Due Date & Time:</label>
-                            <input type="datetime-local" id="task-due-date" name="task-due-date">
                         </div>
                         <div id="start-date-group" class="mb-4 hidden">
                             <label for="task-start-date" class="form-label">Start Date & Time:</label>
@@ -293,17 +307,18 @@
                             </div>
                             <p class="form-hint">Due relative to the time the task is saved.</p>
                         </div>
-                         <div id="estimated-duration-group" class="mb-4">
-                             <label class="form-label">Estimated Duration:</label>
-                             <div class="flex space-x-2 items-center">
-                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
-                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
-                                    <option value="minutes">Minute(s)</option>
-                                    <option value="hours">Hour(s)</option>
-                                 </select>
-                             </div>
-                             <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
-                         </div>
+                         <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
+                         <div class="mb-4">
+                            <label class="form-label">Preparation Time:</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="duration-input">
+                                <select id="prep-time-unit" name="prep-time-unit" class="flex-grow">
+                                   <option value="minutes">Minute(s)</option>
+                                   <option value="hours">Hour(s)</option>
+                                </select>
+                            </div>
+                            <p class="form-hint">Optional. How long you need to prepare for or travel to this task.</p>
+                        </div>
                          <div class="mb-4">
                             <label class="form-label">Preparation Time:</label>
                             <div class="flex space-x-2 items-center">
