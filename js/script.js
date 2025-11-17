@@ -7098,7 +7098,7 @@ function setupEventListeners() {
   const weeklyGoalsEl = document.getElementById('weeklyGoals');
   if (weeklyGoalsEl) {
     weeklyGoalsEl.addEventListener('blur', () => {
-      const newContent = weeklyGoalsEl.innerHTML.trim();
+      const newContent = weeklyGoalsEl.innerText.trim();
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (uiSettings.dashboardWeekOffset * 7));
