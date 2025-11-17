@@ -42,9 +42,12 @@ let editingHistoryEventId = null;
 let editingCategoryIdForIcon = null;
 let kpiChart = null; // For single chart view
 let kpiCharts = []; // For stacked chart view
+let modalStack = [];
+let initialFormState = '';
 let calendarMonthEvents = [];
 let calendarTimeGridEvents = [];
 // let taskViewBorderInterval = null; // This is no longer needed
+let taskViewListenerController = new AbortController(); // To manage event listeners
 // isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
 let mainUpdateInterval = null;
@@ -1654,7 +1657,11 @@ function openReinstateTaskModal(taskToReinstate) {
 }
 
 function openModal(taskId = null, options = {}) {
+  console.log('openModal called with taskId:', taskId, 'and options:', options);
   try {
+    if (options.source === 'task-view') {
+      modalStack.push({ type: 'task-view', taskId: taskId, occurrenceDate: options.occurrenceDate, source: 'task-manager' });
+    }
     taskForm.reset();
     editingTaskId = taskId;
     const reinstateTask = options.reinstateTask;
@@ -1682,12 +1689,10 @@ function openModal(taskId = null, options = {}) {
     });
 
     const submitButton = taskForm.querySelector('button[type="submit"]');
-    // Default texts are set first, then overridden if conditions are met.
-    modalTitle.textContent = 'Add New Task';
-    submitButton.textContent = 'Create Task';
 
 
-    const taskToLoad = reinstateTask || (taskId ? tasks.find(t => t.id === taskId) : null);
+    const allTasks = [...tasks, ...(appState.archivedTasks || [])];
+    const taskToLoad = reinstateTask || (taskId ? allTasks.find(t => t.id === taskId) : null);
 
     if (taskToLoad) {
       const task = taskToLoad; // Use a consistent variable name
@@ -1791,6 +1796,8 @@ function openModal(taskId = null, options = {}) {
       // When adding a new task, we respect the user's saved preference for simple/advanced mode,
       // which is already in uiSettings.isSimpleMode.
 
+      modalTitle.textContent = 'Add New Task';
+      submitButton.textContent = 'Create Task';
       // Set default values for new tasks
       const now = new Date();
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -1813,16 +1820,60 @@ function openModal(taskId = null, options = {}) {
 
     toggleCompletionFields(completionTypeSelect.value);
     activateModal(taskModal);
+    // Use a short timeout to ensure all fields are populated before serializing
+    setTimeout(() => {
+      initialFormState = getFormState(taskForm);
+    }, 100);
   } catch (e) {
     console.error('Error opening modal:', e);
   }
 }
+
+function getFormState(form) {
+  const formData = new FormData(form);
+  const object = {};
+  formData.forEach((value, key) => {
+    // This handles multiple checkboxes with the same name
+    if (Reflect.has(object, key)) {
+      if (!Array.isArray(object[key])) {
+        object[key] = [object[key]];
+      }
+      object[key].push(value);
+    } else {
+      object[key] = value;
+    }
+  });
+  return JSON.stringify(object);
+}
+
+function isFormDirty() {
+  if (!taskForm) return false;
+  const currentState = getFormState(taskForm);
+  return initialFormState !== currentState;
+}
+
 function closeModal() {
+  if (isFormDirty()) {
+    if (!confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+      return; // Abort closing if the user cancels
+    }
+  }
   const taskModalEl = document.getElementById('task-modal');
   if (taskModalEl) {
     deactivateModal(taskModalEl);
   }
   editingTaskId = null;
+  initialFormState = ''; // Clear the state
+
+  if (modalStack.length > 0) {
+    const lastModal = modalStack.pop();
+    if (lastModal.type === 'task-view') {
+      // Use a timeout to allow the close animation to finish before opening the next modal
+      setTimeout(() => {
+        openTaskView(lastModal.taskId, false, lastModal.occurrenceDate, lastModal.source);
+      }, 150);
+    }
+  }
 }
 
 function toggleSimpleMode() {
@@ -2221,8 +2272,8 @@ function renderVacationManager() {
   }
 }
 
-function openTaskView(eventId, isHistorical, occurrenceDate) {
-  console.log(`openTaskView called with: eventId=${eventId}, isHistorical=${isHistorical}`);
+function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar') {
+  console.log(`openTaskView called with: eventId=${eventId}, isHistorical=${isHistorical}, source=${source}`);
   let taskOrHistoryItem;
   const getBaseId = (id) => {
     if (!id || !id.includes('_')) return id;
@@ -2318,11 +2369,12 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
   taskStatsContentEl.classList.add('hidden');
   taskStatsContentEl.innerHTML = '';
 
-  // Remove old listeners before adding new ones
-  if (taskViewContentEl.eventListener) {
-    taskViewContentEl.removeEventListener('click', taskViewContentEl.eventListener);
-    taskViewContentEl.removeEventListener('blur', taskViewContentEl.blurListener, true);
-  }
+  // Use AbortController to manage listeners, preventing stacking.
+  // Abort the previous controller before adding new listeners.
+  taskViewListenerController.abort();
+  taskViewListenerController = new AbortController();
+  const { signal } = taskViewListenerController;
+
 
   const afterAction = (andRefreshCalendar = true) => {
     if (uiSettings.closeModalAfterAction) {
@@ -2332,7 +2384,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     if (andRefreshCalendar && calendar) calendar.refetchEvents();
   };
 
-  taskViewContentEl.blurListener = (e) => {
+  const blurListener = (e) => {
     const thoughtsEl = e.target.closest('[contenteditable="true"]');
     if (thoughtsEl && thoughtsEl.id.startsWith('task-thoughts-content-')) {
       const taskId = isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id;
@@ -2358,9 +2410,9 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
       }
     }
   };
-  taskViewContentEl.addEventListener('blur', taskViewContentEl.blurListener, true); // Use capture phase
+  taskViewContentEl.addEventListener('blur', taskViewContentEl.blurListener, { signal, capture: true });
 
-  taskViewContentEl.eventListener = (e) => {
+  const clickListener = (e) => {
     const target = e.target.closest('[data-action]');
     if (!target) return;
 
@@ -2380,7 +2432,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
       // Re-find the task in case it was modified by the action
       const currentTask = tasks.find(t => t.id === taskId);
       if (currentTask) {
-        openTaskView(taskId, false, occurrenceDate);
+        openTaskView(taskId, false, occurrenceDate, source);
       } else {
         // If task is no longer in active list, it must have been completed/archived.
         // Close the modal and refresh the calendar.
@@ -2402,10 +2454,14 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     switch (action) {
     case 'editTaskFromView':
       deactivateModal(taskViewModalEl);
-      const taskToEdit = tasks.find(t => t.id === taskId);
-      if (taskToEdit) {
-        const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
-        openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
+      if (source === 'task-manager') {
+        openModal(taskId, { source: 'task-view' });
+      } else { // 'calendar' or default
+        const taskToEdit = tasks.find(t => t.id === taskId);
+        if (taskToEdit) {
+          const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
+          openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
+        }
       }
       break;
     case 'triggerDeleteFromView':
@@ -2415,15 +2471,15 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
     case 'confirmCompletion':
       confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
       // Re-open the view to reflect the new state. This handles both "Yes" and "No" paths.
-      openTaskView(eventId, isHistorical, occurrenceDate);
+      openTaskView(eventId, isHistorical, occurrenceDate, source);
       break;
     case 'confirmMiss':
       confirmMissAction(taskId, target.dataset.confirmed === 'true');
-      openTaskView(eventId, isHistorical, occurrenceDate);
+      openTaskView(eventId, isHistorical, occurrenceDate, source);
       break;
     case 'confirmUndo':
       confirmUndoAction(taskId, target.dataset.confirmed === 'true');
-      openTaskView(eventId, isHistorical, occurrenceDate);
+      openTaskView(eventId, isHistorical, occurrenceDate, source);
       break;
     case 'confirmDeleteFromView':
     case 'confirmDeleteHistoryRecordFromView':
@@ -2527,7 +2583,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate) {
       break;
     }
   };
-  taskViewContentEl.addEventListener('click', taskViewContentEl.eventListener);
+  taskViewContentEl.addEventListener('click', clickListener, { signal });
   activateModal(taskViewModalEl);
 }
 
@@ -2712,7 +2768,7 @@ function renderTaskStats(taskId) {
       const historyItemEl = document.getElementById(`history-item-${historyId}`);
 
       if (action === 'viewHistoryRecord') {
-        openTaskView(historyEventId, true);
+        openTaskView(historyEventId, true, null, 'calendar');
       } else if (action === 'triggerHistoryDelete') {
         e.stopPropagation();
         if (historyItemEl) {
@@ -6616,7 +6672,8 @@ function setupEventListeners() {
       if (!actionTarget || actionTarget.dataset.action === 'viewTask') {
         if (!event.target.closest('button, a, input, .edit-progress-button')) {
           if (wasDrag) return;
-          openTaskView(taskId);
+          // *** FIX: Explicitly pass the source so the modal knows where it came from. ***
+          openTaskView(taskId, false, null, 'task-manager');
           return;
         }
       }
@@ -7782,7 +7839,14 @@ function updateAllTaskStatuses(forceRender = false) {
       const task = tasks.find(t => t.id === viewingTaskId);
       const borderWrapper = document.getElementById('task-view-modal-border-wrapper');
       if (task && borderWrapper) {
-        let gpaPercent = typeof task.coloringGpa === 'number' ? task.coloringGpa : ((statusColors[task.status] || 0) / 4.0);
+        const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
+        let gpaPercent;
+        if (typeof task.coloringGpa === 'number') {
+          gpaPercent = task.coloringGpa;
+        } else {
+          const gpa = gpaMap[task.status] || 0; // Fallback to 0 if status is invalid
+          gpaPercent = gpa / 4.0;
+        }
         const baseColor = interpolateFiveColors(gpaPercent);
         const isDarkMode = !document.body.classList.contains('light-mode');
         const topColor = adjustColor(baseColor, isDarkMode ? 0.2 : -0.2);
@@ -8296,7 +8360,7 @@ function initializeCalendar() {
       // Use the explicit taskId from extendedProps for active tasks. This is more reliable.
       const idToOpen = isHistorical ? eventId : (info.event.extendedProps.taskId || eventId);
 
-      openTaskView(idToOpen, isHistorical, occurrenceDueDate);
+      openTaskView(idToOpen, isHistorical, occurrenceDueDate, 'calendar');
     },
     eventDidMount: function(info) {
       if (info.view.type === 'dayGridMonth') {
@@ -8466,6 +8530,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!uiSettings.welcomeScreenShown) {
     showWelcomeModal();
   }
+
+  // Add a listener for custom test events
+  window.addEventListener('run-test-action', (e) => {
+    if (e.detail.action === 'updateAllTaskStatuses') {
+      updateAllTaskStatuses(true);
+    }
+  });
 });
 
 function showWelcomeModal() {
