@@ -734,3 +734,6 @@ legend {
     border-radius: 4px;
     font-size: 0.65rem;
 }
+#weeklyGoals {
+  white-space: pre-wrap;
+}
