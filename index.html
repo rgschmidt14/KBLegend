@@ -2156,20 +2156,6 @@ function formatMsToTime(ms) {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-function getDurationMs(amount, unit) {
-  if (!amount || !unit || amount <= 0) return 0;
-  amount = parseInt(amount, 10);
-  let ms = 0;
-  switch (unit) {
-  case 'minutes': ms = amount * 60000; break;
-  case 'hours': ms = amount * 3600000; break;
-  case 'days': ms = amount * 86400000; break;
-  case 'weeks': ms = amount * 7 * 86400000; break;
-  case 'months': ms = amount * 30 * 86400000; break; // Approximation
-  default: ms = 0;
-  }
-  return ms;
-}
 
 function formatProgressNumber(num) {
   if (num === null || num === undefined) return 0;
@@ -3481,9 +3467,6 @@ const iconCategories = {
   'Brands': ['fa-brands fa-apple', 'fa-brands fa-windows', 'fa-brands fa-android', 'fa-brands fa-google', 'fa-brands fa-amazon', 'fa-brands fa-facebook', 'fa-brands fa-twitter', 'fa-brands fa-instagram', 'fa-brands fa-linkedin', 'fa-brands fa-github', 'fa-brands fa-youtube', 'fa-brands fa-discord', 'fa-brands fa-slack', 'fa-brands fa-figma']
 };
 
-const MS_PER_MINUTE = 60000;
-const MS_PER_HOUR = 3600000;
-const MS_PER_DAY = 86400000;
 const DUE_THRESHOLD_MS = 1000;
 const MAX_CYCLE_CALCULATION = 100;
 
@@ -4870,14 +4853,6 @@ function formatTimeRemaining(ms) {
   }
 }
 
-function formatMsToTime(ms) {
-  if (isNaN(ms) || ms < 0) return '00:00:00';
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
 
 function updateCountdown(taskId) {
   try {
