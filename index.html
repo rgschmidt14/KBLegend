@@ -1422,15 +1422,15 @@ legend {
                                 </div>
                                 <div id="early-on-time-options" class="hidden space-y-3 pl-4 border-l-2 border-gray-700">
                                     <div class="flex items-center justify-between">
-                                        <label for="early-on-time-calendar-toggle" class="form-label mb-0" title="Visually shift affected events on the calendar to start 15 minutes earlier.">Displace events on calendar by 15 mins:</label>
-                                        <input type="checkbox" id="early-on-time-calendar-toggle" data-action="toggleEarlyOnTimeCalendar" class="toggle-checkbox">
-                                    </div>
-                                    <div class="flex items-center justify-between">
                                         <label for="early-on-time-appointments-toggle" class="form-label mb-0" title="Restrict this rule so it only applies to tasks marked as 'appointments'.">Apply rule only to appointments:</label>
                                         <input type="checkbox" id="early-on-time-appointments-toggle" data-action="toggleEarlyOnTimeAppointments" class="toggle-checkbox">
                                     </div>
                                 </div>
                             </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Buffer Management</legend>
+                            <div id="buffer-management-content"></div>
                         </fieldset>
                         <fieldset>
                             <legend>Vacation Schedule</legend>
@@ -1961,43 +1961,99 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     busySlots.push({ start: task.scheduledStartTime.getTime(), end: task.scheduledEndTime.getTime() });
   });
 
+  // Augment busy slots with buffers for appointments
+  appointments.forEach(task => {
+    if (!task.scheduledStartTime) return;
+
+    // Note: The variable 'ruleApplies' here needs to match the specific logic:
+    const effectiveRuleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
+
+    let currentStart = task.scheduledStartTime.getTime();
+
+    if (effectiveRuleApplies) {
+        const earlyMs = 15 * MS_PER_MINUTE;
+        busySlots.push({ start: currentStart - earlyMs, end: currentStart });
+        currentStart -= earlyMs;
+    }
+
+    const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+    if (prepMs > 0) {
+        busySlots.push({ start: currentStart - prepMs, end: currentStart });
+    }
+  });
+
   busySlots.sort((a, b) => a.start - b.start);
 
   flexibleTasks.forEach(task => {
-    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000; // Default to 1 minute
+    // Calculate total duration needed (Prep + Early + Task)
+    const taskDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
+
+    const ruleApplies = earlyOnTimeSettings.enabled && !earlyOnTimeSettings.onlyAppointments; // Flexible tasks only get early buffer if NOT "only appointments"
+    const earlyMs = ruleApplies ? 15 * MS_PER_MINUTE : 0;
+    const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+
+    const totalDurationMs = taskDurationMs + earlyMs + prepMs;
+
     if (!task.baseDueDate) {
-      task.scheduledStartTime = new Date();
-      task.scheduledEndTime = new Date(new Date().getTime() + durationMs);
+      // Default to now, but respecting the structure [Prep][Early][Task]
+      // Start time represents the start of the TASK, so we need to offset.
+      // Actually, for immediate tasks, we probably just want to schedule the whole block starting now?
+      // Let's stick to the pattern: scheduledStartTime is the task start.
+      const nowMs = Date.now();
+      task.scheduledStartTime = new Date(nowMs + prepMs + earlyMs);
+      task.scheduledEndTime = new Date(task.scheduledStartTime.getTime() + taskDurationMs);
       return;
     }
 
-    let potentialEndTime = new Date(task.baseDueDate);
+    let potentialTaskEndTime = new Date(task.baseDueDate);
+
     let foundSlot = false;
+    // We scan backwards from due date.
+    // The "Block" we are trying to fit is [Prep][Early][Task].
+    // potentialTaskEndTime is the end of [Task].
+    // The start of the block is potentialTaskEndTime - totalDurationMs.
+
     for (let i = 0; i < 500 && !foundSlot; i++) {
-      let potentialStartTime = new Date(potentialEndTime.getTime() - durationMs);
+      let blockStartMs = potentialTaskEndTime.getTime() - totalDurationMs;
+      let blockEndMs = potentialTaskEndTime.getTime();
+
       let conflict = false;
       for (const slot of busySlots) {
-        if (potentialStartTime.getTime() < slot.end && potentialEndTime.getTime() > slot.start) {
+        // Check if the slot overlaps with our total block
+        if (blockStartMs < slot.end && blockEndMs > slot.start) {
           conflict = true;
-          potentialEndTime = new Date(slot.start);
+          // If conflict, try to move the whole block to end at the start of the conflicting slot.
+          // The new task end time would be the conflicting slot's start.
+          // However, we need to account for the fact that the slot might be a buffer itself.
+          // Simply pushing the task end to slot.start is the standard "scheduling backward" approach.
+          potentialTaskEndTime = new Date(slot.start);
           break;
         }
       }
+
       if (!conflict) {
-        task.scheduledStartTime = potentialStartTime;
-        task.scheduledEndTime = potentialEndTime;
-        busySlots.push({ start: potentialStartTime.getTime(), end: potentialEndTime.getTime() });
+        // Found a spot!
+        // The task starts after Prep and Early.
+        task.scheduledStartTime = new Date(blockStartMs + prepMs + earlyMs);
+        task.scheduledEndTime = new Date(potentialTaskEndTime);
+
+        // Mark the whole block as busy
+        busySlots.push({ start: blockStartMs, end: blockEndMs });
         busySlots.sort((a, b) => a.start - b.start);
         foundSlot = true;
       }
     }
+
     if (!foundSlot) { // Fallback
-      task.scheduledStartTime = new Date(task.baseDueDate.getTime() - durationMs);
-      task.scheduledEndTime = new Date(task.baseDueDate);
+       // If no slot found (e.g. infinite loop protection), just place it at the due date
+       // possibly overlapping.
+       const blockStartMs = task.baseDueDate.getTime() - totalDurationMs;
+       task.scheduledStartTime = new Date(blockStartMs + prepMs + earlyMs);
+       task.scheduledEndTime = new Date(task.baseDueDate);
     }
   });
 
-  // --- Step 2.3: Calculate Final "Coloring GPA" & Apply Calendar Displacement ---
+  // --- Step 2.3: Calculate Final "Coloring GPA" ---
   allOccurrences.forEach(occurrence => {
     if (!occurrence.scheduledStartTime) {
       occurrence.finalGpa = -1;
@@ -2042,15 +2098,9 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       finalTimeDemerit = finalTimeDemerit * (1 - progressRatio);
     }
 
-    // --- Calendar Displacement (Non-Mutating) ---
-    // First, set the display times to the actual scheduled times.
+    // Standard display times match scheduled times
     occurrence.displayStartTime = occurrence.scheduledStartTime;
     occurrence.displayEndTime = occurrence.scheduledEndTime;
-    // Then, ONLY if the rule applies, shift the *display* times.
-    if (ruleApplies && earlyOnTimeSettings.displaceCalendar) {
-      occurrence.displayStartTime = new Date(occurrence.scheduledStartTime.getTime() - 15 * MS_PER_MINUTE);
-      occurrence.displayEndTime = new Date(occurrence.scheduledEndTime.getTime() - 15 * MS_PER_MINUTE);
-    }
 
     let habitDemerit = (occurrence.repetitionType !== 'none' && occurrence.trackMisses && occurrence.maxMisses > 0) ? (occurrence.misses / occurrence.maxMisses) * 2.0 : 0;
     habitDemerit = Math.max(0, Math.min(habitDemerit, 2.0));
@@ -2068,7 +2118,97 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     else occurrence.finalStatus = 'green';
   });
 
-  return allOccurrences;
+  // --- Step 2.4: Generate Buffer Occurrences ---
+  const bufferOccurrences = [];
+  allOccurrences.forEach(task => {
+    // Only generate buffers for tasks that are scheduled and not themselves buffers
+    if (!task.scheduledStartTime || task.type === 'buffer') return;
+
+    const ruleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
+    const prepTimeMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+
+    let currentStartTime = new Date(task.scheduledStartTime);
+
+    // 1. Early Buffer (15 mins)
+    // Placed immediately before the task
+    if (ruleApplies) {
+      const earlyDurationMs = 15 * MS_PER_MINUTE;
+      const earlyStart = new Date(currentStartTime.getTime() - earlyDurationMs);
+      const earlyEnd = new Date(currentStartTime);
+
+      bufferOccurrences.push({
+        id: `${task.id}_early`, // Unique ID for buffer
+        originalId: task.originalId, // Link to parent
+        name: task.name, // Will be overridden by label in render
+        scheduledStartTime: earlyStart,
+        scheduledEndTime: earlyEnd,
+        displayStartTime: earlyStart,
+        displayEndTime: earlyEnd,
+        type: 'buffer',
+        subtype: 'early',
+        categoryId: task.categoryId, // Inherit category for color
+        isBusy: true,
+        finalStatus: task.finalStatus // Inherit status for border color
+      });
+
+      // Shift the "cursor" back for the next buffer (Prep Time)
+      currentStartTime = earlyStart;
+    }
+
+    // 2. Prep Time Buffer
+    // Placed before the Early buffer (or the task if no early buffer)
+    if (prepTimeMs > 0) {
+      const prepStart = new Date(currentStartTime.getTime() - prepTimeMs);
+      const prepEnd = new Date(currentStartTime);
+
+      bufferOccurrences.push({
+        id: `${task.id}_prep`,
+        originalId: task.originalId,
+        name: task.name,
+        scheduledStartTime: prepStart,
+        scheduledEndTime: prepEnd,
+        displayStartTime: prepStart,
+        displayEndTime: prepEnd,
+        type: 'buffer',
+        subtype: 'prep',
+        categoryId: task.categoryId,
+        isBusy: true,
+        finalStatus: task.finalStatus
+      });
+    }
+  });
+
+  // Add buffers to the busy slots for future scheduling steps (if we were to loop again)
+  // Since we already did "Step 2.2: De-conflict", flexible tasks have already been placed.
+  // Ideally, flexible tasks should respect these buffers.
+  // To fix this, we should really generate buffers *before* step 2.2 if we want flexible tasks to dodge them.
+  // However, buffers depend on the task's scheduled time.
+  // Flexible tasks determine their own scheduled time.
+  //
+  // Appointments are fixed. Their buffers are fixed relative to them.
+  // Flexible tasks are floating.
+  //
+  // If a Flexible Task A has prep time:
+  // It effectively just has a longer duration.
+  //
+  // If an Appointment B has prep time:
+  // That prep time creates a new "Busy Slot" that Flexible Task A must avoid.
+  //
+  // Current logic:
+  // 1. Appointments placed.
+  // 2. Flexible tasks placed around appointments.
+  //
+  // Correct logic with buffers:
+  // 1. Appointments placed.
+  // 2. Appointment BUFFERS generated and added to `busySlots`.
+  // 3. Flexible tasks placed around (Appointments + Buffers).
+  // 4. Flexible task BUFFERS generated (visual only? or do they push back?)
+  //    If Flexible Task A is placed at 2:00, and has 30m prep, it effectively occupies 1:30-3:00.
+  //    The `de-conflict` logic currently uses `estimatedDuration`.
+  //    We should augment the `duration` used in Step 2.2 to include Prep + Early time.
+  //    Then, in Step 2.4 (here), we split that block into [Prep][Early][Task].
+
+  return [...allOccurrences, ...bufferOccurrences];
 }
 
 
@@ -3444,6 +3584,12 @@ let uiSettings = {
 };
 let journalSettings = {
   weeklyGoalIcon: 'fa-solid fa-bullseye',
+};
+// New global settings for prep and early buffers
+let bufferSettings = {
+  prep: { icon: 'fa-solid fa-suitcase-rolling', label: 'Prep' },
+  early: { icon: 'fa-solid fa-clock', label: 'Early' },
+  dashboard: { combinePrepTime: false }
 };
 let sensitivitySettings = { sValue: 0.5, isAdaptive: false };
 const STATUS_UPDATE_INTERVAL = 15000;
@@ -5473,7 +5619,6 @@ function renderEarlyOnTimeSettings() {
   const settings = uiSettings.earlyOnTimeSettings || { enabled: false, displaceCalendar: false, onlyAppointments: false };
   const masterToggle = document.getElementById('early-on-time-toggle');
   const optionsDiv = document.getElementById('early-on-time-options');
-  const calendarToggle = document.getElementById('early-on-time-calendar-toggle');
   const appointmentsToggle = document.getElementById('early-on-time-appointments-toggle');
 
   if (masterToggle) {
@@ -5482,12 +5627,67 @@ function renderEarlyOnTimeSettings() {
   if (optionsDiv) {
     optionsDiv.classList.toggle('hidden', !settings.enabled);
   }
-  if (calendarToggle) {
-    calendarToggle.checked = settings.displaceCalendar;
-  }
   if (appointmentsToggle) {
     appointmentsToggle.checked = settings.onlyAppointments;
   }
+}
+
+function renderBufferSettings() {
+  const container = document.getElementById('buffer-management-content');
+  if (!container) return;
+
+  container.innerHTML = `
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-bold text-sm mb-2">Prep Time</h4>
+                <div class="flex space-x-2 items-center mb-2">
+                    <label class="text-xs">Label:</label>
+                    <input type="text" id="buffer-prep-label" value="${bufferSettings.prep.label}" class="flex-grow text-xs p-1">
+                </div>
+                <div class="flex space-x-2 items-center">
+                    <label class="text-xs">Icon:</label>
+                    <div class="flex items-center space-x-2 flex-grow">
+                        <input type="text" id="buffer-prep-icon" value="${bufferSettings.prep.icon}" class="flex-grow text-xs p-1">
+                        <button type="button" data-action="openIconPicker" data-context="buffer-prep" class="btn btn-clear text-xs">Choose</button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-2">
+                <h4 class="font-bold text-sm mb-2">Early Buffer (from "Early is on Time")</h4>
+                <div class="flex space-x-2 items-center mb-2">
+                    <label class="text-xs">Label:</label>
+                    <input type="text" id="buffer-early-label" value="${bufferSettings.early.label}" class="flex-grow text-xs p-1">
+                </div>
+                <div class="flex space-x-2 items-center">
+                    <label class="text-xs">Icon:</label>
+                    <div class="flex items-center space-x-2 flex-grow">
+                        <input type="text" id="buffer-early-icon" value="${bufferSettings.early.icon}" class="flex-grow text-xs p-1">
+                        <button type="button" data-action="openIconPicker" data-context="buffer-early" class="btn btn-clear text-xs">Choose</button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-2">
+                <label class="flex items-center justify-between">
+                    <span class="text-sm font-medium" title="If enabled, Prep Time and Early Buffer will be combined into a single 'Preparation' slice in the dashboard chart.">Combine in Dashboard Chart</span>
+                    <input type="checkbox" id="buffer-combine-dashboard" class="toggle-checkbox" ${bufferSettings.dashboard.combinePrepTime ? 'checked' : ''}>
+                </label>
+            </div>
+        </div>
+    `;
+
+  // Add listeners for changes
+  const inputs = container.querySelectorAll('input');
+  inputs.forEach(input => {
+    input.addEventListener('change', (e) => {
+      if (e.target.id === 'buffer-prep-label') bufferSettings.prep.label = e.target.value;
+      if (e.target.id === 'buffer-prep-icon') bufferSettings.prep.icon = e.target.value;
+      if (e.target.id === 'buffer-early-label') bufferSettings.early.label = e.target.value;
+      if (e.target.id === 'buffer-early-icon') bufferSettings.early.icon = e.target.value;
+      if (e.target.id === 'buffer-combine-dashboard') bufferSettings.dashboard.combinePrepTime = e.target.checked;
+      saveData();
+      if (calendar) calendar.refetchEvents(); // Refresh calendar to show new labels/icons
+    });
+  });
 }
 
 function renderMonthViewSettings() {
@@ -5551,6 +5751,7 @@ function openAdvancedOptionsModal() {
   renderOtherFeaturesSettings(); // Render the new settings
   renderTaskHistorySettings();
   renderEarlyOnTimeSettings(); // Render the "Early is on Time" settings
+  renderBufferSettings(); // Render buffer management UI
   renderMonthViewSettings(); // Render the new month view settings
   renderCalendarViewSettings();
 
@@ -6790,10 +6991,23 @@ function renderCategoryPieChart(weekOffset = 0) {
       const durationInWeekMinutes = durationInWeekMs / MS_PER_MINUTE;
       const catId = categoryId || 'uncategorized';
       if (!categoryTime[catId]) {
-        const category = categories.find(c => c.id === catId);
+        let categoryName = 'Uncategorized';
+        let categoryColor = '#808080';
+
+        if (catId === 'buffer_prep_combined') {
+          categoryName = 'Preparation';
+          categoryColor = '#A0AEC0'; // gray-500
+        } else {
+          const category = categories.find(c => c.id === catId);
+          if (category) {
+            categoryName = category.name;
+            categoryColor = category.color;
+          }
+        }
+
         categoryTime[catId] = {
-          name: category ? category.name : 'Uncategorized',
-          color: category ? category.color : '#808080',
+          name: categoryName,
+          color: categoryColor,
           totalMinutes: 0
         };
       }
@@ -6813,8 +7027,20 @@ function renderCategoryPieChart(weekOffset = 0) {
 
   const allOccurrences = runCalculationPipeline([...tasks], calculationHorizon, settings);
   allOccurrences.forEach(occurrence => {
-    if (occurrence.scheduledStartTime && occurrence.scheduledEndTime) {
-      processEventDuration(occurrence.scheduledStartTime, occurrence.scheduledEndTime, occurrence.categoryId);
+    if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return;
+
+    // Handle Buffer Types for Dashboard
+    if (occurrence.type === 'buffer') {
+        if (bufferSettings.dashboard.combinePrepTime) {
+            // If combined, use a special 'prep' category ID
+            processEventDuration(occurrence.scheduledStartTime, occurrence.scheduledEndTime, 'buffer_prep_combined');
+        } else {
+            // Otherwise, count towards the parent task's category
+            processEventDuration(occurrence.scheduledStartTime, occurrence.scheduledEndTime, occurrence.categoryId);
+        }
+    } else {
+        // Standard tasks
+        processEventDuration(occurrence.scheduledStartTime, occurrence.scheduledEndTime, occurrence.categoryId);
     }
   });
 
@@ -8946,7 +9172,13 @@ function prepareMigrationUI(data) {
       if (!mappedOldFieldsLower.has(newField.toLowerCase())) {
         const isPresentInOld = Array.from(oldTaskFields).some(oldField => oldField.toLowerCase() === newField.toLowerCase());
         if (!isPresentInOld) {
-          differences.push({ oldField: null, newField, type: 'new' });
+          // Special check for prep time fields, which might be critical for the new update
+          if (newField === 'prepTimeAmount' || newField === 'prepTimeUnit') {
+             // We treat these as 'new' fields that should be populated with defaults if missing
+             differences.push({ oldField: null, newField, type: 'new' });
+          } else {
+             differences.push({ oldField: null, newField, type: 'new' });
+          }
         }
       }
     });
@@ -10258,11 +10490,6 @@ function setupEventListeners() {
         renderEarlyOnTimeSettings();
         saveData();
         break;
-      case 'toggleEarlyOnTimeCalendar':
-        if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
-        uiSettings.earlyOnTimeSettings.displaceCalendar = event.target.checked;
-        saveData();
-        break;
       case 'toggleEarlyOnTimeAppointments':
         if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
         uiSettings.earlyOnTimeSettings.onlyAppointments = event.target.checked;
@@ -10750,6 +10977,7 @@ function saveData() {
     localStorage.setItem('sensitivitySettings', JSON.stringify(sensitivitySettings));
     localStorage.setItem('uiSettings', JSON.stringify(uiSettings));
     localStorage.setItem('journalSettings', JSON.stringify(journalSettings));
+    localStorage.setItem('bufferSettings', JSON.stringify(bufferSettings));
     // New: Explicitly save historical tasks to their own key
     localStorage.setItem('historicalTasksV1', JSON.stringify(appState.historicalTasks));
     savePlannerData();
@@ -10788,6 +11016,7 @@ function loadData() {
   const storedSensitivitySettings = localStorage.getItem('sensitivitySettings');
   const storedUiSettings = localStorage.getItem('uiSettings');
   const storedJournalSettings = localStorage.getItem('journalSettings');
+  const storedBufferSettings = localStorage.getItem('bufferSettings');
 
   if (storedColors) {
     try {
@@ -10915,6 +11144,15 @@ function loadData() {
       journalSettings = { ...journalSettings, ...parsedSettings };
     } catch (e) {
       console.error('Error parsing Journal settings:', e);
+    }
+  }
+
+  if (storedBufferSettings) {
+    try {
+      const parsedSettings = JSON.parse(storedBufferSettings);
+      bufferSettings = { ...bufferSettings, ...parsedSettings };
+    } catch (e) {
+      console.error('Error parsing Buffer settings:', e);
     }
   }
 
@@ -11094,19 +11332,49 @@ function updateAllTaskStatuses(forceRender = false) {
     const categoryColor = category ? category.color : '#374151'; // Default gray for uncategorized
     const borderColor = statusColors[occurrence.finalStatus] || statusColors.black;
 
-    const baseProps = {
-      title: occurrence.name,
-      backgroundColor: categoryColor,
-      borderColor: borderColor,
-      textColor: getContrastingTextColor(categoryColor)['--text-color-primary'],
-      extendedProps: {
+    // Handle Buffer Types (Prep/Early)
+    let title = occurrence.name;
+    let icon = task.icon;
+    let backgroundColor = categoryColor;
+    let textColor = getContrastingTextColor(categoryColor)['--text-color-primary'];
+    let extendedProps = {
         taskId: occurrence.originalId,
         occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
         isHistorical: false,
         category: category,
-        icon: task.icon,
-        positioningGpa: occurrence.positioningGpa // Pass GPA for sorting
-      },
+        positioningGpa: occurrence.positioningGpa
+    };
+
+    if (occurrence.type === 'buffer') {
+        // Buffers use custom icons and labels
+        const settings = occurrence.subtype === 'prep' ? bufferSettings.prep : bufferSettings.early;
+        title = `${settings.label}: ${task.name}`;
+        icon = settings.icon; // Override icon
+
+        // Visual distinction for buffers: slightly transparent background
+        // We use the category color but apply transparency if it's a hex code
+        if (categoryColor.startsWith('#')) {
+            const r = parseInt(categoryColor.slice(1, 3), 16);
+            const g = parseInt(categoryColor.slice(3, 5), 16);
+            const b = parseInt(categoryColor.slice(5, 7), 16);
+            backgroundColor = `rgba(${r}, ${g}, ${b}, 0.7)`;
+        } else {
+            // Fallback for named colors or existing rgbs
+            backgroundColor = categoryColor;
+        }
+
+        // Buffers link to the parent task
+        extendedProps.isBuffer = true;
+    }
+
+    extendedProps.icon = icon;
+
+    const baseProps = {
+      title: title,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      textColor: textColor,
+      extendedProps: extendedProps,
       id: occurrence.id // Pass the unique occurrence ID
     };
     processEvent({ start, end, baseProps, isHistorical: false, originalId: occurrence.id });
