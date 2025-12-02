@@ -2133,6 +2133,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         scheduledEndTime: earlyEnd,
         displayStartTime: earlyStart,
         displayEndTime: earlyEnd,
+        occurrenceDueDate: earlyStart, // Ensure buffer has a due date reference
         type: 'buffer',
         subtype: 'early',
         categoryId: task.categoryId, // Inherit category for color
@@ -2158,6 +2159,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         scheduledEndTime: prepEnd,
         displayStartTime: prepStart,
         displayEndTime: prepEnd,
+        occurrenceDueDate: prepStart, // Ensure buffer has a due date reference
         type: 'buffer',
         subtype: 'prep',
         categoryId: task.categoryId,
@@ -8195,7 +8197,9 @@ function triggerCompletion(taskId) {
   task.confirmationState = 'confirming_complete';
   const nowMs = Date.now();
   if (task.dueDate && nowMs >= task.dueDate.getTime()) {
-    if (!task.overdueStartDate) task.overdueStartDate = task.dueDate.toISOString();
+    if (!task.overdueStartDate && task.dueDate instanceof Date && !isNaN(task.dueDate)) {
+        task.overdueStartDate = task.dueDate.toISOString();
+    }
     task.pendingCycles = calculatePendingCycles(task, nowMs);
   } else {
     task.pendingCycles = 1;
@@ -11237,7 +11241,9 @@ function updateAllTaskStatuses(forceRender = false) {
     const isPastDue = dueDate && dueDate.getTime() <= nowMs;
     if (isPastDue && task.status !== 'blue' && !task.confirmationState) {
       task.confirmationState = 'awaiting_overdue_input';
-      if (!task.overdueStartDate) task.overdueStartDate = task.dueDate.toISOString();
+      if (!task.overdueStartDate && task.dueDate instanceof Date && !isNaN(task.dueDate)) {
+          task.overdueStartDate = task.dueDate.toISOString();
+      }
       task.pendingCycles = calculatePendingCycles(task, nowMs);
       if (task.isTimerRunning) toggleTimer(task.id);
     } else if (!isPastDue && (task.confirmationState === 'awaiting_overdue_input' || task.confirmationState === 'confirming_miss')) {
@@ -11334,7 +11340,7 @@ function updateAllTaskStatuses(forceRender = false) {
     let textColor = getContrastingTextColor(categoryColor)['--text-color-primary'];
     let extendedProps = {
         taskId: occurrence.originalId,
-        occurrenceDueDate: new Date(occurrence.occurrenceDueDate).toISOString(),
+        occurrenceDueDate: (occurrence.occurrenceDueDate && !isNaN(new Date(occurrence.occurrenceDueDate))) ? new Date(occurrence.occurrenceDueDate).toISOString() : new Date().toISOString(),
         isHistorical: false,
         category: category,
         positioningGpa: occurrence.positioningGpa
