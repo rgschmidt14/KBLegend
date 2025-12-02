@@ -958,20 +958,21 @@ legend {
                     </div>
                 </fieldset>
                 <fieldset>
+                    <div class="mb-4">
+                        <label class="form-label">Time Input Type:</label>
+                        <select id="time-input-type" name="time-input-type">
+                            <option value="due">Due Time</option>
+                            <option value="start">Start Time</option>
+                        </select>
+                    </div>
                      <div id="due-date-group" class="mb-4">
                         <label for="task-due-date" class="form-label">Due Date & Time:</label>
                         <input type="datetime-local" id="task-due-date" name="task-due-date">
                     </div>
-                     <div id="estimated-duration-group" class="mb-4">
-                         <label class="form-label">Estimated Duration:</label>
-                         <div class="flex space-x-2 items-center">
-                             <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
-                             <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
-                                <option value="minutes">Minute(s)</option>
-                                <option value="hours">Hour(s)</option>
-                             </select>
-                         </div>
-                     </div>
+                    <div id="start-date-group" class="mb-4 hidden">
+                        <label for="task-start-date" class="form-label">Start Date & Time:</label>
+                        <input type="datetime-local" id="task-start-date" name="task-start-date">
+                    </div>
                 </fieldset>
 
                 <!-- Advanced Fields -->
@@ -1023,17 +1024,6 @@ legend {
                                 <option value="relative">Relative Time</option>
                             </select>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Time Input Type:</label>
-                            <select id="time-input-type" name="time-input-type">
-                                <option value="due">Due Time</option>
-                                <option value="start">Start Time</option>
-                            </select>
-                        </div>
-                        <div id="start-date-group" class="mb-4 hidden">
-                            <label for="task-start-date" class="form-label">Start Date & Time:</label>
-                            <input type="datetime-local" id="task-start-date" name="task-start-date">
-                        </div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
                             <label id="relative-due-date-label" class="form-label">Due In:</label>
                             <div class="flex space-x-2 items-center">
@@ -1049,17 +1039,16 @@ legend {
                             <p class="form-hint">Due relative to the time the task is saved.</p>
                         </div>
                          <p class="form-hint">Estimate how long this task will take. Used for Yellow/Red status calculation.</p>
-                         <div class="mb-4">
-                            <label class="form-label">Preparation Time:</label>
-                            <div class="flex space-x-2 items-center">
-                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="duration-input">
-                                <select id="prep-time-unit" name="prep-time-unit" class="flex-grow">
-                                   <option value="minutes">Minute(s)</option>
-                                   <option value="hours">Hour(s)</option>
-                                </select>
-                            </div>
-                            <p class="form-hint">Optional. How long you need to prepare for or travel to this task.</p>
-                        </div>
+                         <div id="estimated-duration-group" class="mb-4">
+                             <label class="form-label">Estimated Duration:</label>
+                             <div class="flex space-x-2 items-center">
+                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                                 <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
+                                    <option value="minutes">Minute(s)</option>
+                                    <option value="hours">Hour(s)</option>
+                                 </select>
+                             </div>
+                         </div>
                          <div class="mb-4">
                             <label class="form-label">Preparation Time:</label>
                             <div class="flex space-x-2 items-center">
@@ -8013,6 +8002,12 @@ function handleFormSubmit(event) {
 
     // Adjust due date for vacations after category is determined
     taskData.dueDate = adjustDateForVacation(taskData.dueDate, appState.vacations, taskData.categoryId, categories);
+
+    // CRITICAL VALIDATION: Ensure the calculated due date is valid.
+    if (!taskData.dueDate || isNaN(taskData.dueDate.getTime())) {
+        alert('Please enter a valid Date and Time.');
+        return;
+    }
 
     // New logic to calculate repeatUntil date from occurrences
     if (taskData.repetitionType !== 'none' && taskData.repeatUntilMode === 'occurrences' && taskData.repeatUntilOccurrences > 0) {
