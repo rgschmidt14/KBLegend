@@ -7811,6 +7811,10 @@ function updateSmartFormHistory(taskData) {
 
   const updateFieldHistory = (field, value) => {
     if (value) {
+      // Defensive check: Ensure the history array for this field exists
+      if (!history[field]) {
+        history[field] = [];
+      }
       history[field].push(value);
       if (history[field].length > MAX_HISTORY) {
         history[field].shift();
