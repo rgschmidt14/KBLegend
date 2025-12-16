@@ -3397,7 +3397,14 @@ function simpleEditFormTemplate(task, occurrence, categories) {
   const categoryToEdit = (override && override.categoryId) ? override.categoryId : task.categoryId;
   const durationAmountToEdit = (override && override.estimatedDurationAmount) ? override.estimatedDurationAmount : task.estimatedDurationAmount;
   const durationUnitToEdit = (override && override.estimatedDurationUnit) ? override.estimatedDurationUnit : task.estimatedDurationUnit;
+  const cleanupAmountToEdit = (override && override.cleanupTimeAmount !== undefined) ? override.cleanupTimeAmount : (task.cleanupTimeAmount || '');
+  const cleanupUnitToEdit = (override && override.cleanupTimeUnit) ? override.cleanupTimeUnit : (task.cleanupTimeUnit || 'minutes');
 
+  // Determine Start Date for the "Start Time" input field
+  // Just like in openModal, we need both Start and Due dates populated to allow toggling.
+  // Note: dateToEdit is the DUE date.
+  const durationMs = getDurationMs(durationAmountToEdit, durationUnitToEdit);
+  const startDateToEdit = (dateToEdit && !isNaN(dateToEdit)) ? new Date(dateToEdit.getTime() - durationMs) : null;
 
   // Helper to format date for datetime-local input
   const formatDateForInput = (date) => {
@@ -3437,7 +3444,8 @@ function simpleEditFormTemplate(task, occurrence, categories) {
                                     <option value="due" ${task.timeInputType !== 'start' ? 'selected' : ''}>Due Time</option>
                                     <option value="start" ${task.timeInputType === 'start' ? 'selected' : ''}>Start Time</option>
                                 </select>
-                                <input type="datetime-local" id="simple-edit-due-date" value="${formatDateForInput(dateToEdit)}" class="w-full" required>
+                                <input type="datetime-local" id="simple-edit-due-date" value="${formatDateForInput(dateToEdit)}" class="w-full ${task.timeInputType === 'start' ? 'hidden' : ''}">
+                                <input type="datetime-local" id="simple-edit-start-date" value="${formatDateForInput(startDateToEdit)}" class="w-full ${task.timeInputType !== 'start' ? 'hidden' : ''}">
                             </div>
                         </div>
 
@@ -3464,6 +3472,17 @@ function simpleEditFormTemplate(task, occurrence, categories) {
                                 <select id="simple-edit-duration-unit" class="flex-grow">
                                     <option value="minutes" ${durationUnitToEdit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
                                     <option value="hours" ${durationUnitToEdit === 'hours' ? 'selected' : ''}>Hour(s)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Cleanup Time</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="simple-edit-cleanup-amount" value="${cleanupAmountToEdit}" placeholder="e.g. 5" class="duration-input">
+                                <select id="simple-edit-cleanup-unit" class="flex-grow">
+                                    <option value="minutes" ${cleanupUnitToEdit === 'minutes' ? 'selected' : ''}>Minute(s)</option>
+                                    <option value="hours" ${cleanupUnitToEdit === 'hours' ? 'selected' : ''}>Hour(s)</option>
                                 </select>
                             </div>
                         </div>
@@ -8827,6 +8846,7 @@ function openSimpleEditModal(task, occurrence) {
   }
 
   // 1. Create and inject the modal HTML, passing categories to the template
+  console.log('openSimpleEditModal: Rendering form for', task.id, occurrence ? occurrence.id : 'base');
   const modalHtml = simpleEditFormTemplate(task, occurrence, categories);
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   const modalElement = document.getElementById('simple-edit-modal');
@@ -8837,6 +8857,51 @@ function openSimpleEditModal(task, occurrence) {
     deactivateModal(modalElement);
     modalElement.remove();
   };
+
+  // --- Add Time Input Type Sync Logic (Same as openModal) ---
+  const timeInputTypeSelectEl = document.getElementById('simple-edit-time-input-type');
+  const dueDateInput = document.getElementById('simple-edit-due-date');
+  const startDateInput = document.getElementById('simple-edit-start-date');
+  const durationAmountInput = document.getElementById('simple-edit-duration-amount');
+  const durationUnitInput = document.getElementById('simple-edit-duration-unit');
+
+  if (timeInputTypeSelectEl && dueDateInput && startDateInput && durationAmountInput && durationUnitInput) {
+      timeInputTypeSelectEl.addEventListener('change', (e) => {
+          const isSwitchingToStart = e.target.value === 'start';
+          const durationMs = getDurationMs(durationAmountInput.value, durationUnitInput.value);
+
+          if (isSwitchingToStart) {
+              // Switching FROM Due TO Start
+              if (dueDateInput.value) {
+                  const dueDate = new Date(dueDateInput.value);
+                  if (!isNaN(dueDate)) {
+                      const startDate = new Date(dueDate.getTime() - durationMs);
+                      // Helper needs to be redefined or accessed. formatDateForInput is in template scope.
+                      // We'll reimplement it simply here or define it globally later.
+                      // Re-implementation for safety:
+                      const pad = (num) => String(num).padStart(2, '0');
+                      const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      startDateInput.value = fmt(startDate);
+                  }
+              }
+              dueDateInput.classList.add('hidden');
+              startDateInput.classList.remove('hidden');
+          } else {
+              // Switching FROM Start TO Due
+              if (startDateInput.value) {
+                  const startDate = new Date(startDateInput.value);
+                  if (!isNaN(startDate)) {
+                      const dueDate = new Date(startDate.getTime() + durationMs);
+                      const pad = (num) => String(num).padStart(2, '0');
+                      const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      dueDateInput.value = fmt(dueDate);
+                  }
+              }
+              startDateInput.classList.add('hidden');
+              dueDateInput.classList.remove('hidden');
+          }
+      });
+  }
 
   modalElement.addEventListener('click', (e) => {
     const actionTarget = e.target.closest('[data-action]');
@@ -8868,11 +8933,32 @@ function openSimpleEditModal(task, occurrence) {
 
     // Gather all new values from the form
     const newName = document.getElementById('simple-edit-task-name').value;
-    const newDueDate = new Date(document.getElementById('simple-edit-due-date').value);
+
+    // Determine which date input to use based on the visible/selected type
+    const timeInputType = document.getElementById('simple-edit-time-input-type').value;
+    let newDueDate;
+    if (timeInputType === 'start') {
+        const startDateVal = document.getElementById('simple-edit-start-date').value;
+        const durationAmt = document.getElementById('simple-edit-duration-amount').value;
+        const durationUnit = document.getElementById('simple-edit-duration-unit').value;
+        if (startDateVal) {
+            const startDate = new Date(startDateVal);
+            const durationMs = getDurationMs(durationAmt, durationUnit);
+            newDueDate = new Date(startDate.getTime() + durationMs);
+        } else {
+            newDueDate = null; // Should be required, but handle gracefully
+        }
+    } else {
+        const dueDateVal = document.getElementById('simple-edit-due-date').value;
+        newDueDate = dueDateVal ? new Date(dueDateVal) : null;
+    }
+
     const newIcon = document.getElementById('simple-edit-icon').value;
     const newCategoryId = document.getElementById('simple-edit-category').value;
     const newDurationAmount = document.getElementById('simple-edit-duration-amount').value;
     const newDurationUnit = document.getElementById('simple-edit-duration-unit').value;
+    const newCleanupAmount = document.getElementById('simple-edit-cleanup-amount').value;
+    const newCleanupUnit = document.getElementById('simple-edit-cleanup-unit').value;
 
     const updates = {
       name: newName,
@@ -8881,6 +8967,8 @@ function openSimpleEditModal(task, occurrence) {
       categoryId: newCategoryId,
       estimatedDurationAmount: newDurationAmount ? parseInt(newDurationAmount, 10) : null,
       estimatedDurationUnit: newDurationUnit,
+      cleanupTimeAmount: newCleanupAmount ? parseInt(newCleanupAmount, 10) : null,
+      cleanupTimeUnit: newCleanupUnit
     };
 
     // Use the centralized function to apply the override for a single occurrence
