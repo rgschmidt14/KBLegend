@@ -2016,27 +2016,25 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
 
   flexibleTasks.forEach(task => {
     const taskDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
-    const { earlyMs } = calculateBuffers(task, taskDurationMs);
+    const { earlyMs, mingleMs } = calculateBuffers(task, taskDurationMs);
     const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+    const cleanupMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
 
-    // Flexible tasks also carry their own "luggage" (Prep + Early) that must fit into the slot.
-    // They generally don't enforce their own cleanup/mingle time on *others* during the search,
-    // but they occupy time.
-    // Logic: We are looking for a slot for the [Prep+Early+Task] block.
-    // Cleanup/Mingle for flexible tasks is appended *after* the due date/slot usually,
-    // but technically if it's "Cleanup", it blocks the calendar.
-    // For simplicity in "Scheduling Backward", we fit the main block [Prep+Early+Task].
-    // If the task has cleanup, that cleanup essentially extends the "Busy" time of the task once placed.
+    // Logic: We are scheduling the "Main Block" [Prep+Early+Task] to happen before Due Date.
+    // However, the "Post Block" [Cleanup+Mingle] happens immediately *after* the task.
+    // The calendar must be free for BOTH blocks.
 
-    const totalDurationToFit = prepMs + earlyMs + taskDurationMs;
-    const totalDurationMs = totalDurationToFit;
+    const preTaskBlockDuration = prepMs + earlyMs;
+    const mainTaskBlockDuration = taskDurationMs; // The actual task
+    const postTaskBlockDuration = cleanupMs + mingleMs;
+
+    const totalDurationToFit = preTaskBlockDuration + mainTaskBlockDuration; // [Prep+Early+Task]
 
     if (!task.baseDueDate) {
-      // Default to now, but respecting the structure [Prep][Early][Task]
-      // Start time represents the start of the TASK, so we need to offset.
+      // Default to now. Start time is task start.
       const nowMs = Date.now();
-      task.scheduledStartTime = new Date(nowMs + prepMs + earlyMs);
-      task.scheduledEndTime = new Date(task.scheduledStartTime.getTime() + taskDurationMs);
+      task.scheduledStartTime = new Date(nowMs + preTaskBlockDuration);
+      task.scheduledEndTime = new Date(task.scheduledStartTime.getTime() + mainTaskBlockDuration);
       return;
     }
 
@@ -2044,36 +2042,48 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
 
     let foundSlot = false;
     // We scan backwards from due date.
-    // The "Block" we are trying to fit is [Prep][Early][Task].
-    // potentialTaskEndTime is the end of [Task].
-    // The start of the block is potentialTaskEndTime - totalDurationMs.
+    // "blockStartMs" is the start of [Prep].
+    // "blockEndMs" is the end of [Task].
+    // "postBlockEndMs" is the end of [Cleanup/Mingle].
+
+    // We need [blockStartMs -> postBlockEndMs] to be free in busySlots.
 
     for (let i = 0; i < 500 && !foundSlot; i++) {
-      let blockStartMs = potentialTaskEndTime.getTime() - totalDurationMs;
-      let blockEndMs = potentialTaskEndTime.getTime();
+      let blockStartMs = potentialTaskEndTime.getTime() - totalDurationToFit; // Start of Prep
+      let blockEndMs = potentialTaskEndTime.getTime(); // End of Task
+      let postBlockEndMs = blockEndMs + postTaskBlockDuration; // End of Cleanup
 
       let conflict = false;
       for (const slot of busySlots) {
-        // Check if the slot overlaps with our total block
-        if (blockStartMs < slot.end && blockEndMs > slot.start) {
+        // Check if the slot overlaps with our TOTAL footprint (Prep -> Cleanup)
+        if (blockStartMs < slot.end && postBlockEndMs > slot.start) {
           conflict = true;
-          // If conflict, try to move the whole block to end at the start of the conflicting slot.
-          // The new task end time would be the conflicting slot's start.
-          // However, we need to account for the fact that the slot might be a buffer itself.
-          // Simply pushing the task end to slot.start is the standard "scheduling backward" approach.
-          potentialTaskEndTime = new Date(slot.start);
+          // If conflict, try to move the whole block.
+          // Standard backward scheduling strategy:
+          // If we hit a busy slot, we align the *end* of our block with the *start* of the busy slot.
+          // But which "end" of our block hit the slot?
+
+          // If the conflict is with the Post-Block (Cleanup), we need to move such that Cleanup ends at slot.start.
+          // i.e., potentialTaskEndTime (Task End) = slot.start - postTaskBlockDuration.
+
+          // If the conflict is with the Main/Prep Block, we need to move such that Task End = slot.start.
+
+          // Simplest heuristic: Just push the Task End to `slot.start - postTaskBlockDuration`.
+          // This ensures the Cleanup finishes exactly when the busy slot starts.
+          // (Even if the conflict was with the Prep time, this moves us way back, which is safe).
+
+          potentialTaskEndTime = new Date(slot.start - postTaskBlockDuration);
           break;
         }
       }
 
       if (!conflict) {
         // Found a spot!
-        // The task starts after Prep and Early.
-        task.scheduledStartTime = new Date(blockStartMs + prepMs + earlyMs);
-        task.scheduledEndTime = new Date(potentialTaskEndTime);
+        task.scheduledStartTime = new Date(blockStartMs + preTaskBlockDuration); // Start of Task
+        task.scheduledEndTime = new Date(blockEndMs); // End of Task
 
-        // Mark the whole block as busy
-        busySlots.push({ start: blockStartMs, end: blockEndMs });
+        // Mark the whole block (Prep -> Cleanup) as busy
+        busySlots.push({ start: blockStartMs, end: postBlockEndMs });
         busySlots.sort((a, b) => a.start - b.start);
         foundSlot = true;
       }
@@ -11641,9 +11651,20 @@ function updateAllTaskStatuses(forceRender = false) {
     appState.historicalTasks
       .filter(ht => ht && ht.completionDate && new Date(ht.completionDate) >= historyCutoffDate)
       .forEach(ht => {
-        const durationMs = getDurationMs(ht.durationAmount, ht.durationUnit) || MS_PER_HOUR;
-        const endDate = new Date(ht.completionDate);
+        // Fallback to defaults if historical data is malformed to prevent invalid dates
+        const durationMs = getDurationMs(ht.durationAmount || ht.estimatedDurationAmount, ht.durationUnit || ht.estimatedDurationUnit) || MS_PER_HOUR;
+
+        let endDate = new Date(ht.completionDate);
+        if (isNaN(endDate.getTime())) {
+            // Log once per unique task to avoid spam, or just fail silently/gracefully.
+            // Since we want to stop spam, we skip this item entirely if the date is unsalvageable.
+            return;
+        }
+
         const startDate = new Date(endDate.getTime() - durationMs);
+        if (isNaN(startDate.getTime())) {
+            return;
+        }
 
         const category = categories.find(c => c.id === ht.categoryId);
         const baseColor = category ? category.color : '#808080';
