@@ -1633,15 +1633,17 @@ const MS_PER_HOUR = 3600000;
 const MS_PER_DAY = 86400000;
 
 function getDurationMs(amount, unit) {
-  if (!amount || !unit || amount <= 0) return 0;
-  amount = parseInt(amount, 10);
+  if (!amount || !unit) return 0;
+  const parsedAmount = parseInt(amount, 10);
+  if (isNaN(parsedAmount) || parsedAmount <= 0) return 0;
+
   let ms = 0;
   switch (unit) {
-  case 'minutes': ms = amount * MS_PER_MINUTE; break;
-  case 'hours': ms = amount * MS_PER_HOUR; break;
-  case 'days': ms = amount * MS_PER_DAY; break;
-  case 'weeks': ms = amount * 7 * MS_PER_DAY; break;
-  case 'months': ms = amount * 30 * MS_PER_DAY; break; // Approximation
+  case 'minutes': ms = parsedAmount * MS_PER_MINUTE; break;
+  case 'hours': ms = parsedAmount * MS_PER_HOUR; break;
+  case 'days': ms = parsedAmount * MS_PER_DAY; break;
+  case 'weeks': ms = parsedAmount * 7 * MS_PER_DAY; break;
+  case 'months': ms = parsedAmount * 30 * MS_PER_DAY; break; // Approximation
   default: console.warn('Unknown duration unit:', unit); ms = 0;
   }
   return ms;
@@ -1960,20 +1962,25 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       const earlyRuleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
       if (earlyRuleApplies) {
           if (earlyOnTimeSettings.unit === 'percent') {
-              earlyMs = durationMs * (earlyOnTimeSettings.amount / 100);
+              earlyMs = durationMs * (parseFloat(earlyOnTimeSettings.amount) / 100);
           } else {
-              earlyMs = earlyOnTimeSettings.amount * MS_PER_MINUTE;
+              earlyMs = parseFloat(earlyOnTimeSettings.amount) * MS_PER_MINUTE;
           }
       }
 
       const mingleRuleApplies = mingleSettings.enabled && (!mingleSettings.onlyAppointments || task.isAppointment);
       if (mingleRuleApplies) {
           if (mingleSettings.unit === 'percent') {
-              mingleMs = durationMs * (mingleSettings.amount / 100);
+              mingleMs = durationMs * (parseFloat(mingleSettings.amount) / 100);
           } else {
-              mingleMs = mingleSettings.amount * MS_PER_MINUTE;
+              mingleMs = parseFloat(mingleSettings.amount) * MS_PER_MINUTE;
           }
       }
+
+      // Safety check: ensure no NaN values propagate
+      if (isNaN(earlyMs)) earlyMs = 0;
+      if (isNaN(mingleMs)) mingleMs = 0;
+
       return { earlyMs, mingleMs };
   };
 
@@ -6024,19 +6031,24 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
   // --- MERGE OCCURRENCE OVERRIDES IF APPLICABLE ---
   // If we are looking at a virtual occurrence (eventId has underscore but taskOrHistoryItem is the master task)
   if (!isHistorical && eventId.includes('_') && taskOrHistoryItem.id === getBaseId(eventId)) {
+      // Deep clone the task so we don't mutate the master
+      // We do this ALWAYS for virtual occurrences so editing doesn't affect the master directly immediately
+      taskOrHistoryItem = { ...taskOrHistoryItem };
+      taskOrHistoryItem.id = eventId;
+      taskOrHistoryItem.originalTaskId = getBaseId(eventId); // Keep ref to master
+
       if (taskOrHistoryItem.occurrenceOverrides && taskOrHistoryItem.occurrenceOverrides[eventId]) {
           console.log(`Merging occurrence overrides for ${eventId}`);
-          // Deep clone the task so we don't mutate the master
           const override = taskOrHistoryItem.occurrenceOverrides[eventId];
-          taskOrHistoryItem = { ...taskOrHistoryItem, ...override };
-          // Ensure the ID matches the requested eventId for context
-          taskOrHistoryItem.id = eventId;
-          taskOrHistoryItem.originalTaskId = getBaseId(eventId); // Keep ref to master
+          Object.assign(taskOrHistoryItem, override);
 
           // If the override specifies a new due date, make sure it is respected
           if (override.dueDate) {
               taskOrHistoryItem.dueDate = new Date(override.dueDate);
           }
+      } else if (occurrenceDate) {
+          // If no override yet but we know the date, ensure it's set correctly on this temporary object
+          taskOrHistoryItem.dueDate = new Date(occurrenceDate);
       }
   }
 
@@ -8254,6 +8266,52 @@ function handleFormSubmit(event) {
     }
     // If an ID is present, we're either editing or reinstating.
     if (id) {
+      // Check if this is an occurrence override (ID contains underscore)
+      if (id.includes('_')) {
+          const originalTaskId = id.split('_')[0];
+          const originalTask = tasks.find(t => t.id === originalTaskId);
+
+          if (originalTask) {
+              // We are editing a specific occurrence.
+              // Identify changed fields compared to the original task to store as overrides.
+              const updates = {};
+
+              // Helper to check equality
+              const isDifferent = (key, val) => {
+                  if (val instanceof Date) {
+                      return !originalTask[key] || val.getTime() !== new Date(originalTask[key]).getTime();
+                  }
+                  return originalTask[key] !== val;
+              };
+
+              // Check core fields we allow overriding
+              if (isDifferent('name', taskData.name)) updates.name = taskData.name;
+              if (isDifferent('description', taskData.description)) updates.description = taskData.description;
+              if (isDifferent('dueDate', taskData.dueDate)) updates.dueDate = taskData.dueDate;
+              if (isDifferent('estimatedDurationAmount', taskData.estimatedDurationAmount)) updates.estimatedDurationAmount = taskData.estimatedDurationAmount;
+              if (isDifferent('estimatedDurationUnit', taskData.estimatedDurationUnit)) updates.estimatedDurationUnit = taskData.estimatedDurationUnit;
+              if (isDifferent('prepTimeAmount', taskData.prepTimeAmount)) updates.prepTimeAmount = taskData.prepTimeAmount;
+              if (isDifferent('prepTimeUnit', taskData.prepTimeUnit)) updates.prepTimeUnit = taskData.prepTimeUnit;
+              // Add more fields as needed
+
+              if (Object.keys(updates).length > 0) {
+                  updateTaskOccurrence(originalTaskId, id, updates);
+                  saveData();
+                  updateAllTaskStatuses(true);
+                  if (uiSettings.closeModalAfterAction) {
+                      closeModal();
+                  } else {
+                      alert('Occurrence updated successfully.');
+                  }
+                  return; // Stop here, don't proceed to standard save
+              } else {
+                  // No changes detected?
+                  closeModal();
+                  return;
+              }
+          }
+      }
+
       const taskIndex = tasks.findIndex(t => t.id === id);
       // If it's in the active tasks list, we're editing.
       if (taskIndex > -1) {
