@@ -11996,8 +11996,9 @@ function initializeCalendar() {
         }
       }
 
-      // Use the explicit taskId from extendedProps for active tasks. This is more reliable.
-      const idToOpen = isHistorical ? eventId : (info.event.extendedProps.taskId || eventId);
+      // Use the eventId (which includes the occurrence date for repeating tasks) to ensure we open the specific occurrence.
+      // The previous logic incorrectly forced the master taskId, breaking occurrence editing.
+      const idToOpen = eventId;
 
       openTaskView(idToOpen, isHistorical, occurrenceDueDate, 'calendar');
     },
