@@ -2028,6 +2028,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     // For simplicity in "Scheduling Backward", we fit the main block [Prep+Early+Task].
     // If the task has cleanup, that cleanup essentially extends the "Busy" time of the task once placed.
 
+    const totalDurationToFit = prepMs + earlyMs + taskDurationMs;
     const totalDurationMs = totalDurationToFit;
 
     if (!task.baseDueDate) {
