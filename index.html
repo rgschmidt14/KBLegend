@@ -6219,6 +6219,8 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
         if (taskToEdit) {
           const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
           openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
+        } else {
+            console.error('editTaskFromView: Could not find taskToEdit for baseId:', baseId, 'Original ID:', taskId);
         }
       }
       break;
@@ -12394,7 +12396,7 @@ function initializeCalendar() {
     // This allows swipes and scrolls to happen without triggering the creation modal.
     // On desktop (mouse), 'select' works via click-and-drag or a simple click if we don't strictly enforce a drag.
     selectable: true,
-    selectLongPressDelay: 1000, // Wait 1 second on touch devices before selecting
+    selectLongPressDelay: 500, // Wait 0.5 second on touch devices before selecting
     select: (info) => {
       if (!calendarSettings.allowCreationOnClick) {
         calendar.unselect();
