@@ -6211,7 +6211,11 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
       if (source === 'task-manager') {
         openModal(taskId, { source: 'task-view' });
       } else { // 'calendar' or default
-        const taskToEdit = tasks.find(t => t.id === taskId);
+        // Fix: Extract baseId if taskId is an occurrence ID (e.g., "task1_2023-10-27")
+        // This ensures we find the actual task object in the `tasks` array.
+        const baseId = taskId.includes('_') ? taskId.split('_')[0] : taskId;
+        const taskToEdit = tasks.find(t => t.id === baseId);
+
         if (taskToEdit) {
           const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
           openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
@@ -12383,42 +12387,33 @@ function initializeCalendar() {
         }
       }
     },
-    dateClick: (info) => {
+    // --- Calendar Interaction Logic ---
+    // We use 'select' instead of 'dateClick' to implement a "Long Press to Create" feature on touch devices.
+    // 'dateClick' fires immediately on touch-down, which causes accidental task creation when swiping or scrolling.
+    // 'select' with 'selectLongPressDelay' waits for a specific duration (e.g., 1 second) before triggering.
+    // This allows swipes and scrolls to happen without triggering the creation modal.
+    // On desktop (mouse), 'select' works via click-and-drag or a simple click if we don't strictly enforce a drag.
+    selectable: true,
+    selectLongPressDelay: 1000, // Wait 1 second on touch devices before selecting
+    select: (info) => {
       if (!calendarSettings.allowCreationOnClick) {
+        calendar.unselect();
         return;
       }
-      const taskStartDate = new Date(info.date);
-      const taskDueDate = new Date(taskStartDate.getTime() + (60 * 60 * 1000)); // Add 1 hour
 
-      const defaultCategoryName = plannerSettings.defaultCategoryId || 'Planner';
-      let plannerCategory = categories.find(c => c.id === defaultCategoryName);
-      if (!plannerCategory) {
-        plannerCategory = { id: defaultCategoryName, name: defaultCategoryName, color: getRandomColor() };
-        categories.push(plannerCategory);
-        renderCategoryManager();
-        renderCategoryFilters();
-      }
+      const taskStartDate = new Date(info.start);
+      // We set a default duration of 1 hour for the new task
+      const taskDueDate = new Date(taskStartDate.getTime() + (60 * 60 * 1000));
 
-      const newTaskData = {
-        id: generateId(),
-        name: 'New Event',
-        dueDate: taskDueDate,
-        estimatedDurationAmount: 1,
-        estimatedDurationUnit: 'hours',
-        categoryId: plannerCategory.id,
-        createdAt: new Date(),
-        repetitionType: 'none',
-        misses: 0,
-        completed: false,
-        status: 'green',
-      };
+      // Clear the visual selection immediately
+      calendar.unselect();
 
-      const sanitizedTask = sanitizeAndUpgradeTask(newTaskData);
-      tasks.push(sanitizedTask);
-
-      saveData();
-      calendar.refetchEvents();
-      openModal(sanitizedTask.id, { occurrenceDate: taskDueDate });
+      // Open the modal for a NEW task (taskId = null).
+      // We pass the calculated due date. The openModal function will pre-fill the form.
+      // Crucially, we do NOT save anything to the 'tasks' array yet.
+      // The user must click "Save" in the modal to create the task.
+      // This prevents "ghost tasks" from being created on accidental clicks.
+      openModal(null, { occurrenceDate: taskDueDate });
     }
   });
 
