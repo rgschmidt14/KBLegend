@@ -94,6 +94,17 @@ The task creation modal offers a wealth of powerful features in its "Advanced" s
 *   **Complex Repetition:** Create tasks that repeat on almost any schedule imaginable, from "every 3 days" to "the last Friday of every month."
 *   **Failure Tracking:** For repeating tasks, you can set a "max misses" threshold. The task's urgency will increase as you approach this limit, providing a clear visual indicator when a habit is at risk. If a task hits its max misses, it can be automatically flagged as a KPI for you to focus on.
 
+### **Calendar Interaction: Tap vs. Hold**
+The calendar supports intuitive interactions for both desktop and touch devices, preventing accidental changes while swiping.
+*   **Desktop (Mouse):** Click or click-and-drag on any empty time slot to open the "Add New Task" modal.
+*   **Touch Devices (Mobile/Tablet):** The interaction uses a **"Press and Hold"** gesture. To create a new task, press your finger on a time slot and hold it for **1 second**. Tapping or swiping will navigate the calendar without triggering the modal, solving the issue of creating accidental "ghost tasks."
+
+### **Task Occurrences & Recurrence Logic**
+The application has moved from a simple repetition model to a robust, occurrence-based system (`TL-3.0` in the code).
+*   **Unique Identities:** The system generates a unique ID for every future instance of a recurring task (e.g., `taskId_2023-10-27`). This allows the interface to distinguish between the "Master Task" and a specific Tuesday's occurrence.
+*   **Calculation Pipeline:** The `runCalculationPipeline` function is the single source of truth. It dynamically generates ephemeral occurrence objects based on your repetition rules and projects them into the future.
+*   **Overrides:** When you edit a specific instance on the calendar (e.g., changing the time for just one day), the system saves an `override` object linked to that specific occurrence ID. The pipeline automatically merges these overrides when generating the view, ensuring your exceptions are respected without breaking the main schedule.
+
 ### **Customization & Management: The Advanced Options Hub**
 The **Advanced Options** modal is your central hub for tailoring the application to your exact needs. It's organized into 8 clear categories:
 
