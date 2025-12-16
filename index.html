@@ -1061,6 +1061,17 @@ legend {
                             </div>
                             <p class="form-hint">Optional. How long you need to prepare for or travel to this task.</p>
                         </div>
+                        <div class="mb-4">
+                            <label class="form-label">Cleanup Time:</label>
+                            <div class="flex space-x-2 items-center">
+                                <input type="number" id="cleanup-time-amount" name="cleanup-time-amount" min="1" placeholder="e.g., 5" class="duration-input">
+                                <select id="cleanup-time-unit" name="cleanup-time-unit" class="flex-grow">
+                                   <option value="minutes">Minute(s)</option>
+                                   <option value="hours">Hour(s)</option>
+                                </select>
+                            </div>
+                            <p class="form-hint">Optional. Time needed after the task to clean up or travel back. Blocks the calendar.</p>
+                        </div>
                          <div class="mb-4">
                                <label class="flex items-center">
                                    <input type="checkbox" id="requires-full-attention" name="requires-full-attention" checked class="h-4 w-4 rounded">
@@ -1400,21 +1411,6 @@ legend {
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showIcon" class="day-view-display-toggle"><span>Show Icon</span></label>
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showTime" class="day-view-display-toggle"><span>Show Time</span></label>
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showName" class="day-view-display-toggle"><span>Show Name</span></label>
-                                </div>
-                            </div>
-                        </fieldset>
-                        <fieldset>
-                            <legend>"Early is on Time" Rule</legend>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <label for="early-on-time-toggle" class="form-label mb-0" title="Enable a 15-minute grace period, where tasks completed slightly early are still considered 'on time'.">Enable "15 mins early is on time":</label>
-                                    <input type="checkbox" id="early-on-time-toggle" data-action="toggleEarlyOnTime" class="toggle-checkbox">
-                                </div>
-                                <div id="early-on-time-options" class="hidden space-y-3 pl-4 border-l-2 border-gray-700">
-                                    <div class="flex items-center justify-between">
-                                        <label for="early-on-time-appointments-toggle" class="form-label mb-0" title="Restrict this rule so it only applies to tasks marked as 'appointments'.">Apply rule only to appointments:</label>
-                                        <input type="checkbox" id="early-on-time-appointments-toggle" data-action="toggleEarlyOnTimeAppointments" class="toggle-checkbox">
-                                    </div>
                                 </div>
                             </div>
                         </fieldset>
@@ -1846,7 +1842,9 @@ function adjustDateForVacation(date, vacations, taskCategoryId, allCategories) {
 function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_testing) {
   const now = now_for_testing || new Date();
   const nowMs = now.getTime();
-  const { sensitivity, vacations, categories, calendarCategoryFilters, earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false } } = settings;
+  const { sensitivity, vacations, categories, calendarCategoryFilters } = settings;
+  const earlyOnTimeSettings = uiSettings.earlyOnTimeSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+  const mingleSettings = uiSettings.mingleBufferSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
 
   // --- Step 0: Filter tasks based on calendar 'schedule' settings ---
   const filteredTasks = tasks.filter(task => {
@@ -1953,52 +1951,88 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   flexibleTasks.sort((a, b) => a.positioningGpa - b.positioningGpa);
 
   let busySlots = [];
+
+  // Calculate specific buffer amounts for a task/appointment
+  const calculateBuffers = (task, durationMs) => {
+      let earlyMs = 0;
+      let mingleMs = 0;
+
+      const earlyRuleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
+      if (earlyRuleApplies) {
+          if (earlyOnTimeSettings.unit === 'percent') {
+              earlyMs = durationMs * (earlyOnTimeSettings.amount / 100);
+          } else {
+              earlyMs = earlyOnTimeSettings.amount * MS_PER_MINUTE;
+          }
+      }
+
+      const mingleRuleApplies = mingleSettings.enabled && (!mingleSettings.onlyAppointments || task.isAppointment);
+      if (mingleRuleApplies) {
+          if (mingleSettings.unit === 'percent') {
+              mingleMs = durationMs * (mingleSettings.amount / 100);
+          } else {
+              mingleMs = mingleSettings.amount * MS_PER_MINUTE;
+          }
+      }
+      return { earlyMs, mingleMs };
+  };
+
   appointments.forEach(task => {
     const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
     if (!task.baseDueDate) return;
     task.scheduledStartTime = new Date(task.baseDueDate.getTime() - durationMs);
     task.scheduledEndTime = new Date(task.baseDueDate);
+
+    // Add the core appointment time to busy slots
     busySlots.push({ start: task.scheduledStartTime.getTime(), end: task.scheduledEndTime.getTime() });
-  });
 
-  // Augment busy slots with buffers for appointments
-  appointments.forEach(task => {
-    if (!task.scheduledStartTime) return;
+    // Calculate and add ALL associated buffers (Prep + Early + Cleanup + Mingle) to busy slots
+    // "Bump" logic: Flexible tasks must avoid ALL of these areas.
 
-    // Note: The variable 'ruleApplies' here needs to match the specific logic:
-    const effectiveRuleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
+    const { earlyMs, mingleMs } = calculateBuffers(task, durationMs);
+    const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+    const cleanupMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
 
-    let currentStart = task.scheduledStartTime.getTime();
-
-    if (effectiveRuleApplies) {
-        const earlyMs = 15 * MS_PER_MINUTE;
-        busySlots.push({ start: currentStart - earlyMs, end: currentStart });
-        currentStart -= earlyMs;
+    // 1. Pre-Task Block: [Prep] + [Early] -> Ends at Task Start
+    const totalPreTaskMs = prepMs + earlyMs;
+    if (totalPreTaskMs > 0) {
+        busySlots.push({
+            start: task.scheduledStartTime.getTime() - totalPreTaskMs,
+            end: task.scheduledStartTime.getTime()
+        });
     }
 
-    const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
-    if (prepMs > 0) {
-        busySlots.push({ start: currentStart - prepMs, end: currentStart });
+    // 2. Post-Task Block: Task End -> [Cleanup] + [Mingle]
+    const totalPostTaskMs = cleanupMs + mingleMs;
+    if (totalPostTaskMs > 0) {
+        busySlots.push({
+            start: task.scheduledEndTime.getTime(),
+            end: task.scheduledEndTime.getTime() + totalPostTaskMs
+        });
     }
   });
 
   busySlots.sort((a, b) => a.start - b.start);
 
   flexibleTasks.forEach(task => {
-    // Calculate total duration needed (Prep + Early + Task)
     const taskDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
-
-    const ruleApplies = earlyOnTimeSettings.enabled && !earlyOnTimeSettings.onlyAppointments; // Flexible tasks only get early buffer if NOT "only appointments"
-    const earlyMs = ruleApplies ? 15 * MS_PER_MINUTE : 0;
+    const { earlyMs } = calculateBuffers(task, taskDurationMs);
     const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
 
-    const totalDurationMs = taskDurationMs + earlyMs + prepMs;
+    // Flexible tasks also carry their own "luggage" (Prep + Early) that must fit into the slot.
+    // They generally don't enforce their own cleanup/mingle time on *others* during the search,
+    // but they occupy time.
+    // Logic: We are looking for a slot for the [Prep+Early+Task] block.
+    // Cleanup/Mingle for flexible tasks is appended *after* the due date/slot usually,
+    // but technically if it's "Cleanup", it blocks the calendar.
+    // For simplicity in "Scheduling Backward", we fit the main block [Prep+Early+Task].
+    // If the task has cleanup, that cleanup essentially extends the "Busy" time of the task once placed.
+
+    const totalDurationMs = totalDurationToFit;
 
     if (!task.baseDueDate) {
       // Default to now, but respecting the structure [Prep][Early][Task]
       // Start time represents the start of the TASK, so we need to offset.
-      // Actually, for immediate tasks, we probably just want to schedule the whole block starting now?
-      // Let's stick to the pattern: scheduledStartTime is the task start.
       const nowMs = Date.now();
       task.scheduledStartTime = new Date(nowMs + prepMs + earlyMs);
       task.scheduledEndTime = new Date(task.scheduledStartTime.getTime() + taskDurationMs);
@@ -2061,13 +2095,27 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       return;
     }
 
-    // Determine if the "Early is on Time" rule applies to this specific occurrence
-    const ruleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || occurrence.isAppointment);
+    // Determine the early buffer amount for GPA calculation
+    // GPA logic: "On Time" means completing it before the Due Date.
+    // If "Early is on Time" is active, effectively the Due Date is earlier.
+    // Wait, the "Early" rule usually means: If I am 15 mins early, I get FULL points.
+    // The previous implementation subtracted 15 mins from the scheduled start time for the calculation of 'timeUntilDue'.
+    // `timeUntilDue = gpaCalculationStartTimeMs - nowMs`
+    // If we subtract 15 mins, `timeUntilDue` becomes smaller -> more urgent -> higher demerit?
+    // Actually, `warningWindow` logic uses `timeUntilDue`.
+
+    // Let's stick to the previous pattern but dynamic:
+    const durationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
+    const { earlyMs } = calculateBuffers(occurrence, durationMs);
 
     // --- GPA Calculation ---
     let gpaCalculationStartTimeMs = occurrence.scheduledStartTime.getTime();
-    if (ruleApplies) {
-      gpaCalculationStartTimeMs -= 15 * MS_PER_MINUTE; // Subtract 15 minutes for GPA calculation
+    if (earlyMs > 0) {
+        // If an early buffer is enforced, the 'effective' due time for full marks is earlier.
+        // Or rather, the task IS scheduled earlier.
+        // The original logic `gpaCalculationStartTimeMs -= 15 * MS_PER_MINUTE` effectively shifted the 'reference point' back.
+        // Let's maintain that behavior using the calculated `earlyMs`.
+        gpaCalculationStartTimeMs -= earlyMs;
     }
 
     const prepTimeMs = getDurationMs(occurrence.prepTimeAmount, occurrence.prepTimeUnit);
@@ -2124,40 +2172,38 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     // Only generate buffers for tasks that are scheduled and not themselves buffers
     if (!task.scheduledStartTime || task.type === 'buffer') return;
 
-    const ruleApplies = earlyOnTimeSettings.enabled && (!earlyOnTimeSettings.onlyAppointments || task.isAppointment);
+    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    const { earlyMs, mingleMs } = calculateBuffers(task, durationMs);
     const prepTimeMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
+    const cleanupTimeMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
 
+    // --- Pre-Task Buffers (Work Backwards from Task Start) ---
     let currentStartTime = new Date(task.scheduledStartTime);
 
-    // 1. Early Buffer (15 mins)
-    // Placed immediately before the task
-    if (ruleApplies) {
-      const earlyDurationMs = 15 * MS_PER_MINUTE;
-      const earlyStart = new Date(currentStartTime.getTime() - earlyDurationMs);
+    // 1. Early Buffer
+    if (earlyMs > 0) {
+      const earlyStart = new Date(currentStartTime.getTime() - earlyMs);
       const earlyEnd = new Date(currentStartTime);
 
       bufferOccurrences.push({
-        id: `${task.id}_early`, // Unique ID for buffer
-        originalId: task.originalId, // Link to parent
-        name: task.name, // Will be overridden by label in render
+        id: `${task.id}_early`,
+        originalId: task.originalId,
+        name: task.name,
         scheduledStartTime: earlyStart,
         scheduledEndTime: earlyEnd,
         displayStartTime: earlyStart,
         displayEndTime: earlyEnd,
-        occurrenceDueDate: earlyStart, // Ensure buffer has a due date reference
+        occurrenceDueDate: earlyStart,
         type: 'buffer',
         subtype: 'early',
-        categoryId: task.categoryId, // Inherit category for color
+        categoryId: task.categoryId,
         isBusy: true,
-        finalStatus: task.finalStatus // Inherit status for border color
+        finalStatus: task.finalStatus
       });
-
-      // Shift the "cursor" back for the next buffer (Prep Time)
       currentStartTime = earlyStart;
     }
 
     // 2. Prep Time Buffer
-    // Placed before the Early buffer (or the task if no early buffer)
     if (prepTimeMs > 0) {
       const prepStart = new Date(currentStartTime.getTime() - prepTimeMs);
       const prepEnd = new Date(currentStartTime);
@@ -2170,13 +2216,57 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         scheduledEndTime: prepEnd,
         displayStartTime: prepStart,
         displayEndTime: prepEnd,
-        occurrenceDueDate: prepStart, // Ensure buffer has a due date reference
+        occurrenceDueDate: prepStart,
         type: 'buffer',
         subtype: 'prep',
         categoryId: task.categoryId,
         isBusy: true,
         finalStatus: task.finalStatus
       });
+    }
+
+    // --- Post-Task Buffers (Work Forwards from Task End) ---
+    let currentEndTime = new Date(task.scheduledEndTime);
+
+    // 3. Cleanup Time Buffer
+    if (cleanupTimeMs > 0) {
+        const cleanupEnd = new Date(currentEndTime.getTime() + cleanupTimeMs);
+        bufferOccurrences.push({
+            id: `${task.id}_cleanup`,
+            originalId: task.originalId,
+            name: task.name,
+            scheduledStartTime: new Date(currentEndTime),
+            scheduledEndTime: cleanupEnd,
+            displayStartTime: new Date(currentEndTime),
+            displayEndTime: cleanupEnd,
+            occurrenceDueDate: cleanupEnd,
+            type: 'buffer',
+            subtype: 'cleanup',
+            categoryId: task.categoryId,
+            isBusy: true,
+            finalStatus: task.finalStatus
+        });
+        currentEndTime = cleanupEnd;
+    }
+
+    // 4. Mingle Time Buffer
+    if (mingleMs > 0) {
+        const mingleEnd = new Date(currentEndTime.getTime() + mingleMs);
+        bufferOccurrences.push({
+            id: `${task.id}_mingle`,
+            originalId: task.originalId,
+            name: task.name,
+            scheduledStartTime: new Date(currentEndTime),
+            scheduledEndTime: mingleEnd,
+            displayStartTime: new Date(currentEndTime),
+            displayEndTime: mingleEnd,
+            occurrenceDueDate: mingleEnd,
+            type: 'buffer',
+            subtype: 'mingle',
+            categoryId: task.categoryId,
+            isBusy: true,
+            finalStatus: task.finalStatus
+        });
     }
   });
 
@@ -2334,7 +2424,11 @@ function taskTemplate(task, { categories, taskDisplaySettings, appSettings }) {
   const repetitionHtml = taskDisplaySettings.showRepetition && repetitionStr ? `<p class="text-sm opacity-70">${repetitionStr}</p>` : '';
 
   const durationStr = formatDuration(task.estimatedDurationAmount, task.estimatedDurationUnit);
-  const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationStr}</p>` : '';
+  let durationDisplay = durationStr;
+  if (task.cleanupTimeAmount && task.cleanupTimeAmount > 0) {
+      durationDisplay += ` (+${formatDuration(task.cleanupTimeAmount, task.cleanupTimeUnit)} cleanup)`;
+  }
+  const durationHtml = taskDisplaySettings.showDuration ? `<p class="text-sm opacity-70">Est. Duration: ${durationDisplay}</p>` : '';
 
   const countdownHtml = taskDisplaySettings.showCountdown ? `<p id="countdown-${task.id}" class="countdown-timer"></p>` : '';
 
@@ -3809,6 +3903,10 @@ function sanitizeAndUpgradeTask(task) {
     description: '',
     estimatedDurationAmount: null,
     estimatedDurationUnit: 'minutes',
+    prepTimeAmount: null,
+    prepTimeUnit: 'minutes',
+    cleanupTimeAmount: null,
+    cleanupTimeUnit: 'minutes',
     categoryId: null,
     relativeAmount: null,
     relativeUnit: null,
@@ -5176,21 +5274,34 @@ function openModal(taskId = null, options = {}) {
       taskIconInput.value = task.icon || '';
 
       // Set Time Input Type and corresponding date fields
-      timeInputTypeSelect.value = task.timeInputType || 'due';
-      const dateToUse = (options.occurrenceDate instanceof Date) ? options.occurrenceDate : (task.dueDate ? new Date(task.dueDate) : null);
-
-      // Always populate the main due date input for simplicity
-      taskDueDateInput.value = formatDateForInput(dateToUse);
-
-      // Populate start date if applicable, but visibility is handled later
-      if (task.timeInputType === 'start') {
-        const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
-        const startDate = new Date(dateToUse.getTime() - durationMs);
-        taskStartDateInput.value = formatDateForInput(startDate);
+      // Use Smart Defaults preference if available, otherwise default to task's setting or 'due'
+      let preferredInputType = task.timeInputType || 'due';
+      if (uiSettings.smartFormDefaults && uiSettings.smartFormDefaults.enabled && uiSettings.smartFormHistory && uiSettings.smartFormHistory.timeInputType) {
+         // Only use default if this is a NEW task (no ID yet) or if we want to enforce it.
+         // For existing tasks, typically we respect the task's saved preference, BUT if the user is editing an occurrence,
+         // they might prefer their default input method. Given the request, we'll lean towards respecting the smart default if active.
+         if (!taskId) {
+             preferredInputType = uiSettings.smartFormHistory.timeInputType[0] || preferredInputType;
+         }
       }
 
-      // Show/hide based on saved values
-      startDateGroup.classList.toggle('hidden', task.timeInputType !== 'start');
+      timeInputTypeSelect.value = preferredInputType;
+
+      const dateToUse = (options.occurrenceDate instanceof Date) ? options.occurrenceDate : (task.dueDate ? new Date(task.dueDate) : null);
+      const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
+      // Always populate BOTH inputs so switching works immediately
+      if (dateToUse) {
+          taskDueDateInput.value = formatDateForInput(dateToUse);
+          const startDate = new Date(dateToUse.getTime() - durationMs);
+          taskStartDateInput.value = formatDateForInput(startDate);
+      } else {
+          taskDueDateInput.value = '';
+          taskStartDateInput.value = '';
+      }
+
+      // Show/hide based on determined preference
+      updateDateTimeFieldsVisibility();
 
       dueDateTypeSelect.value = task.dueDateType || 'absolute';
       relativeDueDateGroup.classList.toggle('hidden', task.dueDateType !== 'relative');
@@ -5249,6 +5360,8 @@ function openModal(taskId = null, options = {}) {
       document.getElementById('is-kpi').checked = task.isKpi || false;
       document.getElementById('prep-time-amount').value = task.prepTimeAmount || '';
       document.getElementById('prep-time-unit').value = task.prepTimeUnit || 'minutes';
+      document.getElementById('cleanup-time-amount').value = task.cleanupTimeAmount || '';
+      document.getElementById('cleanup-time-unit').value = task.cleanupTimeUnit || 'minutes';
 
       // New logic for repetition end condition
       const repeatUntilMode = task.repeatUntilMode || 'date';
@@ -5641,49 +5754,79 @@ function updateTaskIcon(taskId, newIcon) {
   if (calendar) calendar.refetchEvents();
 }
 
-function renderEarlyOnTimeSettings() {
-  const settings = uiSettings.earlyOnTimeSettings || { enabled: false, displaceCalendar: false, onlyAppointments: false };
-  const masterToggle = document.getElementById('early-on-time-toggle');
-  const optionsDiv = document.getElementById('early-on-time-options');
-  const appointmentsToggle = document.getElementById('early-on-time-appointments-toggle');
-
-  if (masterToggle) {
-    masterToggle.checked = settings.enabled;
-  }
-  if (optionsDiv) {
-    optionsDiv.classList.toggle('hidden', !settings.enabled);
-  }
-  if (appointmentsToggle) {
-    appointmentsToggle.checked = settings.onlyAppointments;
-  }
-}
+// renderEarlyOnTimeSettings is now deprecated and merged into renderBufferSettings
 
 function renderBufferSettings() {
   const container = document.getElementById('buffer-management-content');
   if (!container) return;
 
+  const earlySettings = uiSettings.earlyOnTimeSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+  const mingleSettings = uiSettings.mingleBufferSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+
   container.innerHTML = `
         <div class="space-y-4">
-            <div>
-                <h4 class="font-bold text-sm mb-2">Prep Time</h4>
-                <div class="flex space-x-2 items-center mb-2">
-                    <label class="text-xs">Label:</label>
-                    <input type="text" id="buffer-prep-label" value="${bufferSettings.prep.label}" class="flex-grow text-xs p-1">
+            <div class="border-b border-gray-700 pb-2">
+                <h4 class="font-bold text-sm mb-2">Pre-Task Buffer (Be Early)</h4>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs">Enabled:</label>
+                    <input type="checkbox" data-action="toggleEarlyOnTime" class="toggle-checkbox" ${earlySettings.enabled ? 'checked' : ''}>
                 </div>
-                <div class="flex space-x-2 items-center">
-                    <label class="text-xs">Icon:</label>
-                    <div class="flex items-center space-x-2 flex-grow">
-                        <input type="text" id="buffer-prep-icon" value="${bufferSettings.prep.icon}" class="flex-grow text-xs p-1">
-                        <button type="button" data-action="openIconPicker" data-context="buffer-prep" class="btn btn-clear text-xs">Choose</button>
+                <div class="${earlySettings.enabled ? '' : 'hidden'} space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="early-buffer-amount" value="${earlySettings.amount || 15}" class="duration-input p-1 text-xs">
+                        <select id="early-buffer-unit" class="text-xs p-1">
+                            <option value="minutes" ${earlySettings.unit === 'minutes' ? 'selected' : ''}>Minutes</option>
+                            <option value="percent" ${earlySettings.unit === 'percent' ? 'selected' : ''}>Percent of Duration</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs">Only Appointments:</label>
+                        <input type="checkbox" data-action="toggleEarlyOnTimeAppointments" class="toggle-checkbox" ${earlySettings.onlyAppointments ? 'checked' : ''}>
                     </div>
                 </div>
             </div>
-            <div class="border-t border-gray-700 pt-2">
-                <h4 class="font-bold text-sm mb-2">Early Buffer (from "Early is on Time")</h4>
-                <div class="flex space-x-2 items-center mb-2">
-                    <label class="text-xs">Label:</label>
-                    <input type="text" id="buffer-early-label" value="${bufferSettings.early.label}" class="flex-grow text-xs p-1">
+
+            <div class="border-b border-gray-700 pb-2">
+                <h4 class="font-bold text-sm mb-2">Post-Task Buffer (Mingle Time)</h4>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs">Enabled:</label>
+                    <input type="checkbox" data-action="toggleMingleBuffer" class="toggle-checkbox" ${mingleSettings.enabled ? 'checked' : ''}>
                 </div>
+                <div class="${mingleSettings.enabled ? '' : 'hidden'} space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="mingle-buffer-amount" value="${mingleSettings.amount || 15}" class="duration-input p-1 text-xs">
+                        <select id="mingle-buffer-unit" class="text-xs p-1">
+                            <option value="minutes" ${mingleSettings.unit === 'minutes' ? 'selected' : ''}>Minutes</option>
+                            <option value="percent" ${mingleSettings.unit === 'percent' ? 'selected' : ''}>Percent of Duration</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs">Only Appointments:</label>
+                        <input type="checkbox" data-action="toggleMingleBufferAppointments" class="toggle-checkbox" ${mingleSettings.onlyAppointments ? 'checked' : ''}>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-sm mb-2">Visual Labels & Icons</h4>
+                <div class="space-y-2">
+                    <div class="flex space-x-2 items-center">
+                        <label class="text-xs w-16">Prep:</label>
+                        <input type="text" id="buffer-prep-label" value="${bufferSettings.prep.label}" class="flex-grow text-xs p-1">
+                        <button type="button" data-action="openIconPicker" data-context="buffer-prep" class="btn btn-clear text-xs"><i class="${bufferSettings.prep.icon}"></i></button>
+                    </div>
+                    <div class="flex space-x-2 items-center">
+                        <label class="text-xs w-16">Early:</label>
+                        <input type="text" id="buffer-early-label" value="${bufferSettings.early.label}" class="flex-grow text-xs p-1">
+                        <button type="button" data-action="openIconPicker" data-context="buffer-early" class="btn btn-clear text-xs"><i class="${bufferSettings.early.icon}"></i></button>
+                    </div>
+                    <div class="flex space-x-2 items-center">
+                        <label class="text-xs w-16">Mingle:</label>
+                        <input type="text" id="buffer-mingle-label" value="${bufferSettings.mingle ? bufferSettings.mingle.label : 'Mingle'}" class="flex-grow text-xs p-1">
+                        <button type="button" data-action="openIconPicker" data-context="buffer-mingle" class="btn btn-clear text-xs"><i class="${bufferSettings.mingle ? bufferSettings.mingle.icon : 'fa-solid fa-comments'}"></i></button>
+                    </div>
+                </div>
+            </div>
                 <div class="flex space-x-2 items-center">
                     <label class="text-xs">Icon:</label>
                     <div class="flex items-center space-x-2 flex-grow">
@@ -5776,7 +5919,7 @@ function openAdvancedOptionsModal() {
   renderHintManager();
   renderOtherFeaturesSettings(); // Render the new settings
   renderTaskHistorySettings();
-  renderEarlyOnTimeSettings(); // Render the "Early is on Time" settings
+  // renderEarlyOnTimeSettings(); // Deprecated
   renderBufferSettings(); // Render buffer management UI
   renderMonthViewSettings(); // Render the new month view settings
   renderCalendarViewSettings();
@@ -5865,6 +6008,25 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
   if (!taskOrHistoryItem) {
     console.error('Task or history item not found for opening view:', eventId);
     return;
+  }
+
+  // --- MERGE OCCURRENCE OVERRIDES IF APPLICABLE ---
+  // If we are looking at a virtual occurrence (eventId has underscore but taskOrHistoryItem is the master task)
+  if (!isHistorical && eventId.includes('_') && taskOrHistoryItem.id === getBaseId(eventId)) {
+      if (taskOrHistoryItem.occurrenceOverrides && taskOrHistoryItem.occurrenceOverrides[eventId]) {
+          console.log(`Merging occurrence overrides for ${eventId}`);
+          // Deep clone the task so we don't mutate the master
+          const override = taskOrHistoryItem.occurrenceOverrides[eventId];
+          taskOrHistoryItem = { ...taskOrHistoryItem, ...override };
+          // Ensure the ID matches the requested eventId for context
+          taskOrHistoryItem.id = eventId;
+          taskOrHistoryItem.originalTaskId = getBaseId(eventId); // Keep ref to master
+
+          // If the override specifies a new due date, make sure it is respected
+          if (override.dueDate) {
+              taskOrHistoryItem.dueDate = new Date(override.dueDate);
+          }
+      }
   }
 
   if (isHistorical && !taskOrHistoryItem.id) {
@@ -7944,6 +8106,8 @@ function handleFormSubmit(event) {
       isKpi: document.getElementById('is-kpi').checked,
       prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
       prepTimeUnit: document.getElementById('prep-time-unit').value,
+    cleanupTimeAmount: document.getElementById('cleanup-time-amount').value ? parseInt(document.getElementById('cleanup-time-amount').value, 10) : null,
+    cleanupTimeUnit: document.getElementById('cleanup-time-unit').value,
       repeatUntil: null,
       repeatUntilMode: taskForm.querySelector('input[name="repeat-until-mode"]:checked').value,
       repeatUntilOccurrences: null,
@@ -10042,13 +10206,25 @@ function setupEventListeners() {
     if (timeInputTypeSelectEl) {
       timeInputTypeSelectEl.addEventListener('change', (e) => {
         const isSwitchingToStart = e.target.value === 'start';
+        const durationMs = getDurationMs(estimatedDurationAmountInput.value, estimatedDurationUnitSelect.value);
+
         if (isSwitchingToStart) {
+          // Switching FROM Due TO Start. Calculate Start = Due - Duration
           if (taskDueDateInput.value) {
-            taskStartDateInput.value = taskDueDateInput.value;
+            const dueDate = new Date(taskDueDateInput.value);
+            if (!isNaN(dueDate)) {
+              const startDate = new Date(dueDate.getTime() - durationMs);
+              taskStartDateInput.value = formatDateForInput(startDate);
+            }
           }
-        } else { // Switching to Due
+        } else {
+          // Switching FROM Start TO Due. Calculate Due = Start + Duration
           if (taskStartDateInput.value) {
-            taskDueDateInput.value = taskStartDateInput.value;
+            const startDate = new Date(taskStartDateInput.value);
+            if (!isNaN(startDate)) {
+              const dueDate = new Date(startDate.getTime() + durationMs);
+              taskDueDateInput.value = formatDateForInput(dueDate);
+            }
           }
         }
         updateDateTimeFieldsVisibility();
@@ -10525,14 +10701,27 @@ function setupEventListeners() {
         saveData();
         break;
       case 'toggleEarlyOnTime':
-        if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+        if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
         uiSettings.earlyOnTimeSettings.enabled = event.target.checked;
-        renderEarlyOnTimeSettings();
+        renderBufferSettings();
         saveData();
         break;
       case 'toggleEarlyOnTimeAppointments':
-        if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+        if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
         uiSettings.earlyOnTimeSettings.onlyAppointments = event.target.checked;
+        renderBufferSettings();
+        saveData();
+        break;
+      case 'toggleMingleBuffer':
+        if (!uiSettings.mingleBufferSettings) uiSettings.mingleBufferSettings = { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+        uiSettings.mingleBufferSettings.enabled = event.target.checked;
+        renderBufferSettings();
+        saveData();
+        break;
+      case 'toggleMingleBufferAppointments':
+        if (!uiSettings.mingleBufferSettings) uiSettings.mingleBufferSettings = { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+        uiSettings.mingleBufferSettings.onlyAppointments = event.target.checked;
+        renderBufferSettings();
         saveData();
         break;
       case 'toggleSmartFormDefaults':
@@ -10580,6 +10769,18 @@ function setupEventListeners() {
         if (uiSettings.userInteractions) uiSettings.userInteractions.changedSensitivity = true;
         saveData();
         updateAllTaskStatuses(true);
+      } else if (target.id === 'early-buffer-amount' || target.id === 'early-buffer-unit') {
+          if (!uiSettings.earlyOnTimeSettings) uiSettings.earlyOnTimeSettings = { enabled: false, displaceCalendar: false, onlyAppointments: false };
+          uiSettings.earlyOnTimeSettings.amount = parseInt(document.getElementById('early-buffer-amount').value, 10);
+          uiSettings.earlyOnTimeSettings.unit = document.getElementById('early-buffer-unit').value;
+          saveData();
+          updateAllTaskStatuses(true);
+      } else if (target.id === 'mingle-buffer-amount' || target.id === 'mingle-buffer-unit') {
+          if (!uiSettings.mingleBufferSettings) uiSettings.mingleBufferSettings = { enabled: false, onlyAppointments: false };
+          uiSettings.mingleBufferSettings.amount = parseInt(document.getElementById('mingle-buffer-amount').value, 10);
+          uiSettings.mingleBufferSettings.unit = document.getElementById('mingle-buffer-unit').value;
+          saveData();
+          updateAllTaskStatuses(true);
       }
     });
 
@@ -11389,7 +11590,12 @@ function updateAllTaskStatuses(forceRender = false) {
 
     if (occurrence.type === 'buffer') {
         // Buffers use custom icons and labels
-        const settings = occurrence.subtype === 'prep' ? bufferSettings.prep : bufferSettings.early;
+        let settings;
+        if (occurrence.subtype === 'prep') settings = bufferSettings.prep;
+        else if (occurrence.subtype === 'early') settings = bufferSettings.early;
+        else if (occurrence.subtype === 'cleanup') settings = { label: 'Cleanup', icon: 'fa-solid fa-broom' }; // Default or add to settings
+        else if (occurrence.subtype === 'mingle') settings = bufferSettings.mingle || { label: 'Mingle', icon: 'fa-solid fa-comments' };
+
         title = `${settings.label}: ${task.name}`;
         icon = settings.icon; // Override icon
 
