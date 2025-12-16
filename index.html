@@ -6941,6 +6941,8 @@ function renderKpiList(weekOffset = 0) {
       singleChartOptions.plugins.title = {
         display: true, text: task.name, color: '#d1d5db', font: { size: 16 }
       };
+      // Restore onClick handler which was lost during stringify
+      singleChartOptions.onClick = chartOptions.onClick;
 
       const chart = new Chart(ctx, {
         type: 'line',
