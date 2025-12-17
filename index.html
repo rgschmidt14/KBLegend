@@ -6085,7 +6085,17 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
     return;
   }
 
+  /*
+     Architecture Note: Modal Context Pattern
+     Instead of relying on parsing IDs from individual buttons (which can be fragile),
+     we store the resolved Master ID and Occurrence ID directly on the modal DOM element.
+     Child components (buttons) can look up to this "Context" to know exactly which task to operate on.
+  */
+  taskViewModalEl.dataset.masterTaskId = taskOrHistoryItem.originalTaskId || taskOrHistoryItem.id;
+  taskViewModalEl.dataset.occurrenceId = eventId;
+
   const updateBorder = (task) => {
+  console.log("DEBUG: Setting modal dataset. Master:", taskOrHistoryItem.originalTaskId, "ID:", taskOrHistoryItem.id, "EventID:", eventId);
     if (!borderWrapper) return;
     let gpaPercent = 0;
     const gpaMap = { blue: 4.0, green: 3.0, yellow: 2.0, red: 1.0, black: 0.0 };
@@ -6171,7 +6181,14 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
     if (!target) return;
 
     const action = target.dataset.action;
-    const taskId = target.dataset.taskId || (isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id);
+
+    // Architecture Note: Retrieve Context from Modal
+    const contextMasterId = taskViewModalEl.dataset.masterTaskId;
+    const contextOccurrenceId = taskViewModalEl.dataset.occurrenceId;
+
+    // Use the context master ID if available, otherwise fallback to button attributes
+    const taskId = contextMasterId || target.dataset.taskId || (isHistorical ? taskOrHistoryItem.originalTaskId : taskOrHistoryItem.id);
+
     const historyEventId = target.dataset.historyEventId;
     let task = tasks.find(t => t.id === taskId);
 
@@ -6211,35 +6228,37 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
       if (source === 'task-manager') {
         openModal(taskId, { source: 'task-view' });
       } else { // 'calendar' or default
-        // Fix: Extract baseId if taskId is an occurrence ID (e.g., "task1_2023-10-27")
-        // This ensures we find the actual task object in the `tasks` array.
-        const baseId = taskId.includes('_') ? taskId.split('_')[0] : taskId;
-        const taskToEdit = tasks.find(t => t.id === baseId);
+        const taskToEdit = tasks.find(t => t.id === taskId); // taskId is now reliably the Master ID
 
         if (taskToEdit) {
-          const occurrence = calendarTimeGridEvents.find(e => e.id === eventId) || calendarMonthEvents.find(e => e.id === eventId);
-          openSimpleEditModal(taskToEdit, occurrence ? { id: occurrence.id, occurrenceDueDate: occurrence.start } : null, categories);
+          // Use the contextOccurrenceId directly for finding the event, ensuring we get the right instance
+          const occurrence = calendarTimeGridEvents.find(e => e.id === contextOccurrenceId) || calendarMonthEvents.find(e => e.id === contextOccurrenceId);
+          // If we can't find the event object (rare), we construct a fallback object with the ID and date we know
+          const occurrenceData = occurrence
+            ? { id: occurrence.id, occurrenceDueDate: occurrence.start }
+            : { id: contextOccurrenceId, occurrenceDueDate: occurrenceDate };
+
+          openSimpleEditModal(taskToEdit, occurrenceData, categories);
         } else {
-            console.error('editTaskFromView: Could not find taskToEdit for baseId:', baseId, 'Original ID:', taskId);
+            console.error('editTaskFromView: Could not find taskToEdit for ID:', taskId);
         }
       }
       break;
     case 'triggerDeleteFromView':
-      triggerDelete(taskId);
-      openTaskView(eventId, isHistorical, occurrenceDate);
+      triggerDelete(taskId); // Uses Master ID
+      refreshModal();
       break;
     case 'confirmCompletion':
-      confirmCompletionAction(taskId, target.dataset.confirmed === 'true');
-      // Re-open the view to reflect the new state. This handles both "Yes" and "No" paths.
-      openTaskView(eventId, isHistorical, occurrenceDate, source);
+      confirmCompletionAction(taskId, target.dataset.confirmed === 'true'); // Uses Master ID
+      refreshModal();
       break;
     case 'confirmMiss':
-      confirmMissAction(taskId, target.dataset.confirmed === 'true');
-      openTaskView(eventId, isHistorical, occurrenceDate, source);
+      confirmMissAction(taskId, target.dataset.confirmed === 'true'); // Uses Master ID
+      refreshModal();
       break;
     case 'confirmUndo':
-      confirmUndoAction(taskId, target.dataset.confirmed === 'true');
-      openTaskView(eventId, isHistorical, occurrenceDate, source);
+      confirmUndoAction(taskId, target.dataset.confirmed === 'true'); // Uses Master ID
+      refreshModal();
       break;
     case 'confirmDeleteFromView':
     case 'confirmDeleteHistoryRecordFromView':
