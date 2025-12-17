@@ -696,6 +696,16 @@ legend {
 }
 
 /* ======================================================================== */
+/* GHOST BLOCK STYLES                                                       */
+/* ======================================================================== */
+.fc-event-ghost {
+    opacity: 0.5;
+    border-style: dashed !important;
+    border-width: 2px !important;
+    pointer-events: none; /* Let clicks pass through to empty slots if needed */
+}
+
+/* ======================================================================== */
 /* NEW MONTH VIEW STYLES                                                    */
 /* ======================================================================== */
 .month-view-event-list {
@@ -965,6 +975,12 @@ legend {
                             <option value="start">Start Time</option>
                         </select>
                     </div>
+                     <div class="mb-4">
+                         <label class="flex items-center">
+                             <input type="checkbox" id="simple-all-day-toggle" class="h-4 w-4 rounded">
+                             <span class="ml-2 text-sm font-medium">All Day Task</span>
+                         </label>
+                     </div>
                      <div id="due-date-group" class="mb-4">
                         <label for="task-due-date" class="form-label">Due Date & Time:</label>
                         <input type="datetime-local" id="task-due-date" name="task-due-date">
@@ -1017,12 +1033,18 @@ legend {
                     </fieldset>
                     <fieldset id="advanced-time-fieldset">
                         <legend class="form-legend">Time and Scheduling</legend>
-                         <div class="mb-4">
-                            <label class="form-label">Due Date Type:</label>
-                            <select id="due-date-type" name="due-date-type">
-                                <option value="absolute">Absolute Date & Time</option>
-                                <option value="relative">Relative Time</option>
-                            </select>
+                         <div class="mb-4 flex items-center justify-between">
+                            <div class="flex-grow mr-4">
+                                <label class="form-label">Due Date Type:</label>
+                                <select id="due-date-type" name="due-date-type">
+                                    <option value="absolute">Absolute Date & Time</option>
+                                    <option value="relative">Relative Time</option>
+                                </select>
+                            </div>
+                             <label class="flex items-center mt-6">
+                                 <input type="checkbox" id="advanced-all-day-toggle" class="h-4 w-4 rounded">
+                                 <span class="ml-2 text-sm font-medium">All Day</span>
+                             </label>
                         </div>
                         <div id="advanced-time-inputs-placeholder"></div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
@@ -1321,6 +1343,10 @@ legend {
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showCountdown" class="task-display-toggle"><span>Show Countdown</span></label>
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showProgress" class="task-display-toggle"><span>Show Progress Bar</span></label>
                                 </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <label for="visually-shrink-toggle" class="form-label mb-0" title="If checked, partially completed tasks will appear smaller on the calendar. If unchecked, they stay full size but still free up time for other tasks.">Visually Shrink Completed Tasks:</label>
+                                    <input type="checkbox" id="visually-shrink-toggle" data-action="toggleVisuallyShrink" class="toggle-checkbox">
+                                </div>
                             </div>
                         </fieldset>
                     </div>
@@ -1411,6 +1437,17 @@ legend {
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showIcon" class="day-view-display-toggle"><span>Show Icon</span></label>
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showTime" class="day-view-display-toggle"><span>Show Time</span></label>
                                     <label class="flex items-center space-x-2"><input type="checkbox" name="showName" class="day-view-display-toggle"><span>Show Name</span></label>
+                                </div>
+                            </div>
+                            <div id="allday-view-display-options" class="mt-4" title="Choose what information to display for All-Day events in the calendar.">
+                                <p class="form-label mb-1">All Day View Display:</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center space-x-2"><input type="checkbox" name="showIcon" class="allday-view-display-toggle"><span>Show Icon</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" name="showName" class="allday-view-display-toggle"><span>Show Name</span></label>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <label for="show-ghost-blocks-toggle" class="form-label mb-0" title="Show a semi-transparent block on the calendar grid representing the time occupied by an All-Day task.">Show Ghost Blocks:</label>
+                                    <input type="checkbox" id="show-ghost-blocks-toggle" data-action="toggleShowGhostBlocks" class="toggle-checkbox">
                                 </div>
                             </div>
                         </fieldset>
@@ -1845,8 +1882,12 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   const now = now_for_testing || new Date();
   const nowMs = now.getTime();
   const { sensitivity, vacations, categories, calendarCategoryFilters } = settings;
-  const earlyOnTimeSettings = uiSettings.earlyOnTimeSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
-  const mingleSettings = uiSettings.mingleBufferSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+  // Use passed settings first if available (for testing), then fallback to global uiSettings
+  const earlyOnTimeSettings = settings.earlyOnTimeSettings || uiSettings.earlyOnTimeSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+  const mingleSettings = settings.mingleBufferSettings || uiSettings.mingleBufferSettings || { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' };
+  // Access global uiSettings for display toggles if not passed in settings object
+  const visuallyShrinkCompletedTasks = (settings.uiSettings && settings.uiSettings.visuallyShrinkCompletedTasks !== undefined) ? settings.uiSettings.visuallyShrinkCompletedTasks : uiSettings.visuallyShrinkCompletedTasks;
+  const showGhostBlocks = (settings.uiSettings && settings.uiSettings.showGhostBlocks !== undefined) ? settings.uiSettings.showGhostBlocks : uiSettings.showGhostBlocks;
 
   // --- Step 0: Filter tasks based on calendar 'schedule' settings ---
   const filteredTasks = tasks.filter(task => {
@@ -1911,19 +1952,18 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   allOccurrences.forEach(occurrence => {
     const task = occurrence;
     const baseDueDate = adjustDateForVacation(new Date(task.occurrenceDueDate), vacations, task.categoryId, categories);
+
+    // For All-Day tasks, the "base due date" is effectively 23:59:59 on that day.
+    if (task.isAllDay) {
+        baseDueDate.setHours(23, 59, 59, 999);
+    }
+
     task.baseDueDate = baseDueDate;
 
     const prepTimeMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
     const estimatedDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
-    const urgencySourceDuration = prepTimeMs > 0 ? prepTimeMs : estimatedDurationMs;
-    const warningWindow = urgencySourceDuration * 4;
-    const timeUntilDue = baseDueDate.getTime() - nowMs;
 
-    let timeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
-    timeDemerit = Math.max(0, Math.min(timeDemerit, 3.0));
-
-    // Adjust demerit based on progress. A task that is 50% done will have its time-based urgency penalty cut in half.
-    // This makes timed and count-based tasks feel less urgent as they are worked on.
+    // Calculate Progress Ratio first, as it affects demerits and effective duration
     let progressRatio = 0;
     if (task.completionType === 'time' && task.currentProgress > 0) {
       const totalDurationMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
@@ -1936,20 +1976,46 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       }
     }
     progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
+    task.progressRatio = progressRatio;
 
+    // --- GPA Demerit Calculation Documentation ---
+    // 1. Urgency Source: We use either the Prep Time (if it exists) or the Estimated Duration as the basis for urgency.
+    //    Prep time is prioritized because if you need 1 hour to prep, you need to start thinking about it 1 hour before start.
+    const urgencySourceDuration = prepTimeMs > 0 ? prepTimeMs : estimatedDurationMs;
+
+    // 2. Warning Window: We start applying GPA penalties when the time remaining until the task is due
+    //    is less than 4x the task's duration. E.g., a 1-hour task starts losing GPA 4 hours before it's due.
+    const warningWindow = urgencySourceDuration * 4;
+    const timeUntilDue = baseDueDate.getTime() - nowMs;
+
+    // 3. Time Demerit: The closer we get to the due date (within the window), the higher the demerit.
+    //    At the start of the window, demerit is 0. At the due time, demerit is 3.0.
+    //    Formula: (1 - (TimeLeft / Window)) * MaxPenalty
+    let timeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
+    timeDemerit = Math.max(0, Math.min(timeDemerit, 3.0));
+
+    // 4. Progress Adjustment: If a task is partially complete, we reduce the time demerit proportionally.
+    //    A task that is 50% done will only incur 50% of the calculated time pressure.
+    //    This reflects the reality that you have less work left to do.
     if (progressRatio > 0) {
       timeDemerit = timeDemerit * (1 - progressRatio);
     }
 
+    // 5. Habit/Miss Demerit: Repeating tasks that have been missed recently get a GPA penalty.
+    //    This lowers their score (making them redder) to alert the user to a failing habit.
     let habitDemerit = (task.repetitionType !== 'none' && task.trackMisses && task.maxMisses > 0) ? (task.misses / task.maxMisses) * 2.0 : 0;
     habitDemerit = Math.max(0, Math.min(habitDemerit, 2.0));
 
+    // 6. Final Positioning GPA: Starts at 4.0 (Perfect/Blue). Subtracts time pressure and habit failures.
     task.positioningGpa = 4.0 - timeDemerit - habitDemerit;
   });
 
   // --- Step 2.2: De-conflict the Calendar ("Scheduling Forward") ---
-  const appointments = allOccurrences.filter(o => o.isAppointment);
-  const flexibleTasks = allOccurrences.filter(o => !o.isAppointment);
+  const appointments = allOccurrences.filter(o => o.isAppointment && !o.isAllDay);
+  const allDayTasks = allOccurrences.filter(o => o.isAllDay);
+  // Flexible tasks are those that are NOT appointments AND NOT all-day tasks.
+  const flexibleTasks = allOccurrences.filter(o => !o.isAppointment && !o.isAllDay);
+
   flexibleTasks.sort((a, b) => a.positioningGpa - b.positioningGpa);
 
   let busySlots = [];
@@ -1984,23 +2050,50 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       return { earlyMs, mingleMs };
   };
 
+  // 1. Schedule Appointments (Fixed Time)
   appointments.forEach(task => {
-    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    const fullDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    // Apply Partial Completion Logic: Reduce duration based on progress
+    const effectiveDurationMs = fullDurationMs * (1 - (task.progressRatio || 0));
+
     if (!task.baseDueDate) return;
-    task.scheduledStartTime = new Date(task.baseDueDate.getTime() - durationMs);
-    task.scheduledEndTime = new Date(task.baseDueDate);
+
+    // --- Anchor Logic ---
+    // If 'timeInputType' is 'start', we anchor to the start.
+    // If 'timeInputType' is 'due' (default), we anchor to the end.
+
+    if (task.timeInputType === 'start') {
+        // Anchor: START
+        // If we shrink, the END moves earlier.
+        // But wait, the task stores 'dueDate' (which is actually Start Date if timeInputType='start').
+        // Wait, handleFormSubmit converts start input to a calculated Due Date.
+        // So task.dueDate is ALWAYS the end time (mathematically).
+        // If the user selected 'Start Time', handleFormSubmit did: dueDate = Start + Duration.
+
+        // If we want to keep the "Start Time" stationary visually:
+        // We need to know what that original start time was.
+        // Original Start = task.dueDate - fullDurationMs.
+        const originalStartMs = task.baseDueDate.getTime() - fullDurationMs;
+
+        task.scheduledStartTime = new Date(originalStartMs);
+        task.scheduledEndTime = new Date(originalStartMs + effectiveDurationMs);
+
+    } else {
+        // Anchor: END (Default)
+        // Keep End Time stationary. Shrink duration moves Start Time later.
+        task.scheduledStartTime = new Date(task.baseDueDate.getTime() - effectiveDurationMs);
+        task.scheduledEndTime = new Date(task.baseDueDate);
+    }
 
     // Add the core appointment time to busy slots
     busySlots.push({ start: task.scheduledStartTime.getTime(), end: task.scheduledEndTime.getTime() });
 
-    // Calculate and add ALL associated buffers (Prep + Early + Cleanup + Mingle) to busy slots
-    // "Bump" logic: Flexible tasks must avoid ALL of these areas.
-
-    const { earlyMs, mingleMs } = calculateBuffers(task, durationMs);
+    // Calculate and add ALL associated buffers.
+    // Note: Buffers are calculated based on the *effective* duration if percentage-based.
+    const { earlyMs, mingleMs } = calculateBuffers(task, effectiveDurationMs);
     const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
     const cleanupMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
 
-    // 1. Pre-Task Block: [Prep] + [Early] -> Ends at Task Start
     const totalPreTaskMs = prepMs + earlyMs;
     if (totalPreTaskMs > 0) {
         busySlots.push({
@@ -2009,7 +2102,6 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         });
     }
 
-    // 2. Post-Task Block: Task End -> [Cleanup] + [Mingle]
     const totalPostTaskMs = cleanupMs + mingleMs;
     if (totalPostTaskMs > 0) {
         busySlots.push({
@@ -2019,20 +2111,82 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     }
   });
 
+  // 2. Schedule All-Day Tasks (Backwards from Midnight)
+  // These displace flexible tasks but don't care about Appointment slots (visual separation).
+  // However, for correct displacement calculation, they DO occupy time.
+  // We schedule them stacking backwards from 23:59:59.
+
+  // Sort by GPA so more urgent all-day tasks are placed last (closest to midnight)?
+  // Actually, standard logic is usually "first one gets the best slot".
+  // But here, they all "end" at midnight. We just stack them.
+  // Let's stack them based on GPA to be consistent.
+  allDayTasks.sort((a, b) => a.positioningGpa - b.positioningGpa);
+
+  // Track the "current end of day" for stacking. Initialize with the latest end-of-day.
+  // We need to do this per-day.
+  const dayEndMap = new Map(); // Key: 'YYYY-MM-DD', Value: timestamp (initially 23:59:59)
+
+  allDayTasks.forEach(task => {
+      const fullDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || (30 * MS_PER_MINUTE);
+      const effectiveDurationMs = fullDurationMs * (1 - (task.progressRatio || 0));
+
+      const dayKey = task.baseDueDate.toISOString().split('T')[0];
+
+      // Initialize if not present
+      if (!dayEndMap.has(dayKey)) {
+          const endOfDay = new Date(task.baseDueDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          dayEndMap.set(dayKey, endOfDay.getTime());
+      }
+
+      const currentEndMs = dayEndMap.get(dayKey);
+      const startMs = currentEndMs - effectiveDurationMs;
+
+      task.scheduledStartTime = new Date(startMs);
+      task.scheduledEndTime = new Date(currentEndMs);
+      task.allDay = true; // Flag for FullCalendar
+
+      // Add to Busy Slots so Flexible Tasks are pushed earlier
+      busySlots.push({ start: startMs, end: currentEndMs });
+
+      // Update the map for the next task on this day
+      dayEndMap.set(dayKey, startMs);
+  });
+
+  // Ghost Block Generation (if enabled)
+  const ghostBlocks = [];
+  if (showGhostBlocks) {
+      allDayTasks.forEach(task => {
+          if (task.scheduledStartTime && task.scheduledEndTime) {
+              ghostBlocks.push({
+                  ...task,
+                  id: task.id + '_ghost',
+                  originalId: task.originalId,
+                  allDay: false, // Ghost blocks are timed
+                  displayStartTime: task.scheduledStartTime,
+                  displayEndTime: task.scheduledEndTime,
+                  scheduledStartTime: task.scheduledStartTime,
+                  scheduledEndTime: task.scheduledEndTime,
+                  isGhost: true, // Marker for styling
+                  name: `(Ghost) ${task.name}`
+              });
+          }
+      });
+  }
+
   busySlots.sort((a, b) => a.start - b.start);
 
+  // 3. Schedule Flexible Tasks (Backwards around obstacles)
   flexibleTasks.forEach(task => {
-    const taskDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
-    const { earlyMs, mingleMs } = calculateBuffers(task, taskDurationMs);
+    const fullDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
+    const effectiveDurationMs = fullDurationMs * (1 - (task.progressRatio || 0));
+
+    const { earlyMs, mingleMs } = calculateBuffers(task, effectiveDurationMs);
     const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
     const cleanupMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
 
-    // Logic: We are scheduling the "Main Block" [Prep+Early+Task] to happen before Due Date.
-    // However, the "Post Block" [Cleanup+Mingle] happens immediately *after* the task.
-    // The calendar must be free for BOTH blocks.
-
     const preTaskBlockDuration = prepMs + earlyMs;
-    const mainTaskBlockDuration = taskDurationMs; // The actual task
+    const mainTaskBlockDuration = effectiveDurationMs; // Uses partial completion duration
     const postTaskBlockDuration = cleanupMs + mingleMs;
 
     const totalDurationToFit = preTaskBlockDuration + mainTaskBlockDuration; // [Prep+Early+Task]
@@ -2048,13 +2202,6 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     let potentialTaskEndTime = new Date(task.baseDueDate);
 
     let foundSlot = false;
-    // We scan backwards from due date.
-    // "blockStartMs" is the start of [Prep].
-    // "blockEndMs" is the end of [Task].
-    // "postBlockEndMs" is the end of [Cleanup/Mingle].
-
-    // We need [blockStartMs -> postBlockEndMs] to be free in busySlots.
-
     for (let i = 0; i < 500 && !foundSlot; i++) {
       let blockStartMs = potentialTaskEndTime.getTime() - totalDurationToFit; // Start of Prep
       let blockEndMs = potentialTaskEndTime.getTime(); // End of Task
@@ -2065,20 +2212,9 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
         // Check if the slot overlaps with our TOTAL footprint (Prep -> Cleanup)
         if (blockStartMs < slot.end && postBlockEndMs > slot.start) {
           conflict = true;
-          // If conflict, try to move the whole block.
           // Standard backward scheduling strategy:
-          // If we hit a busy slot, we align the *end* of our block with the *start* of the busy slot.
-          // But which "end" of our block hit the slot?
-
-          // If the conflict is with the Post-Block (Cleanup), we need to move such that Cleanup ends at slot.start.
-          // i.e., potentialTaskEndTime (Task End) = slot.start - postTaskBlockDuration.
-
-          // If the conflict is with the Main/Prep Block, we need to move such that Task End = slot.start.
-
-          // Simplest heuristic: Just push the Task End to `slot.start - postTaskBlockDuration`.
+          // If we hit a busy slot, align the *end* of our block (Cleanup end) with the *start* of the busy slot.
           // This ensures the Cleanup finishes exactly when the busy slot starts.
-          // (Even if the conflict was with the Prep time, this moves us way back, which is safe).
-
           potentialTaskEndTime = new Date(slot.start - postTaskBlockDuration);
           break;
         }
@@ -2097,16 +2233,53 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     }
 
     if (!foundSlot) { // Fallback
-       // If no slot found (e.g. infinite loop protection), just place it at the due date
-       // possibly overlapping.
-       const blockStartMs = task.baseDueDate.getTime() - totalDurationMs;
+       const blockStartMs = task.baseDueDate.getTime() - effectiveDurationMs; // Use effective duration
        task.scheduledStartTime = new Date(blockStartMs + prepMs + earlyMs);
        task.scheduledEndTime = new Date(task.baseDueDate);
     }
   });
 
+  // --- Step 2.2.1: Apply Visual Shrinking Logic (Post-Scheduling) ---
+  // The scheduling above used effectiveDurationMs to determine busy slots.
+  // Now we determine what to actually DISPLAY.
+  const allScheduled = [...appointments, ...flexibleTasks, ...allDayTasks];
+
+  allScheduled.forEach(task => {
+      // Default: Display matches scheduling (shrunk)
+      task.displayStartTime = task.scheduledStartTime;
+      task.displayEndTime = task.scheduledEndTime;
+
+      // If "Visually Shrink" is OFF (and it's not a ghost block), we want to show full duration.
+      if (visuallyShrinkCompletedTasks === false && !task.isGhost && !task.isAllDay) {
+          // Re-calculate full start/end based on anchor
+          const fullDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
+          if (task.isAppointment) {
+              if (task.timeInputType === 'start') {
+                  // Anchor Start
+                  task.displayEndTime = new Date(task.displayStartTime.getTime() + fullDurationMs);
+              } else {
+                  // Anchor End (default)
+                  // Wait, for appointments, scheduledEndTime IS the due date (or adjusted).
+                  // If we calculated scheduledStart based on effectiveDuration, it is LATER than original.
+                  // To restore full duration anchored at END, we move start back.
+                  task.displayStartTime = new Date(task.displayEndTime.getTime() - fullDurationMs);
+              }
+          } else {
+              // Flexible Task
+              // It's floating. If we expand it, we expand it from... where?
+              // The logic placed it such that it ends at `scheduledEndTime`.
+              // So we anchor at End and expand backwards.
+              task.displayStartTime = new Date(task.displayEndTime.getTime() - fullDurationMs);
+          }
+      }
+  });
+
   // --- Step 2.3: Calculate Final "Coloring GPA" ---
-  allOccurrences.forEach(occurrence => {
+  // Merge Ghost Blocks into the main array for processing (they need coloring too, or at least processing)
+  const finalSet = [...allOccurrences, ...ghostBlocks];
+
+  finalSet.forEach(occurrence => {
     if (!occurrence.scheduledStartTime) {
       occurrence.finalGpa = -1;
       occurrence.finalStatus = 'green';
@@ -3679,6 +3852,8 @@ let uiSettings = {
   closeModalAfterAction: false,
   calendarCategoryFilters: {},
   showCalendarFilters: true, // New setting
+  visuallyShrinkCompletedTasks: true, // New setting
+  showGhostBlocks: false, // New setting
   monthView: {
     showIcon: true,
     showTime: false,
@@ -5535,6 +5710,83 @@ function toggleSimpleMode() {
   }
 }
 
+function toggleAllDayMode(isAllDay) {
+    const timeInputContainer = document.getElementById('time-input-container');
+    const taskDueDateInput = document.getElementById('task-due-date');
+    const taskStartDateInput = document.getElementById('task-start-date');
+    const repetitionUnitSelect = document.getElementById('repetition-unit');
+    const relativeUnitSelect = document.getElementById('relative-unit');
+
+    if (isAllDay) {
+        // Hide Time Input Type selector (Start vs Due) - All day implies the whole day
+        if (timeInputContainer) timeInputContainer.classList.add('hidden');
+
+        // Change inputs to 'date' type
+        if (taskDueDateInput) {
+            taskDueDateInput.type = 'date';
+            // If there was a full datetime value, strip the time
+            if (taskDueDateInput.value.includes('T')) {
+                taskDueDateInput.value = taskDueDateInput.value.split('T')[0];
+            }
+        }
+        if (taskStartDateInput) {
+            taskStartDateInput.type = 'date';
+             if (taskStartDateInput.value.includes('T')) {
+                taskStartDateInput.value = taskStartDateInput.value.split('T')[0];
+            }
+        }
+
+        // Hide Minutes/Hours in Repetition
+        if (repetitionUnitSelect) {
+            Array.from(repetitionUnitSelect.options).forEach(opt => {
+                if (['minutes', 'hours'].includes(opt.value)) {
+                    opt.hidden = true;
+                    opt.disabled = true;
+                }
+            });
+            // If current selection is hidden, switch to days
+            if (['minutes', 'hours'].includes(repetitionUnitSelect.value)) {
+                repetitionUnitSelect.value = 'days';
+            }
+        }
+
+        // Hide Minutes/Hours in Relative Due Date (Advanced)
+        if (relativeUnitSelect) {
+             Array.from(relativeUnitSelect.options).forEach(opt => {
+                if (['minutes', 'hours'].includes(opt.value)) {
+                    opt.hidden = true;
+                    opt.disabled = true;
+                }
+            });
+             if (['minutes', 'hours'].includes(relativeUnitSelect.value)) {
+                relativeUnitSelect.value = 'days';
+            }
+        }
+
+    } else {
+        // Show Time Input Type selector
+        if (timeInputContainer) timeInputContainer.classList.remove('hidden');
+
+        // Revert inputs to 'datetime-local'
+        if (taskDueDateInput) taskDueDateInput.type = 'datetime-local';
+        if (taskStartDateInput) taskStartDateInput.type = 'datetime-local';
+
+        // Show Minutes/Hours
+        if (repetitionUnitSelect) {
+            Array.from(repetitionUnitSelect.options).forEach(opt => {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+        }
+        if (relativeUnitSelect) {
+             Array.from(relativeUnitSelect.options).forEach(opt => {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+        }
+    }
+}
+
 function updateDateTimeFieldsVisibility() {
   if (!dueDateGroup || !relativeDueDateGroup || !startDateGroup || !dueDateTypeSelect || !timeInputTypeSelect) {
     return;
@@ -5662,6 +5914,16 @@ function renderPlannerSettings() {
   const creationOnClickToggle = document.getElementById('allow-creation-on-click-toggle');
   if (creationOnClickToggle) {
     creationOnClickToggle.checked = calendarSettings.allowCreationOnClick;
+  }
+
+  const visuallyShrinkToggle = document.getElementById('visually-shrink-toggle');
+  if (visuallyShrinkToggle) {
+    visuallyShrinkToggle.checked = uiSettings.visuallyShrinkCompletedTasks !== false; // Default true
+  }
+
+  const showGhostBlocksToggle = document.getElementById('show-ghost-blocks-toggle');
+  if (showGhostBlocksToggle) {
+    showGhostBlocksToggle.checked = uiSettings.showGhostBlocks === true; // Default false
   }
 
   const plannerDefaultIconInput = document.getElementById('planner-default-icon');
@@ -8158,6 +8420,7 @@ function handleFormSubmit(event) {
       timeInputType: timeInputTypeSelect.value,
       dueDateType: dueDateTypeSelect.value,
       dueDate: null,
+      isAllDay: document.getElementById('simple-all-day-toggle').checked || document.getElementById('advanced-all-day-toggle').checked,
       repetitionType: taskRepetitionSelect.value,
       maxMisses: null,
       trackMisses: true,
@@ -8218,6 +8481,12 @@ function handleFormSubmit(event) {
     if (taskData.repetitionType === 'relative') {
       taskData.repetitionAmount = parseInt(repetitionAmountInput.value, 10);
       taskData.repetitionUnit = repetitionUnitSelect.value;
+
+      // If All-Day is enabled, force repetition unit to 'days' if it was set to hours or minutes
+      if (taskData.isAllDay && (taskData.repetitionUnit === 'minutes' || taskData.repetitionUnit === 'hours')) {
+          taskData.repetitionUnit = 'days';
+      }
+
       taskData.maxMisses = maxMissesInput.value ? parseInt(maxMissesInput.value, 10) : null;
       taskData.trackMisses = trackMissesInput.checked;
     } else if (taskData.repetitionType === 'absolute') {
@@ -10210,6 +10479,8 @@ function initializeDOMElements() {
   taskStartDateInput = document.getElementById('task-start-date');
   dueDateTypeSelect = document.getElementById('due-date-type');
   relativeDueDateGroup = document.getElementById('relative-due-date-group');
+  simpleAllDayToggle = document.getElementById('simple-all-day-toggle');
+  advancedAllDayToggle = document.getElementById('advanced-all-day-toggle');
   relativeAmountInput = document.getElementById('relative-amount');
   relativeUnitSelect = document.getElementById('relative-unit');
   taskRepetitionSelect = document.getElementById('task-repetition');
@@ -10481,6 +10752,22 @@ function setupEventListeners() {
           }
         }
       });
+    }
+
+    if (simpleAllDayToggle) {
+        simpleAllDayToggle.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            if (advancedAllDayToggle) advancedAllDayToggle.checked = isChecked;
+            toggleAllDayMode(isChecked);
+        });
+    }
+
+    if (advancedAllDayToggle) {
+        advancedAllDayToggle.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            if (simpleAllDayToggle) simpleAllDayToggle.checked = isChecked;
+            toggleAllDayMode(isChecked);
+        });
     }
   }
 
@@ -11062,6 +11349,21 @@ function setupEventListeners() {
       } else if (target.id === 'planner-default-category') { plannerSettings.defaultCategoryId = target.value; saveData();
       } else if (target.classList.contains('task-display-toggle')) {
         if (taskDisplaySettings.hasOwnProperty(target.name)) { taskDisplaySettings[target.name] = target.checked; saveData(); renderTasks(); }
+      } else if (target.classList.contains('allday-view-display-toggle')) {
+        if (!uiSettings.allDayView) uiSettings.allDayView = { showIcon: true, showName: true };
+        if (uiSettings.allDayView.hasOwnProperty(target.name)) {
+            uiSettings.allDayView[target.name] = target.checked;
+            saveData();
+            if (calendar) calendar.refetchEvents();
+        }
+      } else if (target.dataset.action === 'toggleVisuallyShrink') {
+        uiSettings.visuallyShrinkCompletedTasks = target.checked;
+        saveData();
+        updateAllTaskStatuses(true);
+      } else if (target.dataset.action === 'toggleShowGhostBlocks') {
+        uiSettings.showGhostBlocks = target.checked;
+        saveData();
+        updateAllTaskStatuses(true);
       } else if (target.id === 'calculation-horizon-amount' || target.id === 'calculation-horizon-unit') {
         uiSettings.calculationHorizonAmount = parseInt(document.getElementById('calculation-horizon-amount').value, 10) || 1;
         uiSettings.calculationHorizonUnit = document.getElementById('calculation-horizon-unit').value;
@@ -11724,7 +12026,14 @@ function updateAllTaskStatuses(forceRender = false) {
 
     // TimeGrid View (Week/Day): Add as a single block
     const timeGridId = isHistorical ? `hist_${originalId}_${completionDate}` : (baseProps.id || originalId);
-    calendarTimeGridEvents.push({ ...baseProps, id: timeGridId, start, end });
+
+    // Explicitly handle allDay property
+    const isAllDay = baseProps.extendedProps && baseProps.extendedProps.isAllDay;
+    if (isAllDay) {
+        calendarTimeGridEvents.push({ ...baseProps, id: timeGridId, start, end, allDay: true });
+    } else {
+        calendarTimeGridEvents.push({ ...baseProps, id: timeGridId, start, end });
+    }
 
     // Month View: Split into daily segments
     let currentSegmentStart = new Date(start);
@@ -11743,8 +12052,8 @@ function updateAllTaskStatuses(forceRender = false) {
     }
   };
 
-  // Process active tasks from the pipeline
-  allOccurrences.forEach(occurrence => {
+  // Process active tasks from the pipeline (using finalSet which includes ghost blocks)
+  finalSet.forEach(occurrence => {
     if (!occurrence.scheduledStartTime || !occurrence.scheduledEndTime) return;
 
     const start = new Date(occurrence.displayStartTime || occurrence.scheduledStartTime);
@@ -11797,16 +12106,35 @@ function updateAllTaskStatuses(forceRender = false) {
         extendedProps.isBuffer = true;
     }
 
+    // Ghost Block Styling
+    if (occurrence.isGhost) {
+        backgroundColor = 'transparent';
+        textColor = getContrastingTextColor('#ffffff')['--text-color-primary']; // Assume dark overlay or just standard text
+        // Make it semi-transparent/ghostly
+        // We can't set opacity on just BG here easily without RGBA conversion,
+        // so we'll handle it in eventDidMount or rely on the transparent bg.
+        title = occurrence.name; // Already set to "(Ghost) ..."
+        extendedProps.isGhost = true;
+    }
+
     extendedProps.icon = icon;
+    // Pass the isAllDay flag to extendedProps so we can read it in eventContent
+    extendedProps.isAllDay = occurrence.allDay === true;
 
     const baseProps = {
       title: title,
       backgroundColor: backgroundColor,
-      borderColor: borderColor,
+      borderColor: occurrence.isGhost ? 'transparent' : borderColor, // No border for ghosts? Or dashed?
       textColor: textColor,
       extendedProps: extendedProps,
       id: occurrence.id // Pass the unique occurrence ID
     };
+
+    // Additional Ghost Styling override
+    if (occurrence.isGhost) {
+        baseProps.classNames = ['fc-event-ghost'];
+    }
+
     processEvent({ start, end, baseProps, isHistorical: false, originalId: occurrence.id });
   });
 
@@ -12306,6 +12634,17 @@ function initializeCalendar() {
 
       // --- TimeGrid Week View Rendering ---
       if (view.type === 'timeGridWeek') {
+        // Special handling for All-Day events in Week view
+        if (event.allDay) {
+             const showIcon = uiSettings.allDayView ? uiSettings.allDayView.showIcon : true;
+             const showName = uiSettings.allDayView ? uiSettings.allDayView.showName : true;
+
+             const iconHtml = showIcon && extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon mr-1"></i>` : '';
+             const titleHtml = showName ? `<span>${event.title}</span>` : '';
+             // Use flex row for all-day items
+             return { html: `<div class="fc-event-main-inner flex flex-row items-center px-1">${iconHtml}${titleHtml}</div>` };
+        }
+
         const iconHtml = uiSettings.weekView.showIcon && extendedProps.icon ? `<div><i class="${extendedProps.icon} fa-fw fc-event-icon"></i></div>` : '';
         const timeHtml = uiSettings.weekView.showTime ? `<div class="fc-event-time">${timeText}</div>` : '';
         const titleHtml = uiSettings.weekView.showName ? `<div class="fc-event-title">${event.title}</div>` : '';
@@ -12314,6 +12653,16 @@ function initializeCalendar() {
 
       // --- TimeGrid Day View Rendering ---
       if (view.type === 'timeGridDay') {
+        // Special handling for All-Day events in Day view
+        if (event.allDay) {
+             const showIcon = uiSettings.allDayView ? uiSettings.allDayView.showIcon : true;
+             const showName = uiSettings.allDayView ? uiSettings.allDayView.showName : true;
+
+             const iconHtml = showIcon && extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon mr-1"></i>` : '';
+             const titleHtml = showName ? `<span>${event.title}</span>` : '';
+             return { html: `<div class="fc-event-main-inner flex flex-row items-center px-1">${iconHtml}${titleHtml}</div>` };
+        }
+
         const iconHtml = uiSettings.dayView.showIcon && extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw fc-event-icon mr-1"></i>` : '';
         const timeHtml = uiSettings.dayView.showTime ? `<span class="fc-event-time">${timeText}</span>` : '';
         const titleHtml = uiSettings.dayView.showName ? `<span class="fc-event-title ml-1">${event.title}</span>` : '';
