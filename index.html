@@ -1660,6 +1660,113 @@ import interactionPlugin from 'https://esm.sh/@fullcalendar/interaction@6.1.19';
 import { Chart, registerables } from 'https://esm.sh/chart.js@4.4.3';
 import { startOfWeek, format } from 'https://esm.sh/date-fns@3.6.0';
 
+// --- GLOBAL VARIABLES ---
+let tasks = [];
+let categories = [];
+let statusColors = { blue: '#2563eb', green: '#16a34a', yellow: '#eab308', red: '#991b1b', black: '#000000' };
+let statusNames = { blue: 'S+ / Early', green: 'S / On Time', yellow: 'A / Warning', red: 'F / Late', black: 'Missed' };
+let sortBy = 'status';
+let sortDirection = 'asc';
+let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
+let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', calendarGradientSource: 'status', useThemeForStatus: false };
+let calendarSettings = { filterTargetView: 'all', allowCreationOnClick: false };
+let categoryFilter = [];
+let plannerSettings = { defaultIcon: 'fa-solid fa-check', defaultCategoryId: '' };
+let taskDisplaySettings = { showDueDate: true, showRepetition: true, showDuration: true, showCategory: true, showCountdown: true, showProgress: true };
+let appSettings = { title: 'Task & Mission Planner', subtitle: 'Advanced Productivity System', autoKpiEnabled: false, autoKpiRemovable: true, use24HourFormat: false, weeklyGoalLabel: 'Weekly Goals', gpaSystem: 'standard' };
+let sensitivitySettings = { isAdaptive: false, sValue: 0.5 };
+let uiSettings = {
+  activeView: 'dashboard-view',
+  welcomeScreenShown: false,
+  advancedOptionsCollapseState: {},
+  taskManagerCollapseState: {},
+  journalWeekCollapseState: {},
+  journalIconCollapseState: {},
+  monthView: { showIcon: true, showTime: true, showName: true, groupTasks: false },
+  weekView: { showIcon: true, showTime: true, showName: true },
+  dayView: { showIcon: true, showTime: true, showName: true },
+  allDayView: { showIcon: true, showName: true },
+  showCalendarFilters: true,
+  visuallyShrinkCompletedTasks: false,
+  showGhostBlocks: false,
+  calculationHorizonAmount: 1,
+  calculationHorizonUnit: 'years',
+  userInteractions: {},
+  closeModalAfterAction: false,
+  earlyOnTimeSettings: { enabled: false, displaceCalendar: false, onlyAppointments: false, amount: 15, unit: 'minutes' },
+  mingleBufferSettings: { enabled: false, onlyAppointments: false, amount: 15, unit: 'minutes' },
+  smartFormDefaults: { enabled: true },
+  smartFormHistory: {},
+  syncTaskIcons: true,
+  dashboardWeekOffset: 0,
+  useStartDateForSort: false,
+  historyDeletionEnabled: false,
+  historyDeletionPeriod: 365,
+  durationTrackingEnabled: false,
+  durationTrackingAveragePeriod: 5
+};
+let journalSettings = { weeklyGoalIcon: 'fa-solid fa-bullseye' };
+let bufferSettings = {
+    prep: { label: 'Prep', icon: 'fa-solid fa-suitcase-rolling' },
+    early: { label: 'Early', icon: 'fa-regular fa-clock' },
+    mingle: { label: 'Mingle', icon: 'fa-solid fa-comments' }
+};
+let appState = {
+  weeks: [],
+  indicators: [],
+  journal: [],
+  historicalTasks: [],
+  archivedTasks: [],
+  currentView: 'weekly',
+  viewingIndex: 0, // This will be set on init
+  currentDayIndex: 0,
+  vacations: []
+};
+
+// Runtime Globals
+const DATA_KEY = 'pilotPlannerDataV8';
+const VIEW_STATE_KEY = 'pilotPlannerViewStateV8';
+const MAX_WEEKS_STORED = 52;
+const CURRENT_WEEK_INDEX = 26; // Center the current week
+let calendar;
+let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
+let mainUpdateInterval;
+let isInitializing = true;
+let editingTaskId = null;
+let modalStack = [];
+let editingCategoryIdForIcon = null;
+let editingHistoryEventId = null;
+let lastBulkEditSettings = {};
+let taskViewListenerController = new AbortController();
+let initialFormState = {};
+let calendarMonthEvents = [];
+let calendarTimeGridEvents = [];
+
+// DOM Elements (will be populated by initializeDOMElements)
+let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput;
+let taskDescriptionInput, taskThoughtsInput, taskIconInput;
+let iconPickerModal, dataMigrationModal;
+let timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput;
+let dueDateTypeSelect, relativeDueDateGroup, simpleAllDayToggle, advancedAllDayToggle;
+let relativeAmountInput, relativeUnitSelect;
+let taskRepetitionSelect, repetitionRelativeGroup, repetitionAmountInput, repetitionUnitSelect, repeatingOptionsGroup;
+let maxMissesGroup, maxMissesInput, trackMissesInput;
+let completionTypeSelect, estimatedDurationGroup, estimatedDurationAmountInput, estimatedDurationUnitSelect;
+let completionCountGroup, countTargetInput, completionTimeGroup, timeTargetAmountInput, timeTargetUnitSelect;
+let repetitionAbsoluteGroup, absoluteFrequencySelect, absoluteWeeklyOptions, absoluteMonthlyOptions, absoluteYearlyOptions;
+let weekdayCheckboxes, monthlyDayNumberOptions, monthlyDayOfWeekOptions, yearlyDayNumberOptions, yearlyDayOfWeekOptions;
+let monthlyOccurrenceCheckboxes, monthlyWeekdayCheckboxes, monthlyDayCheckboxes;
+let yearlyOccurrenceCheckboxes, yearlyMonthCheckboxes, yearlyWeekdayCheckboxes, yearlyDayCheckboxes;
+let requiresFullAttentionInput, isAppointmentInput;
+let taskCategorySelect, newCategoryGroup, newCategoryNameInput;
+let advancedOptionsModal, sortBySelect, sortDirectionSelect, categoryFilterList, plannerDefaultCategorySelect;
+let taskViewModal, taskViewContent, taskStatsContent;
+let journalModal, journalForm, journalModalTitle, journalEntryIdInput, journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput;
+let app, weeklyGoalsEl, addNewKpiBtn, setKpiBtn, kpiTaskSelect, calendarEl, progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal, cancelNewWeekBtn, confirmNewWeekBtn;
+let prevWeekBtn, nextWeekBtn, todayBtn, weekStatusEl, weekDateRangeEl;
+let showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView;
+
+
 // --- task-logic.js ---
 // =================================================================================
 // TL-1.0: CORE UTILITIES
@@ -2491,7 +2598,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   //    We should augment the `duration` used in Step 2.2 to include Prep + Early time.
   //    Then, in Step 2.4 (here), we split that block into [Prep][Early][Task].
 
-  return [...allOccurrences, ...bufferOccurrences];
+  return [...allOccurrences, ...bufferOccurrences, ...ghostBlocks];
 }
 
 
@@ -3792,114 +3899,43 @@ Chart.register(...registerables);
 // =================================================================================
 // S-1.1: Core Application State
 // =================================================================================
-let isInitializing = true; // Flag to prevent premature saves
-let tasks = [];
-let categories = [];
+// (Global variables moved to top of script)
 const defaultStatusColors = { blue: '#00BFFF', green: '#22c55e', yellow: '#facc15', red: '#991b1b', black: '#4b5563' };
 const defaultStatusNames = { blue: 'Locked', green: 'Ready', yellow: 'Start Soon', red: 'Do Right Now', black: 'Overdue' };
-let statusColors = { ...defaultStatusColors };
-let statusNames = { ...defaultStatusNames };
-let notificationSettings = { enabled: false, rateLimit: { amount: 5, unit: 'minutes' }, categories: {} };
-let notificationEngine = { timeouts: [], lastNotificationTimestamps: {} };
-let theming = { enabled: false, baseColor: '#3b82f6', mode: 'auto', useThemeForStatus: true, calendarGradientSource: 'status' };
-let appSettings = {
-  title: 'Task & Mission Planner',
-  subtitle: 'Organize your tasks, plan your week, and track your progress.',
-  weeklyGoalLabel: 'Mission/Goals for this Week',
-  use24HourFormat: false,
-  autoKpiEnabled: false,
-  autoKpiRemovable: false,
-  gpaSystem: 'standard', // 'standard' or 'extended'
-};
-let calendarSettings = { categoryFilter: [], syncFilter: true, lastView: 'timeGridWeek', allowCreationOnClick: false };
-let lastBulkEditSettings = {};
+// statusColors and statusNames are now declared at the top.
+// We can just initialize them if needed, or rely on the defaults.
+// let statusColors = { ...defaultStatusColors };
+// let statusNames = { ...defaultStatusNames };
+// notificationSettings is now declared at the top.
+// notificationEngine is now declared at the top.
+// theming is now declared at the top.
+// appSettings is now declared at the top.
+// calendarSettings is now declared at the top.
+// lastBulkEditSettings is now declared at the top.
 let oldTasksData = [];
-let editingTaskId = null;
-let editingHistoryEventId = null;
-let editingCategoryIdForIcon = null;
+// editingTaskId is now declared at the top.
+// editingHistoryEventId is now declared at the top.
+// editingCategoryIdForIcon is now declared at the top.
 let kpiChart = null; // For single chart view
 let kpiCharts = []; // For stacked chart view
-let modalStack = [];
-let initialFormState = '';
-let calendarMonthEvents = [];
-let calendarTimeGridEvents = [];
-// let taskViewBorderInterval = null; // This is no longer needed
-let taskViewListenerController = new AbortController(); // To manage event listeners
+// modalStack is now declared at the top.
+// initialFormState is now declared at the top.
+// calendarMonthEvents is now declared at the top.
+// calendarTimeGridEvents is now declared at the top.
+// taskViewListenerController is now declared at the top.
 // isSimpleMode is now part of uiSettings
 let countdownIntervals = {};
-let mainUpdateInterval = null;
+// mainUpdateInterval is now declared at the top.
 let taskTimers = {};
-let sortBy = 'status';
-let sortDirection = 'asc';
-let categoryFilter = [];
-let plannerSettings = { defaultCategoryId: 'Planner' };
-let taskDisplaySettings = {
-  showDueDate: true, showRepetition: true, showDuration: true,
-  showCategory: true, showCountdown: true, showProgress: true,
-};
-let uiSettings = {
-  isSimpleMode: true,
-  activeView: 'dashboard-view', // Default view
-  kpiChartMode: 'single', // 'single' or 'stacked'
-  kpiChartDateRange: '8d', // '8d', '30d', etc.
-  journalIconCollapseState: {},
-  journalWeekCollapseState: {},
-  advancedOptionsCollapseState: {},
-  taskManagerCollapseState: {},
-  calculationHorizonAmount: 1,
-  calculationHorizonUnit: 'years',
-  hintsDisabled: false,
-  closeModalAfterAction: false,
-  calendarCategoryFilters: {},
-  showCalendarFilters: true, // New setting
-  visuallyShrinkCompletedTasks: true, // New setting
-  showGhostBlocks: false, // New setting
-  monthView: {
-    showIcon: true,
-    showTime: false,
-    showName: true,
-    groupTasks: true,
-  },
-  weekView: { // New settings for week view
-    showIcon: true,
-    showTime: true,
-    showName: true,
-  },
-  dayView: { // New settings for day view
-    showIcon: true,
-    showTime: true,
-    showName: true,
-  },
-  welcomeScreenShown: false,
-  earlyOnTimeSettings: {
-    enabled: false,
-    displaceCalendar: false,
-    onlyAppointments: false,
-  },
-  dashboardWeekOffset: 0,
-  syncTaskIcons: true,
-  useStartDateForSort: false,
-  smartFormDefaults: {
-    enabled: true
-  },
-  smartFormHistory: {
-    dateType: [],
-    completionType: [],
-    repetitionUnit: [],
-    estimatedDurationUnit: [],
-    prepTimeUnit: [],
-  },
-};
-let journalSettings = {
-  weeklyGoalIcon: 'fa-solid fa-bullseye',
-};
-// New global settings for prep and early buffers
-let bufferSettings = {
-  prep: { icon: 'fa-solid fa-suitcase-rolling', label: 'Prep' },
-  early: { icon: 'fa-solid fa-clock', label: 'Early' },
-  dashboard: { combinePrepTime: false }
-};
-let sensitivitySettings = { sValue: 0.5, isAdaptive: false };
+// sortBy is now declared at the top.
+// sortDirection is now declared at the top.
+// categoryFilter is now declared at the top.
+// plannerSettings is now declared at the top.
+// taskDisplaySettings is now declared at the top.
+// uiSettings is now declared at the top.
+// journalSettings is now declared at the top.
+// bufferSettings is now declared at the top.
+// sensitivitySettings is now declared at the top.
 const STATUS_UPDATE_INTERVAL = 15000;
 const MS_PER_SECOND = 1000;
 
@@ -3924,58 +3960,16 @@ const iconCategories = {
 const DUE_THRESHOLD_MS = 1000;
 const MAX_CYCLE_CALCULATION = 100;
 
-// DOM Element References (Task Manager)
-let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, taskDescriptionInput, taskThoughtsInput, taskIconInput,
-  iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
-  journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
-  timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
-  dueDateTypeSelect, relativeDueDateGroup,
-  relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
-  repetitionAmountInput, repetitionUnitSelect, repeatingOptionsGroup,
-  maxMissesGroup, maxMissesInput, trackMissesInput,
-  completionTypeSelect, estimatedDurationGroup,
-  estimatedDurationAmountInput, estimatedDurationUnitSelect,
-  completionCountGroup, countTargetInput,
-  completionTimeGroup, timeTargetAmountInput, timeTargetUnitSelect,
-  repetitionAbsoluteGroup, absoluteFrequencySelect,
-  absoluteWeeklyOptions, absoluteMonthlyOptions, absoluteYearlyOptions,
-  monthlyDayNumberOptions, monthlyDayOfWeekOptions, yearlyDayNumberOptions, yearlyDayOfWeekOptions,
-  weekdayCheckboxes, monthlyOccurrenceCheckboxes, yearlyOccurrenceCheckboxes, yearlyMonthCheckboxes,
-  monthlyWeekdayCheckboxes, yearlyWeekdayCheckboxes, monthlyDayCheckboxes, yearlyDayCheckboxes,
-  requiresFullAttentionInput, isAppointmentInput,
-  taskCategorySelect, newCategoryGroup, newCategoryNameInput,
-  advancedOptionsModal,
-  sortBySelect, sortDirectionSelect, categoryFilterList,
-  plannerDefaultCategorySelect, dayNightToggle;
+// DOM Element References are now declared at the top.
+let dayNightToggle;
 
-// DOM Element References (Planner)
-let app, weeklyGoalsEl,
-  addNewKpiBtn, setKpiBtn, kpiTaskSelect,
-  calendarEl, // New element for FullCalendar
-  progressTrackerContainer, viewBtns, startNewWeekBtn, confirmModal,
-  cancelNewWeekBtn, confirmNewWeekBtn, prevWeekBtn, nextWeekBtn, todayBtn,
-  weekStatusEl, weekDateRangeEl,
-  showTaskManagerBtn, showCalendarBtn, showDashboardBtn, showJournalBtn, taskManagerView, calendarView, dashboardView, journalView,
-  taskViewModal, taskViewContent, taskStatsContent;
+// DOM Element References (Planner) are now declared at the top.
 
-// FullCalendar instance
-let calendar;
+// FullCalendar instance is now declared at the top.
 
-// Planner State
-const MAX_WEEKS_STORED = 6;
-const CURRENT_WEEK_INDEX = 4;
-const DATA_KEY = 'pilotPlannerDataV8';
-const VIEW_STATE_KEY = 'pilotPlannerViewStateV8';
+// Planner State constants are now declared at the top.
 
-const appState = {
-  weeks: [],
-  indicators: [],
-  historicalTasks: [],
-  archivedTasks: [], // New: To store full task objects that are no longer active.
-  journal: [],
-  vacations: [], // New: To store vacation periods {id, name, startDate, endDate}
-  viewingIndex: CURRENT_WEEK_INDEX, currentView: 'weekly', currentDayIndex: 0,
-};
+// appState is now declared at the top.
 
 
 
@@ -12023,6 +12017,8 @@ function updateAllTaskStatuses(forceRender = false) {
 
   // --- Task Status Updates ---
   const allOccurrences = runCalculationPipeline([...tasks], calculationHorizon, settings);
+  // finalSet is now allOccurrences because we updated runCalculationPipeline to return everything including ghost blocks
+  const finalSet = allOccurrences;
   let changed = false;
   const nextOccurrenceMap = new Map();
   allOccurrences
