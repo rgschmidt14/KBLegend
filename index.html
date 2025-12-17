@@ -3929,7 +3929,7 @@ let taskModal, taskForm, taskListDiv, modalTitle, taskIdInput, taskNameInput, ta
   iconPickerModal, dataMigrationModal, journalModal, journalForm, journalModalTitle, journalEntryIdInput,
   journalEntryTitleInput, journalEntryIconInput, journalEntryContentInput,
   timeInputTypeSelect, dueDateGroup, taskDueDateInput, startDateGroup, taskStartDateInput,
-  dueDateTypeSelect, relativeDueDateGroup,
+  dueDateTypeSelect, relativeDueDateGroup, simpleAllDayToggle, advancedAllDayToggle,
   relativeAmountInput, relativeUnitSelect, taskRepetitionSelect, repetitionRelativeGroup,
   repetitionAmountInput, repetitionUnitSelect, repeatingOptionsGroup,
   maxMissesGroup, maxMissesInput, trackMissesInput,
@@ -12051,6 +12051,30 @@ function updateAllTaskStatuses(forceRender = false) {
       currentSegmentStart = startOfNextDay;
     }
   };
+
+  // Ghost Block Generation (local re-generation as pipeline doesn't return them)
+  const showGhostBlocks = uiSettings.showGhostBlocks !== undefined ? uiSettings.showGhostBlocks : true;
+  const ghostBlocks = [];
+  if (showGhostBlocks) {
+      allOccurrences.filter(t => t.isAllDay).forEach(task => {
+          if (task.scheduledStartTime && task.scheduledEndTime) {
+              ghostBlocks.push({
+                  ...task,
+                  id: task.id + '_ghost',
+                  originalId: task.originalId,
+                  allDay: false, // Ghost blocks are timed
+                  displayStartTime: task.scheduledStartTime,
+                  displayEndTime: task.scheduledEndTime,
+                  scheduledStartTime: task.scheduledStartTime,
+                  scheduledEndTime: task.scheduledEndTime,
+                  isGhost: true, // Marker for styling
+                  name: `(Ghost) ${task.name}`
+              });
+          }
+      });
+  }
+
+  const finalSet = [...allOccurrences, ...ghostBlocks];
 
   // Process active tasks from the pipeline (using finalSet which includes ghost blocks)
   finalSet.forEach(occurrence => {
