@@ -1011,7 +1011,7 @@ legend {
                         <div id="completion-time-group" class="mb-4 hidden">
                              <label for="time-target-amount" class="form-label">Target Time:</label>
                              <div class="flex space-x-2 items-center">
-                                 <input type="number" id="time-target-amount" name="time-target-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                                 <input type="number" step="any" id="time-target-amount" name="time-target-amount" min="0.1" placeholder="e.g., 30" class="duration-input">
                                  <select id="time-target-unit" name="time-target-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
@@ -1050,7 +1050,7 @@ legend {
                         <div id="relative-due-date-group" class="mb-4 hidden">
                             <label id="relative-due-date-label" class="form-label">Due In:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="relative-amount" name="relative-amount" min="1" value="1" class="duration-input">
+                                <input type="number" step="any" id="relative-amount" name="relative-amount" min="0.1" value="1" class="duration-input">
                                 <select id="relative-unit" name="relative-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
@@ -1065,7 +1065,7 @@ legend {
                          <div id="estimated-duration-group" class="mb-4">
                              <label class="form-label">Estimated Duration:</label>
                              <div class="flex space-x-2 items-center">
-                                 <input type="number" id="estimated-duration-amount" name="estimated-duration-amount" min="1" placeholder="e.g., 30" class="duration-input">
+                                 <input type="number" step="any" id="estimated-duration-amount" name="estimated-duration-amount" min="0.1" placeholder="e.g., 30" class="duration-input">
                                  <select id="estimated-duration-unit" name="estimated-duration-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option>
                                     <option value="hours">Hour(s)</option>
@@ -1075,7 +1075,7 @@ legend {
                          <div class="mb-4">
                             <label class="form-label">Preparation Time:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="prep-time-amount" name="prep-time-amount" min="1" placeholder="e.g., 15" class="duration-input">
+                                <input type="number" step="any" id="prep-time-amount" name="prep-time-amount" min="0.1" placeholder="e.g., 15" class="duration-input">
                                 <select id="prep-time-unit" name="prep-time-unit" class="flex-grow">
                                    <option value="minutes">Minute(s)</option>
                                    <option value="hours">Hour(s)</option>
@@ -1086,7 +1086,7 @@ legend {
                         <div class="mb-4">
                             <label class="form-label">Cleanup Time:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="cleanup-time-amount" name="cleanup-time-amount" min="1" placeholder="e.g., 5" class="duration-input">
+                                <input type="number" step="any" id="cleanup-time-amount" name="cleanup-time-amount" min="0.1" placeholder="e.g., 5" class="duration-input">
                                 <select id="cleanup-time-unit" name="cleanup-time-unit" class="flex-grow">
                                    <option value="minutes">Minute(s)</option>
                                    <option value="hours">Hour(s)</option>
@@ -1121,7 +1121,7 @@ legend {
                         <div id="repetition-relative-group" class="mb-4 hidden">
                             <label class="form-label">Repeat Every:</label>
                             <div class="flex space-x-2 items-center">
-                                <input type="number" id="repetition-amount" name="repetition-amount" min="1" value="1" class="duration-input">
+                                <input type="number" step="any" id="repetition-amount" name="repetition-amount" min="0.1" value="1" class="duration-input">
                                 <select id="repetition-unit" name="repetition-unit" class="flex-grow">
                                     <option value="minutes">Minute(s)</option> <option value="hours">Hour(s)</option> <option value="days">Day(s)</option> <option value="weeks">Week(s)</option> <option value="months">Month(s)</option>
                                 </select>
@@ -1671,7 +1671,7 @@ const MS_PER_DAY = 86400000;
 
 function getDurationMs(amount, unit) {
   if (!amount || !unit) return 0;
-  const parsedAmount = parseInt(amount, 10);
+  const parsedAmount = parseFloat(amount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) return 0;
 
   let ms = 0;
@@ -4007,10 +4007,15 @@ function formatDateForInput(date) {
 function calculateFutureDate(amount, unit, baseDate) {
   try {
     const date = new Date(baseDate);
-    amount = parseInt(amount, 10);
+    amount = parseFloat(amount);
     if (isNaN(amount) || amount <= 0) amount = 1;
+    // For date manipulations, we generally need integers, but for minutes/hours decimals might be valid?
+    // standard setMinutes/setHours handle floats by truncating or similar?
+    // Let's ensure we add MS for time units to be precise with decimals.
     switch (unit) {
-    case 'minutes': date.setMinutes(date.getMinutes() + amount); break;
+    case 'minutes': date.setTime(date.getTime() + amount * MS_PER_MINUTE); break;
+    case 'hours': date.setTime(date.getTime() + amount * MS_PER_HOUR); break;
+    case 'days': date.setDate(date.getDate() + amount); break;
     case 'hours': date.setHours(date.getHours() + amount); break;
     case 'days': date.setDate(date.getDate() + amount); break;
     case 'weeks': date.setDate(date.getDate() + amount * 7); break;
@@ -4044,7 +4049,7 @@ function parseTimeToMs(timeStr) {
   return ms;
 }
 function parseMinutesToMs(minutes) {
-  minutes = parseInt(minutes, 10);
+  minutes = parseFloat(minutes);
   return isNaN(minutes) || minutes < 0 ? 0 : minutes * MS_PER_MINUTE;
 }
 function calculatePendingCycles(task, nowMs) {
@@ -5444,7 +5449,7 @@ function openModal(taskId = null, options = {}) {
       modalStack.push({ type: 'task-view', taskId: taskId, occurrenceDate: options.occurrenceDate, source: 'task-manager' });
     }
     taskForm.reset();
-    editingTaskId = taskId;
+    editingTaskId = taskId; // This will hold the ID (potentially virtual) for submission
     const reinstateTask = options.reinstateTask;
 
     // Reset all dynamic fields to their default state
@@ -5471,13 +5476,64 @@ function openModal(taskId = null, options = {}) {
 
     const submitButton = taskForm.querySelector('button[type="submit"]');
 
-
     const allTasks = [...tasks, ...(appState.archivedTasks || [])];
-    const taskToLoad = reinstateTask || (taskId ? allTasks.find(t => t.id === taskId) : null);
+    let taskToLoad = null;
+
+    if (reinstateTask) {
+        taskToLoad = reinstateTask;
+    } else if (taskId) {
+        // --- VIRTUAL OCCURRENCE DETECTION ---
+        // Check if we are editing a specific occurrence (ID format: MasterID_Date)
+        // or just a normal task.
+        if (taskId.includes('_')) {
+             // It's a virtual ID. We need to find the master task first.
+             // We can use a regex or split, but IDs are usually simple alphanumeric.
+             // Best way: check if allTasks has it. If not, it's virtual.
+             // (Master tasks don't have underscores in current ID generation, but we shouldn't rely on that if we can avoid it)
+             taskToLoad = allTasks.find(t => t.id === taskId); // Try exact match first
+
+             if (!taskToLoad) {
+                 // Not found directly, so it IS virtual. Parse it.
+                 // The ID format is generally MasterID_ISOString
+                 // But MasterID *could* theoretically have underscores if generated differently in future?
+                 // Let's assume standard format: last part is date.
+                 const lastUnderscoreIndex = taskId.lastIndexOf('_');
+                 if (lastUnderscoreIndex !== -1) {
+                     const masterId = taskId.substring(0, lastUnderscoreIndex);
+                     const dateStr = taskId.substring(lastUnderscoreIndex + 1);
+                     const masterTask = allTasks.find(t => t.id === masterId);
+
+                     if (masterTask) {
+                         // Clone the master task so we don't mutate it yet
+                         taskToLoad = { ...masterTask };
+                         taskToLoad.id = taskId; // Set the virtual ID so submit knows it's an override
+
+                         // --- OCCURRENCE DATE LOGIC ---
+                         // If options.occurrenceDate is passed (from Calendar view), use it.
+                         // If not (from Edit button inside Task View), parse it from the ID.
+                         let occurrenceDate = options.occurrenceDate;
+                         if (!occurrenceDate) {
+                             const parsedDate = new Date(dateStr);
+                             if (!isNaN(parsedDate)) occurrenceDate = parsedDate;
+                         }
+
+                         // IMPORTANT: Set the due date of this virtual object to the occurrence date.
+                         // This ensures calculations for Start Time are based on this specific instance.
+                         if (occurrenceDate) {
+                             taskToLoad.dueDate = occurrenceDate;
+                         }
+                     }
+                 }
+             }
+        } else {
+             // Standard Master Task
+             taskToLoad = allTasks.find(t => t.id === taskId);
+        }
+    }
 
     if (taskToLoad) {
       const task = taskToLoad; // Use a consistent variable name
-      // CRITICAL: For reinstating, we use the original ID. For editing, we use the existing ID.
+      // CRITICAL: For reinstating, we use the original ID. For editing, we use the existing (possibly virtual) ID.
       taskIdInput.value = task.id;
       modalTitle.textContent = reinstateTask ? (options.title || 'Reinstate Task') : 'Update Task';
       submitButton.textContent = reinstateTask ? (options.submitText || 'Confirm Reinstatement') : 'Update Task';
@@ -5485,22 +5541,40 @@ function openModal(taskId = null, options = {}) {
       taskDescriptionInput.value = task.description || '';
       taskIconInput.value = task.icon || '';
 
-      // Set Time Input Type and corresponding date fields
-      // Use Smart Defaults preference if available, otherwise default to task's setting or 'due'
+      // --- TIME INPUT TYPE LOGIC ---
+      // 1. If creating NEW task from Calendar selection (options.startTime), force 'start'.
+      // 2. If editing existing task, respect Master Task preference.
+      // 3. Fallback to Smart Defaults only for NEW tasks without overrides.
       let preferredInputType = task.timeInputType || 'due';
-      if (uiSettings.smartFormDefaults && uiSettings.smartFormDefaults.enabled && uiSettings.smartFormHistory && uiSettings.smartFormHistory.timeInputType) {
-         // Only use default if this is a NEW task (no ID yet) or if we want to enforce it.
-         // For existing tasks, typically we respect the task's saved preference, BUT if the user is editing an occurrence,
-         // they might prefer their default input method. Given the request, we'll lean towards respecting the smart default if active.
-         if (!taskId) {
-             preferredInputType = uiSettings.smartFormHistory.timeInputType[0] || preferredInputType;
-         }
+
+      if (!taskId && options.startTime) {
+          preferredInputType = 'start';
+      } else if (!taskId && uiSettings.smartFormDefaults && uiSettings.smartFormDefaults.enabled && uiSettings.smartFormHistory && uiSettings.smartFormHistory.timeInputType) {
+          preferredInputType = uiSettings.smartFormHistory.timeInputType[0] || preferredInputType;
       }
 
       timeInputTypeSelect.value = preferredInputType;
 
-      const dateToUse = (options.occurrenceDate instanceof Date) ? options.occurrenceDate : (task.dueDate ? new Date(task.dueDate) : null);
-      const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+      // --- DATE & TIME POPULATION LOGIC ---
+      // We determine the "Anchor Date" (Due Date) and "Duration".
+      // From these, we calculate the Start Date.
+      let dateToUse = (options.occurrenceDate instanceof Date) ? options.occurrenceDate : (task.dueDate ? new Date(task.dueDate) : null);
+      let durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
+      // Handle Calendar Drag Selection overrides
+      if (options.startTime) {
+          // If dragged on calendar, we have specific start and end/duration.
+          // options.startTime is the Start.
+          // options.durationMinutes is the duration.
+          // We need to set dateToUse (Due Date) = Start + Duration.
+          const durMins = options.durationMinutes || 60;
+          durationMs = durMins * 60000;
+          dateToUse = new Date(options.startTime.getTime() + durationMs);
+
+          // Also pre-fill the duration fields
+          estimatedDurationAmountInput.value = durMins;
+          estimatedDurationUnitSelect.value = 'minutes';
+      }
 
       // Always populate BOTH inputs so switching works immediately
       if (dateToUse) {
@@ -12771,19 +12845,18 @@ function initializeCalendar() {
         return;
       }
 
-      const taskStartDate = new Date(info.start);
-      // We set a default duration of 1 hour for the new task
-      const taskDueDate = new Date(taskStartDate.getTime() + (60 * 60 * 1000));
+      const startTime = new Date(info.start);
+      const endTime = new Date(info.end);
+      const durationMs = endTime.getTime() - startTime.getTime();
+      // Calculate duration in minutes (allowing for decimals if needed, though dragging usually snaps)
+      const durationMinutes = Math.round(durationMs / 60000);
 
       // Clear the visual selection immediately
       calendar.unselect();
 
       // Open the modal for a NEW task (taskId = null).
-      // We pass the calculated due date. The openModal function will pre-fill the form.
-      // Crucially, we do NOT save anything to the 'tasks' array yet.
-      // The user must click "Save" in the modal to create the task.
-      // This prevents "ghost tasks" from being created on accidental clicks.
-      openModal(null, { occurrenceDate: taskDueDate });
+      // We pass the start time and duration. openModal will handle the rest.
+      openModal(null, { startTime: startTime, durationMinutes: durationMinutes });
     }
   });
 
