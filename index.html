@@ -965,6 +965,12 @@ legend {
                             <option value="start">Start Time</option>
                         </select>
                     </div>
+                     <div class="mb-4 flex items-center justify-between">
+                         <label class="flex items-center space-x-2 cursor-pointer">
+                             <input type="checkbox" id="simple-all-day-toggle" class="form-checkbox h-4 w-4 rounded">
+                             <span class="text-sm font-medium text-[var(--text-color-secondary)]">All Day Task</span>
+                         </label>
+                     </div>
                      <div id="due-date-group" class="mb-4">
                         <label for="task-due-date" class="form-label">Due Date & Time:</label>
                         <input type="datetime-local" id="task-due-date" name="task-due-date">
@@ -1017,12 +1023,18 @@ legend {
                     </fieldset>
                     <fieldset id="advanced-time-fieldset">
                         <legend class="form-legend">Time and Scheduling</legend>
-                         <div class="mb-4">
-                            <label class="form-label">Due Date Type:</label>
-                            <select id="due-date-type" name="due-date-type">
-                                <option value="absolute">Absolute Date & Time</option>
-                                <option value="relative">Relative Time</option>
-                            </select>
+                         <div class="mb-4 flex justify-between items-center gap-4 flex-wrap">
+                             <div class="flex-grow">
+                                <label class="form-label">Due Date Type:</label>
+                                <select id="due-date-type" name="due-date-type">
+                                    <option value="absolute">Absolute Date & Time</option>
+                                    <option value="relative">Relative Time</option>
+                                </select>
+                             </div>
+                             <label class="flex items-center space-x-2 cursor-pointer mt-5">
+                                 <input type="checkbox" id="advanced-all-day-toggle" class="form-checkbox h-4 w-4 rounded">
+                                 <span class="text-sm font-medium text-[var(--text-color-secondary)]">All Day Task</span>
+                             </label>
                         </div>
                         <div id="advanced-time-inputs-placeholder"></div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
@@ -1387,6 +1399,13 @@ legend {
                              <div class="flex items-center justify-between">
                                 <label for="show-calendar-filters-toggle" class="form-label mb-0" title="Show or hide the category filter checkboxes that appear below the calendar.">Show Category Filters:</label>
                                 <input type="checkbox" id="show-calendar-filters-toggle" data-action="toggleShowCalendarFilters" class="toggle-checkbox">
+                            </div>
+                            <div id="all-day-view-display-options" class="mt-4" title="Choose what information to display for All-Day events in the calendar.">
+                                <p class="form-label mb-1">All Day View Display:</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center space-x-2"><input type="checkbox" name="showIcon" class="all-day-view-display-toggle"><span>Show Icon</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" name="showName" class="all-day-view-display-toggle"><span>Show Name</span></label>
+                                </div>
                             </div>
                             <div id="month-view-display-options" class="mt-4" title="Choose what information to display for events in the Month view.">
                                 <p class="form-label mb-1">Month View Display:</p>
@@ -1910,7 +1929,15 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   // --- Step 2.1: Calculate "Positioning GPA" & Prioritize ---
   allOccurrences.forEach(occurrence => {
     const task = occurrence;
-    const baseDueDate = adjustDateForVacation(new Date(task.occurrenceDueDate), vacations, task.categoryId, categories);
+    let baseDueDate = adjustDateForVacation(new Date(task.occurrenceDueDate), vacations, task.categoryId, categories);
+
+    // If it's an All Day task, force the due time to 23:59:59.
+    // This ensures that "Positioning GPA" and "Backward Scheduling" use the end of the day as the anchor.
+    if (task.isAllDay) {
+        baseDueDate = new Date(baseDueDate);
+        baseDueDate.setHours(23, 59, 59, 999);
+    }
+
     task.baseDueDate = baseDueDate;
 
     const prepTimeMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
@@ -1922,8 +1949,12 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     let timeDemerit = (warningWindow > 0 && timeUntilDue <= warningWindow) ? (1 - (timeUntilDue / warningWindow)) * 3.0 : 0;
     timeDemerit = Math.max(0, Math.min(timeDemerit, 3.0));
 
-    // Adjust demerit based on progress. A task that is 50% done will have its time-based urgency penalty cut in half.
-    // This makes timed and count-based tasks feel less urgent as they are worked on.
+    // --- DEMERIT CALCULATION & PARTIAL COMPLETION ---
+    // The "Demerit" system (Urgency) and the "Displacement" system (Time on Calendar) both need to account for progress.
+    // If a task is 50% complete:
+    // 1. It is less urgent (Demerit is reduced).
+    // 2. It takes less time to finish (Effective Duration is reduced).
+
     let progressRatio = 0;
     if (task.completionType === 'time' && task.currentProgress > 0) {
       const totalDurationMs = getDurationMs(task.timeTargetAmount, task.timeTargetUnit);
@@ -1934,8 +1965,16 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
       if (task.countTarget > 0) {
         progressRatio = task.currentProgress / task.countTarget;
       }
+    } else if (task.currentProgress > 0 && task.estimatedDurationAmount) {
+         // Fallback for simple tasks if they somehow have progress tracked (e.g. manual entry)
+         // or if we want to support partial completion for simple tasks in the future.
+         // For now, simple tasks (checkboxes) are usually 0% or 100%.
     }
     progressRatio = Math.max(0, Math.min(progressRatio, 1)); // Clamp between 0 and 1
+
+    // Store the effective duration for scheduling in the next step
+    const fullDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    task.effectiveDurationMs = fullDurationMs * (1 - progressRatio);
 
     if (progressRatio > 0) {
       timeDemerit = timeDemerit * (1 - progressRatio);
@@ -1950,6 +1989,11 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   // --- Step 2.2: De-conflict the Calendar ("Scheduling Forward") ---
   const appointments = allOccurrences.filter(o => o.isAppointment);
   const flexibleTasks = allOccurrences.filter(o => !o.isAppointment);
+  // All-Day tasks are technically flexible (scheduled backward from midnight),
+  // but they behave like appointments in that they have a fixed anchor (Midnight).
+  // However, since we schedule them "backward", they fit the Flexible model perfectly.
+  // The only difference is their visual rendering (top bar vs grid).
+
   flexibleTasks.sort((a, b) => a.positioningGpa - b.positioningGpa);
 
   let busySlots = [];
@@ -1985,8 +2029,21 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   };
 
   appointments.forEach(task => {
-    const durationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+    // For appointments, we usually respect the full duration as a 'block'.
+    // However, if the user has made progress on an appointment (e.g. it's a long meeting and they are half done?),
+    // should it shrink? The requirement says "applies to all tasks".
+    // So we use 'effectiveDurationMs' here as well.
+    // If effectiveDurationMs is undefined (legacy), fall back to calculated.
+    const durationMs = task.effectiveDurationMs !== undefined ? task.effectiveDurationMs : getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit);
+
     if (!task.baseDueDate) return;
+
+    // Appointments are typically scheduled by their Start Time (which is baseDueDate for appointments? No, baseDueDate is Due Date).
+    // In this app's logic, "Appointment" checkbox usually means "Fixed Time".
+    // If it's a fixed time task, the "Due Date" input usually acts as the "End Time" or "Start Time" depending on the input type.
+    // If user input "Start Time", then task.dueDate was calculated as Start + Duration.
+    // So task.baseDueDate is effectively the End Time.
+
     task.scheduledStartTime = new Date(task.baseDueDate.getTime() - durationMs);
     task.scheduledEndTime = new Date(task.baseDueDate);
 
@@ -2022,7 +2079,9 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
   busySlots.sort((a, b) => a.start - b.start);
 
   flexibleTasks.forEach(task => {
-    const taskDurationMs = getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit) || 60000;
+    // Use effective duration (shrinks with progress)
+    const taskDurationMs = (task.effectiveDurationMs !== undefined ? task.effectiveDurationMs : getDurationMs(task.estimatedDurationAmount, task.estimatedDurationUnit)) || 60000;
+
     const { earlyMs, mingleMs } = calculateBuffers(task, taskDurationMs);
     const prepMs = getDurationMs(task.prepTimeAmount, task.prepTimeUnit);
     const cleanupMs = getDurationMs(task.cleanupTimeAmount, task.cleanupTimeUnit);
@@ -2123,7 +2182,8 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     // Actually, `warningWindow` logic uses `timeUntilDue`.
 
     // Let's stick to the previous pattern but dynamic:
-    const durationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
+    // Use effective duration for consistency
+    const durationMs = (occurrence.effectiveDurationMs !== undefined ? occurrence.effectiveDurationMs : getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit));
     const { earlyMs } = calculateBuffers(occurrence, durationMs);
 
     // --- GPA Calculation ---
@@ -2137,7 +2197,7 @@ function runCalculationPipeline(tasks, calculationHorizon, settings, now_for_tes
     }
 
     const prepTimeMs = getDurationMs(occurrence.prepTimeAmount, occurrence.prepTimeUnit);
-    const estimatedDurationMs = getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit);
+    const estimatedDurationMs = (occurrence.effectiveDurationMs !== undefined ? occurrence.effectiveDurationMs : getDurationMs(occurrence.estimatedDurationAmount, occurrence.estimatedDurationUnit));
     const urgencySourceDuration = prepTimeMs > 0 ? prepTimeMs : estimatedDurationMs;
     const warningWindow = urgencySourceDuration * 4;
     const timeUntilDue = gpaCalculationStartTimeMs - nowMs;
@@ -5540,18 +5600,50 @@ function updateDateTimeFieldsVisibility() {
     return;
   }
 
+  const isAllDay = simpleAllDayToggle && simpleAllDayToggle.checked;
   const isRelative = dueDateTypeSelect.value === 'relative';
   const isStartInput = timeInputTypeSelect.value === 'start';
   const relativeLabel = document.getElementById('relative-due-date-label');
 
+  // Filter repetition units for All-Day tasks
+  if (relativeUnitSelect) {
+    Array.from(relativeUnitSelect.options).forEach(option => {
+      if (isAllDay && (option.value === 'minutes' || option.value === 'hours')) {
+        option.classList.add('hidden');
+        if (relativeUnitSelect.value === option.value) relativeUnitSelect.value = 'days';
+      } else {
+        option.classList.remove('hidden');
+      }
+    });
+  }
+
   // Show relative group only if due date type is relative
   relativeDueDateGroup.classList.toggle('hidden', !isRelative);
 
-  // Show absolute due date group only if type is absolute AND input is 'due'
-  dueDateGroup.classList.toggle('hidden', isRelative || isStartInput);
+  if (isAllDay) {
+      // Hide time-specific inputs for absolute scheduling
+      // We still show due date group but hide the start-date/due-time specific toggles
+      // The requirement was: "Time Input Behavior: When "All Day" is selected... hide or disable the time picker part"
+      // Since <input type="datetime-local"> has time built-in, we can't easily hide just the time part without custom CSS or a type change.
+      // However, we can hide the "Start Time" vs "Due Time" selector and the Start Date input.
 
-  // Show start date group only if type is 'start' AND type is 'absolute'
-  startDateGroup.classList.toggle('hidden', !isStartInput || isRelative);
+      dueDateGroup.classList.remove('hidden');
+      startDateGroup.classList.add('hidden');
+
+      if (timeInputTypeSelect) {
+          timeInputTypeSelect.parentElement.classList.add('hidden');
+      }
+  } else {
+      if (timeInputTypeSelect) {
+          timeInputTypeSelect.parentElement.classList.remove('hidden');
+      }
+
+      // Show absolute due date group only if type is absolute AND input is 'due'
+      dueDateGroup.classList.toggle('hidden', isRelative || isStartInput);
+
+      // Show start date group only if type is 'start' AND type is 'absolute'
+      startDateGroup.classList.toggle('hidden', !isStartInput || isRelative);
+  }
 
   // Update the label for the relative time input
   if (relativeLabel) {
@@ -11717,7 +11809,11 @@ function updateAllTaskStatuses(forceRender = false) {
     const { start, end, baseProps, isHistorical, originalId, completionDate } = eventData;
 
     // Final validation before adding to arrays
-    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    // Note: All-Day events (allDay: true) might have start === end if we force it, but FullCalendar handles single-day all-day events fine.
+    // However, our pipeline sets start/end times even for all-day tasks (23:30 - 23:59 etc).
+    // The visual rendering for All-Day should just strip the time component for the `start` date and ignore `end` (or set it to next day).
+
+    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || (end <= start && !baseProps.allDay)) {
       console.warn('Skipping invalid event during processing:', { baseProps, start, end });
       return;
     }
@@ -11770,6 +11866,14 @@ function updateAllTaskStatuses(forceRender = false) {
         positioningGpa: occurrence.positioningGpa
     };
 
+    let isAllDayEvent = task.isAllDay || false;
+
+    // If it's an All-Day task, we render it in the top bar.
+    // Note: Buffers for All-Day tasks (if any) should probably also be All-Day?
+    // Current pipeline calculates buffers as time blocks.
+    // If we want "invisible" displacement, we don't need to render anything for the buffers of All-Day tasks in the all-day section.
+    // However, the main task itself MUST be rendered with `allDay: true`.
+
     if (occurrence.type === 'buffer') {
         // Buffers use custom icons and labels
         let settings;
@@ -11795,6 +11899,15 @@ function updateAllTaskStatuses(forceRender = false) {
 
         // Buffers link to the parent task
         extendedProps.isBuffer = true;
+        // Buffers for all-day tasks are just invisible blocks in the schedule, we generally don't render them in the all-day bar
+        // to avoid clutter, unless specifically requested.
+        // For now, if the parent is all-day, we force the buffer to NOT be all-day (so it doesn't show up up top)
+        // OR we just skip rendering it visually?
+        // The user said "on the calendar there will be gaps since these all day tasks will only be displayed up top".
+        // The gaps are created by the `busySlots`. The buffer *events* themselves are just visual representations.
+        // If we don't render them, the gap is still there (in terms of scheduling).
+        // Let's hide buffers for all-day tasks to keep the all-day bar clean.
+        if (task.isAllDay) return;
     }
 
     extendedProps.icon = icon;
@@ -11805,8 +11918,15 @@ function updateAllTaskStatuses(forceRender = false) {
       borderColor: borderColor,
       textColor: textColor,
       extendedProps: extendedProps,
-      id: occurrence.id // Pass the unique occurrence ID
+      id: occurrence.id, // Pass the unique occurrence ID
+      allDay: isAllDayEvent
     };
+
+    // For All-Day events, we need to ensure the start/end dates are clean dates (no time)
+    // FullCalendar expects YYYY-MM-DD for allDay events.
+    // Our 'start' and 'end' are Date objects with times.
+    // If we pass them as is with `allDay: true`, FullCalendar usually handles it by stripping time.
+
     processEvent({ start, end, baseProps, isHistorical: false, originalId: occurrence.id });
   });
 
@@ -12302,6 +12422,18 @@ function initializeCalendar() {
         const nameHtml = uiSettings.monthView.showName ? `<span class="month-view-name">${event.title}</span>` : '';
         // The background is applied to the wrapper, and text color to the contents.
         return { html: `<div class="month-view-event-item" style="background-color: ${categoryColor}; color: ${textColor};">${iconHtml} ${timeHtml} ${nameHtml}</div>` };
+      }
+
+      // --- All Day Event Rendering (In Week/Day Views) ---
+      if (event.allDay) {
+          // Use specific settings for all-day tasks if available, or fallback to generic defaults
+          const showIcon = taskDisplaySettings.allDayShowIcon !== false; // Default true
+          const showName = taskDisplaySettings.allDayShowName !== false; // Default true
+
+          const iconHtml = showIcon && extendedProps.icon ? `<i class="${extendedProps.icon} fa-fw mr-1"></i>` : '';
+          const titleHtml = showName ? `<span>${event.title}</span>` : '';
+          // Simple inline layout
+          return { html: `<div class="fc-event-main-inner flex items-center justify-center text-xs overflow-hidden px-1">${iconHtml}${titleHtml}</div>` };
       }
 
       // --- TimeGrid Week View Rendering ---
