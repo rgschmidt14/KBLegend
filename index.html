@@ -1660,6 +1660,11 @@ import interactionPlugin from 'https://esm.sh/@fullcalendar/interaction@6.1.19';
 import { Chart, registerables } from 'https://esm.sh/chart.js@4.4.3';
 import { startOfWeek, format } from 'https://esm.sh/date-fns@3.6.0';
 
+Chart.register(...registerables);
+
+// --- Missing DOM Elements ---
+let simpleAllDayToggle, advancedAllDayToggle;
+
 // --- task-logic.js ---
 // =================================================================================
 // TL-1.0: CORE UTILITIES
@@ -12088,6 +12093,29 @@ function updateAllTaskStatuses(forceRender = false) {
   // This is now the single source of truth for calendar event data.
   calendarMonthEvents = [];
   calendarTimeGridEvents = [];
+
+  // Generate Ghost Blocks locally since pipeline doesn't return them
+  const ghostBlocks = [];
+  if (uiSettings.showGhostBlocks) {
+      allOccurrences.filter(o => o.isAllDay).forEach(task => {
+          if (task.scheduledStartTime && task.scheduledEndTime) {
+              ghostBlocks.push({
+                  ...task,
+                  id: task.id + '_ghost',
+                  originalId: task.originalId,
+                  allDay: false, // Ghost blocks are timed events in the grid
+                  displayStartTime: task.scheduledStartTime,
+                  displayEndTime: task.scheduledEndTime,
+                  scheduledStartTime: task.scheduledStartTime,
+                  scheduledEndTime: task.scheduledEndTime,
+                  isGhost: true, // Marker for styling
+                  name: `(Ghost) ${task.name}`
+              });
+          }
+      });
+  }
+
+  const finalSet = [...allOccurrences, ...ghostBlocks];
 
   const processEvent = (eventData) => {
     const { start, end, baseProps, isHistorical, originalId, completionDate } = eventData;
