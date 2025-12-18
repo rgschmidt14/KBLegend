@@ -329,7 +329,7 @@ fieldset {
     margin-bottom: 1rem;
 }
 /* Remove border from fieldsets within the task modal's advanced view for a cleaner look */
-#advanced-task-fields > fieldset {
+fieldset {
     border: none;
     padding-left: 0;
     padding-right: 0;
@@ -939,14 +939,15 @@ legend {
             </div>
              <form id="task-form" class="space-y-4">
                 <input type="hidden" id="task-id">
-                <div class="mb-4">
-                    <label for="task-name" class="form-label">Task Name:</label>
-                    <input type="text" id="task-name" name="task-name" required>
-                </div>
 
-                <!-- Fields for Simple Mode -->
+                <!-- New Combined General Section -->
                 <fieldset>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <legend id="general-legend" class="form-legend hidden">General</legend>
+                    <div class="mb-4">
+                        <label for="task-name" class="form-label">Task Name:</label>
+                        <input type="text" id="task-name" name="task-name" required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                            <label for="task-category" class="form-label">Category:</label>
                            <select id="task-category" name="task-category">
@@ -966,35 +967,9 @@ legend {
                             </div>
                         </div>
                     </div>
-                </fieldset>
-                <fieldset id="simple-time-fieldset">
-                    <div id="time-input-container" class="mb-4">
-                        <label class="form-label">Time Input Type:</label>
-                        <select id="time-input-type" name="time-input-type">
-                            <option value="due">Due Time</option>
-                            <option value="start">Start Time</option>
-                        </select>
-                    </div>
-                     <div class="mb-4">
-                         <label class="flex items-center">
-                             <input type="checkbox" id="simple-all-day-toggle" class="h-4 w-4 rounded">
-                             <span class="ml-2 text-sm font-medium">All Day Task</span>
-                         </label>
-                     </div>
-                     <div id="due-date-group" class="mb-4">
-                        <label for="task-due-date" class="form-label">Due Date & Time:</label>
-                        <input type="datetime-local" id="task-due-date" name="task-due-date">
-                    </div>
-                    <div id="start-date-group" class="mb-4 hidden">
-                        <label for="task-start-date" class="form-label">Start Date & Time:</label>
-                        <input type="datetime-local" id="task-start-date" name="task-start-date">
-                    </div>
-                </fieldset>
 
-                <!-- Advanced Fields -->
-                <div id="advanced-task-fields" class="hidden space-y-4">
-                    <fieldset>
-                        <legend class="form-legend">General</legend>
+                    <!-- Advanced General Fields (Hidden in Simple Mode) -->
+                    <div id="advanced-general-fields" class="hidden space-y-4">
                         <div class="mb-4">
                             <label for="completion-type" class="form-label">Completion Type:</label>
                             <select id="completion-type" name="completion-type">
@@ -1030,7 +1005,37 @@ legend {
                            </label>
                            <p class="form-hint">KPIs are tracked on the dashboard.</p>
                        </div>
-                    </fieldset>
+                    </div>
+                </fieldset>
+
+                <!-- Time Section -->
+                <fieldset id="simple-time-fieldset">
+                    <div id="time-input-container" class="mb-4">
+                        <label class="form-label">Time Input Type:</label>
+                        <select id="time-input-type" name="time-input-type">
+                            <option value="due">Due Time</option>
+                            <option value="start">Start Time</option>
+                        </select>
+                    </div>
+                     <!-- Wrapper for the All Day toggle so it can be moved -->
+                     <div id="all-day-wrapper" class="mb-4 flex items-center mt-6">
+                         <label class="flex items-center">
+                             <input type="checkbox" id="simple-all-day-toggle" class="h-4 w-4 rounded">
+                             <span class="ml-2 text-sm font-medium">All Day Task</span>
+                         </label>
+                     </div>
+                     <div id="due-date-group" class="mb-4">
+                        <label for="task-due-date" class="form-label">Due Date & Time:</label>
+                        <input type="datetime-local" id="task-due-date" name="task-due-date">
+                    </div>
+                    <div id="start-date-group" class="mb-4 hidden">
+                        <label for="task-start-date" class="form-label">Start Date & Time:</label>
+                        <input type="datetime-local" id="task-start-date" name="task-start-date">
+                    </div>
+                </fieldset>
+
+                <!-- Advanced Fields Container -->
+                <div id="advanced-task-fields" class="hidden space-y-4">
                     <fieldset id="advanced-time-fieldset">
                         <legend class="form-legend">Time and Scheduling</legend>
                          <div class="mb-4 flex items-center justify-between">
@@ -1041,10 +1046,8 @@ legend {
                                     <option value="relative">Relative Time</option>
                                 </select>
                             </div>
-                             <label class="flex items-center mt-6">
-                                 <input type="checkbox" id="advanced-all-day-toggle" class="h-4 w-4 rounded">
-                                 <span class="ml-2 text-sm font-medium">All Day</span>
-                             </label>
+                            <!-- The All Day toggle will be moved here by JS in Advanced Mode -->
+                            <div id="advanced-all-day-placeholder"></div>
                         </div>
                         <div id="advanced-time-inputs-placeholder"></div>
                         <div id="relative-due-date-group" class="mb-4 hidden">
@@ -1083,7 +1086,7 @@ legend {
                             </div>
                             <p class="form-hint">Optional. How long you need to prepare for or travel to this task.</p>
                         </div>
-                        <div class="mb-4">
+                        <div id="cleanup-time-group" class="mb-4">
                             <label class="form-label">Cleanup Time:</label>
                             <div class="flex space-x-2 items-center">
                                 <input type="number" step="any" id="cleanup-time-amount" name="cleanup-time-amount" min="0.1" placeholder="e.g., 5" class="duration-input">
@@ -1663,7 +1666,7 @@ import { startOfWeek, format } from 'https://esm.sh/date-fns@3.6.0';
 Chart.register(...registerables);
 
 // --- Missing DOM Elements ---
-let simpleAllDayToggle, advancedAllDayToggle;
+let simpleAllDayToggle;
 
 // --- task-logic.js ---
 // =================================================================================
@@ -5469,6 +5472,9 @@ function openModal(taskId = null, options = {}) {
     estimatedDurationGroup.classList.remove('hidden');
     newCategoryGroup.classList.add('hidden');
 
+    const cleanupTimeGroup = document.getElementById('cleanup-time-group');
+    if (cleanupTimeGroup) cleanupTimeGroup.classList.remove('hidden'); // Default show
+
     while (taskCategorySelect.options.length > 2) {
       taskCategorySelect.remove(2);
     }
@@ -5483,6 +5489,7 @@ function openModal(taskId = null, options = {}) {
 
     const allTasks = [...tasks, ...(appState.archivedTasks || [])];
     let taskToLoad = null;
+    let isOccurrenceEdit = false;
 
     if (reinstateTask) {
         taskToLoad = reinstateTask;
@@ -5491,6 +5498,7 @@ function openModal(taskId = null, options = {}) {
         // Check if we are editing a specific occurrence (ID format: MasterID_Date)
         // or just a normal task.
         if (taskId.includes('_')) {
+             isOccurrenceEdit = true;
              // It's a virtual ID. We need to find the master task first.
              // We can use a regex or split, but IDs are usually simple alphanumeric.
              // Best way: check if allTasks has it. If not, it's virtual.
@@ -5545,6 +5553,11 @@ function openModal(taskId = null, options = {}) {
       taskNameInput.value = task.name;
       taskDescriptionInput.value = task.description || '';
       taskIconInput.value = task.icon || '';
+
+      // Hide Cleanup Time if editing an occurrence
+      if (isOccurrenceEdit && cleanupTimeGroup) {
+          cleanupTimeGroup.classList.add('hidden');
+      }
 
       // --- TIME INPUT TYPE LOGIC ---
       // 1. If creating NEW task from Calendar selection (options.startTime), force 'start'.
@@ -5754,23 +5767,34 @@ function closeModal() {
 function toggleSimpleMode() {
   const advancedFields = document.getElementById('advanced-task-fields');
   const simpleModeToggle = document.getElementById('simple-mode-toggle');
+  const advancedGeneralFields = document.getElementById('advanced-general-fields');
+  const generalLegend = document.getElementById('general-legend');
 
   if (advancedFields && simpleModeToggle) {
-    advancedFields.classList.toggle('hidden', uiSettings.isSimpleMode);
-    simpleModeToggle.checked = !uiSettings.isSimpleMode;
+    const isAdvanced = !uiSettings.isSimpleMode;
+    advancedFields.classList.toggle('hidden', !isAdvanced);
+    simpleModeToggle.checked = isAdvanced;
+
+    // Toggle General Section Headers/Fields
+    if (advancedGeneralFields) advancedGeneralFields.classList.toggle('hidden', !isAdvanced);
+    if (generalLegend) generalLegend.classList.toggle('hidden', !isAdvanced);
 
     const advancedTimePlaceholder = document.getElementById('advanced-time-inputs-placeholder');
     const simpleTimeFieldset = document.getElementById('simple-time-fieldset');
+    const advancedAllDayPlaceholder = document.getElementById('advanced-all-day-placeholder');
 
     // Elements to move
     const timeInputContainer = document.getElementById('time-input-container');
     const dueDateGroup = document.getElementById('due-date-group');
     const startDateGroup = document.getElementById('start-date-group');
+    const allDayWrapper = document.getElementById('all-day-wrapper');
 
-    if (uiSettings.isSimpleMode) {
+    if (!isAdvanced) {
       // Move back to simple fieldset
       if (simpleTimeFieldset) {
         if (timeInputContainer) simpleTimeFieldset.appendChild(timeInputContainer);
+        // Insert All Day wrapper before the date inputs for simple flow
+        if (allDayWrapper) simpleTimeFieldset.appendChild(allDayWrapper);
         if (dueDateGroup) simpleTimeFieldset.appendChild(dueDateGroup);
         if (startDateGroup) simpleTimeFieldset.appendChild(startDateGroup);
       }
@@ -5781,10 +5805,12 @@ function toggleSimpleMode() {
         if (dueDateGroup) advancedTimePlaceholder.appendChild(dueDateGroup);
         if (startDateGroup) advancedTimePlaceholder.appendChild(startDateGroup);
       }
+      // Move All Day wrapper to its specific spot in advanced view
+      if (advancedAllDayPlaceholder && allDayWrapper) {
+          advancedAllDayPlaceholder.appendChild(allDayWrapper);
+      }
     }
 
-    // In simple mode, the main due date input is part of the advanced form now, so it's always hidden.
-    // In advanced mode, its visibility is controlled by the new updateDateTimeFieldsVisibility function.
     updateDateTimeFieldsVisibility();
   }
 }
@@ -8493,13 +8519,16 @@ function handleFormSubmit(event) {
     const id = document.getElementById('task-id').value; // Get ID directly from the form
     const now = new Date();
 
+    // Check if we are saving an override for a specific occurrence
+    const isOverride = id && id.includes('_') && id.split('_').length > 1;
+
     const taskData = {
       name: taskNameInput.value.trim(),
       description: taskDescriptionInput.value.trim(),
       timeInputType: timeInputTypeSelect.value,
       dueDateType: dueDateTypeSelect.value,
       dueDate: null,
-      isAllDay: document.getElementById('simple-all-day-toggle').checked || document.getElementById('advanced-all-day-toggle').checked,
+      isAllDay: document.getElementById('simple-all-day-toggle').checked,
       repetitionType: taskRepetitionSelect.value,
       maxMisses: null,
       trackMisses: true,
@@ -8515,7 +8544,7 @@ function handleFormSubmit(event) {
       isKpi: document.getElementById('is-kpi').checked,
       prepTimeAmount: document.getElementById('prep-time-amount').value ? parseInt(document.getElementById('prep-time-amount').value, 10) : null,
       prepTimeUnit: document.getElementById('prep-time-unit').value,
-    cleanupTimeAmount: document.getElementById('cleanup-time-amount').value ? parseInt(document.getElementById('cleanup-time-amount').value, 10) : null,
+    cleanupTimeAmount: (isOverride) ? null : (document.getElementById('cleanup-time-amount').value ? parseInt(document.getElementById('cleanup-time-amount').value, 10) : null),
     cleanupTimeUnit: document.getElementById('cleanup-time-unit').value,
       repeatUntil: null,
       repeatUntilMode: taskForm.querySelector('input[name="repeat-until-mode"]:checked').value,
@@ -10559,7 +10588,6 @@ function initializeDOMElements() {
   dueDateTypeSelect = document.getElementById('due-date-type');
   relativeDueDateGroup = document.getElementById('relative-due-date-group');
   simpleAllDayToggle = document.getElementById('simple-all-day-toggle');
-  advancedAllDayToggle = document.getElementById('advanced-all-day-toggle');
   relativeAmountInput = document.getElementById('relative-amount');
   relativeUnitSelect = document.getElementById('relative-unit');
   taskRepetitionSelect = document.getElementById('task-repetition');
@@ -10836,15 +10864,6 @@ function setupEventListeners() {
     if (simpleAllDayToggle) {
         simpleAllDayToggle.addEventListener('change', (e) => {
             const isChecked = e.target.checked;
-            if (advancedAllDayToggle) advancedAllDayToggle.checked = isChecked;
-            toggleAllDayMode(isChecked);
-        });
-    }
-
-    if (advancedAllDayToggle) {
-        advancedAllDayToggle.addEventListener('change', (e) => {
-            const isChecked = e.target.checked;
-            if (simpleAllDayToggle) simpleAllDayToggle.checked = isChecked;
             toggleAllDayMode(isChecked);
         });
     }
