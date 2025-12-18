@@ -6576,7 +6576,7 @@ function openTaskView(eventId, isHistorical, occurrenceDate, source = 'calendar'
           const occurrence = calendarTimeGridEvents.find(e => e.id === contextOccurrenceId) || calendarMonthEvents.find(e => e.id === contextOccurrenceId);
           // If we can't find the event object (rare), we construct a fallback object with the ID and date we know
           const occurrenceData = occurrence
-            ? { id: occurrence.id, occurrenceDueDate: occurrence.start }
+            ? { id: occurrence.id, occurrenceDueDate: (occurrence.extendedProps && occurrence.extendedProps.occurrenceDueDate) ? new Date(occurrence.extendedProps.occurrenceDueDate) : occurrenceDate }
             : { id: contextOccurrenceId, occurrenceDueDate: occurrenceDate };
 
           openSimpleEditModal(taskToEdit, occurrenceData, categories);
